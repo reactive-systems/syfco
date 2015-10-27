@@ -1,0 +1,37 @@
+INFO {
+  TITLE:       "LTL -> DPA  -  Example 22  (Source: Acacia+)"
+  DESCRIPTION: "DBA A with 3 priorities: a word u is accepted by A if the minimal priority seen infinitely often is even"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    a1;
+    a2;
+    a3;
+    a4;
+    a5;
+    b
+  }
+
+  OUTPUTS {
+    p0;
+    p1;
+    p2;
+  }
+
+  INVARIANTS {
+       ( p0 && !p1 && !p2)
+    || (!p0 &&  p1 && !p2)
+    || (!p0 && !p1 &&  p2);
+  }
+
+  GUARANTEES {
+    ((G F a1 && G F a2 && G F a3 && G F a4 && G F a5) -> G F b)
+      <-> (G F p0 || (G F p2 && !G F p1));
+  }
+
+}
+

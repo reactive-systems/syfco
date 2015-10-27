@@ -1,0 +1,74 @@
+INFO {
+  TITLE:       "Round Robin Arbiter"
+  DESCRIPTION: "Parameterized Arbiter, where requst signals have to remain HIGH until they are granted"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 2;
+  }
+
+  DEFINITIONS {
+    // ensures mutual exclusion on an n-ary bus
+    mutual_exclusion(bus) =
+     mone(bus,0,(SIZEOF bus) - 1);
+
+    // ensures that none of the signals
+    // bus[i] - bus[j] is HIGH
+    none(bus,i,j) =
+      &&[i <= t <= j]
+        !bus[t];
+
+    // ensures that at most one of the signals
+    // bus[i] - bus[j] is HIGH
+    mone(bus,i,j) =
+    i > j : false
+    i == j : true
+    i < j :
+      // either no signal of the lower half is HIGH and at 
+      // most one signal of the upper half is HIGH
+      (none(bus, i, m(i,j)) && mone(bus, m(i,j) + 1, j)) ||
+      // or at most one signal of the lower half is HIGH
+      // and no signal in of the upper half is HIGH
+      (mone(bus, i, m(i,j)) && none(bus, m(i,j) + 1, j));
+
+    // returns the position between i and j
+    m(i,j) = (i + j) / 2;
+  } 
+}
+
+MAIN {
+
+  INPUTS {
+    r[n]; // request signals
+  } 
+
+  OUTPUTS {
+    g[n]; // grant signals
+  }
+
+  ASSUMPTIONS {
+    G &&[0 <= i < n] (
+      // every request signal remains HIGH until it is granted
+      ( r[i] && !g[i] -> X  r[i]) &&
+      // every request signal swaps to LOW when granted     
+      (!r[i] &&  g[i] -> X !r[i]) &&
+      // fairness: the arbiter cannot be starved by a process
+      F !(r[i] && g[i])
+    );    
+  }
+
+  INVARIANTS {
+    // ensure mutual exclusion on the output bus
+    mutual_exclusion(g);
+  }
+
+  GUARANTEES {
+    // every request is eventually granted
+    &&[0 <= i < n]
+      G (r[i] -> F g[i]);
+  }
+  
+}

@@ -1,0 +1,48 @@
+INFO {
+  TITLE:       "Lily Demo V21"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    r1;
+    r2;
+    r3;
+    r4;
+  }
+
+  OUTPUTS {
+    g1;
+    g2;
+    g3;
+    g4;
+  }
+
+  ASSUMPTIONS {
+    G (!r1 || !r2);
+    G (!r1 || !r3);
+    G (!r1 || !r4); 
+    G (!r2 || !r3);
+    G (!r2 || !r4);
+    G (!r3 || !r4);    
+  }
+
+  INVARIANTS {
+    G (r1 -> (X g1 || X X g1 || X X X g1));
+    G (r2 -> (X g2 || X X g2 || X X X g2));
+    G (r3 -> (X g3 || X X g3 || X X X g3));
+    G (r4 -> (X g4 || X X g4 || X X X g4));         
+
+    !g1 || !g2;
+    !g1 || !g3;
+    !g1 || !g4;
+    !g2 || !g3;
+    !g2 || !g4;
+    !g3 || !g4;    
+  }
+
+}
+

@@ -1,0 +1,43 @@
+INFO {
+  TITLE:       "Lily Demo V24"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    s2b_req0;
+    s2b_req1;
+    r2b_ack0;
+    r2b_ack1;
+  }
+
+  OUTPUTS {
+    b2s_ack0;
+    b2s_ack1;
+    b2r_req0;
+    b2r_req1;
+  }
+
+  ASSUMPTIONS {
+    !r2b_ack0;
+    G (!b2r_req0 -> X !r2b_ack0);
+    G (b2r_req0 -> X F r2b_ack0);
+  }
+
+  INVARIANTS {
+    r2b_ack0 -> X !b2r_req0; 
+    b2r_req0 && !r2b_ack0 -> X b2r_req0; 
+    b2r_req0 && X !b2r_req0 -> X (!b2r_req0 U (!b2r_req0 && b2r_req1));
+    (s2b_req0 || s2b_req1) -> X F (b2r_req0 || b2r_req1);    
+    !b2r_req0 || !b2r_req1;
+  }
+
+  GUARANTEES {
+    !b2r_req0;  
+  }
+}
+
+

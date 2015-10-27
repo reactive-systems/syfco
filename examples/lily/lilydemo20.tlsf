@@ -1,0 +1,54 @@
+INFO {
+  TITLE:       "Lily Demo V20"
+  DESCRIPTION: "One of the Lily demo files - Simplified TLC"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    ec; // car present on farm road
+    etc; // 0 is counter has expired, 1 if it is counting
+  }
+
+  OUTPUTS {
+    sts;  // timer set
+    sflr; // light on farm road (red green)
+    shlr; // light on highway
+  }
+
+  ASSUMPTIONS {
+    // timer          
+    !etc;
+    G ((!etc && !sts) -> X !etc);
+    G (etc -> F !etc);
+    G (sts -> X etc);
+  }
+
+  INVARIANTS {
+    // timer is set when we change to green
+    (shlr && X !shlr) -> sts; 
+    (sflr && X !sflr) -> sts;
+
+    // the farm light moves from green to red iff time
+    // out OR no cars present the highway light moves
+    // when time out AND cars present (on farm road).
+    // the second x is because the system can not react
+    // instantaneously
+    (!sflr && (!etc || !ec)) -> X sflr;
+    (!shlr && (!etc ||  ec)) -> X shlr;
+
+    // safety: at least one red
+    sflr || shlr;
+
+    // liveness: farm cars cause a green light, highway
+    //           is regularly set to green
+    ec -> F !sflr;
+    F !shlr;
+  }
+  
+}
+
+
+

@@ -1,0 +1,30 @@
+INFO {
+  TITLE:       "Lily Demo V7"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    req;
+    cancel;
+    go;
+  }
+
+  OUTPUTS {
+    grant;
+  }
+
+  ASSUMPTIONS {
+    G (cancel -> X (go || X go));
+  }   
+
+  INVARIANTS {
+    cancel -> X (!grant U go);
+    grant -> X !grant;
+    req -> (grant || cancel || X (grant || cancel || X (grant || cancel || X (grant || cancel))));
+  }
+  
+}

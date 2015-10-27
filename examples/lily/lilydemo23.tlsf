@@ -1,0 +1,27 @@
+INFO {
+  TITLE:       "Lily Demo V23"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    e;
+  }
+
+  OUTPUTS {
+    s;
+  }
+
+  ASSUMPTIONS {
+    G ((e && X s) -> X e);
+    G F !e;
+  }
+
+  INVARIANTS {
+    X (!e && X !s);
+  }
+  
+}

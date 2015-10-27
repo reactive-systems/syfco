@@ -1,0 +1,40 @@
+INFO {
+  TITLE:       "Lily Demo V22"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    godown; // request to move down
+    goup; // request to move up
+    ws; // state of the window (0 = closed, 1 = open)
+  }
+
+  OUTPUTS {
+    ss; // state of the screen (0 = up, 1 = down)
+  }
+
+  ASSUMPTIONS {
+    !godown;
+    !goup;
+    !ws;
+    
+    G !(godown && goup);
+    G F !ws;
+    G ((!ws && ss) -> X !ws);
+    G (ws -> X (!ws || X (!ws || X (!ws || X !ws))));
+  }
+
+  INVARIANTS {
+    // safety
+    !(ws && X ss);
+
+    // liveness
+    goup -> F !ss;
+    godown -> F ss;    
+  }
+  
+}

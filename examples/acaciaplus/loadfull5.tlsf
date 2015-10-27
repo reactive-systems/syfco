@@ -1,0 +1,64 @@
+INFO {
+  TITLE:       "Load Balancing  -  5 Clients"
+  DESCRIPTION: "One of the Acacia+ Example files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    idle;
+    request0;
+    request1;
+    request2;
+    request3;
+    request4;
+  }
+
+  OUTPUTS {
+    grant0;
+    grant1;
+    grant2;
+    grant3;
+    grant4;
+  }
+
+  ASSUMPTIONS {
+    G F idle;
+    G (!(idle && X !grant0 && X !grant1 && X !grant2 && X !grant3 && X !grant4) || X idle);
+    G (X !grant0 || X ((!request0 && !idle) U (!request0 && idle)));
+  }
+
+  INVARIANTS {
+    !request0 || X !grant1;    
+    !request0 || X !grant2;
+    !request0 || X !grant4;
+    !request0 || X !grant3;
+    X !grant0 || X !grant1;
+    X !grant0 || X !grant2;
+    X !grant0 || X !grant3;
+    X !grant0 || X !grant4;
+    X !grant1 || X !grant2;
+    X !grant1 || X !grant3;
+    X !grant1 || X !grant4;
+    X !grant2 || X !grant3;
+    X !grant2 || X !grant4;
+    X !grant3 || X !grant4;
+    X !grant0 || request0;
+    X !grant1 || request1;
+    X !grant2 || request2;
+    X !grant3 || request3;
+    X !grant4 || request4;
+    (X !grant0 && X !grant1 && X !grant2 && X !grant3 && X !grant4) || idle;
+  }
+
+  GUARANTEES {
+    ! F G (request0 && X !grant0);
+    ! F G (request1 && X !grant1);
+    ! F G (request2 && X !grant2);
+    ! F G (request3 && X !grant3);
+    ! F G (request4 && X !grant4);
+  }
+
+}

@@ -1,0 +1,77 @@
+INFO {
+  TITLE:       "Prioritized Arbiter"
+  DESCRIPTION: "Parameterized Arbiter with a unique master process which has priority angainst others"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 1;
+  }
+
+  DEFINITIONS {
+    // ensures mutual exclusion on an n-ary bus
+    mutual_exclusion(bus) =
+     mone(bus,0,(SIZEOF bus) - 1);
+
+    // ensures that none of the signals
+    // bus[i] - bus[j] is HIGH
+    none(bus,i,j) =
+      &&[i <= t <= j]
+        !bus[t];
+
+    // ensures that at most one of the signals
+    // bus[i] - bus[j] is HIGH
+    mone(bus,i,j) =
+    i > j : false
+    i == j : true
+    i < j :
+      // either no signal of the lower half is HIGH and at 
+      // most one signal of the upper half is HIGH
+      (none(bus, i, m(i,j)) && mone(bus, m(i,j) + 1, j)) ||
+      // or at most one signal of the lower half is HIGH
+      // and no signal in of the upper half is HIGH
+      (mone(bus, i, m(i,j)) && none(bus, m(i,j) + 1, j));
+
+    // returns the position between i and j
+    m(i,j) = (i + j) / 2;
+  } 
+}
+
+MAIN {
+
+  INPUTS {
+    r[n]; // request signals of the standard processes
+    r_m;  // request signal of the master process
+  } 
+
+  OUTPUTS {
+    g[n]; // grant signals of the standard processes
+    g_m; // grant signal of the master process
+  }
+
+  ASSUMPTIONS {
+    // The master cannot starve the others
+    G F !r_m;
+  }
+
+  INVARIANTS {
+    // ensure mutual exclusion between the standard grants
+    mutual_exclusion(g);
+
+    // ensure mutual exclusion against the master
+    &&[0 <= i < n]
+      !(g_m && g[i]);
+  }
+
+  GUARANTEES {
+    // every standard request is eventually granted
+    &&[0 <= i < n]
+      G (r[i] -> F g[i]);
+
+    // a master request is granted before any other request
+    G (r_m -> X (&&[0 <= i < n] !g[i] U g_m));
+  }
+  
+}

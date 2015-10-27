@@ -1,0 +1,41 @@
+INFO {
+  TITLE:       "Load Balancing - Environment - 2 Clients"
+  DESCRIPTION: "One of the Acacia+ Example files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    idle;
+    request0;
+    request1;
+  }
+
+  OUTPUTS {
+    grant0;
+    grant1;
+  }
+
+  ASSUMPTIONS {
+    G F idle;
+    G (!(idle && !grant0 && !grant1) || X idle);    
+    G (!grant0 || X ((!request0 && !idle) U (!request0 && idle)));
+  }
+
+  INVARIANTS {
+    !request0 || !grant1;
+    !grant0 || !grant1;
+    !grant1 || !grant0;
+    !grant0 || request0;
+    !grant1 || request1;
+    (!grant0 && !grant1) || idle;
+  }
+
+  GUARANTEES {
+    ! F G (request0 && !grant0);
+    ! F G (request1 && !grant1);
+  }
+
+}

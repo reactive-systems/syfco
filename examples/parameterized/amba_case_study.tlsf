@@ -1,0 +1,261 @@
+INFO {
+  TITLE:       "AMBA AHB Case Study"
+  DESCRIPTION: "ARM's Advanced Microcontroller Bus Architecture
+                defining the Advanced High-Performance Bus
+                (taken from the PhD Thesis of Babara Jobstmann)"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 2;
+  }
+
+  DEFINITIONS {
+    m = log2(n);
+
+    /* Values of the HBURST signal.
+     */
+    SINGLE(x) = !x[0] &&  x[1];
+    INCR(x)   = !x[0] && !x[1];
+    BURST4(x) =  x[0] && !x[1];
+
+    /* Checks whether a bus of size log(n) currently represents 
+     * the numerical value v (encoded in binary).
+     */
+    value(bus,v) = value'(bus,v,0,SIZEOF bus);
+    value'(bus,v,i,j) =
+      j <= 0        : true
+      bit(v,i) == 1 : value'(bus,v,i + 1,j / 2) &&  bus[i]
+      otherwise    : value'(bus,v,i + 1,j / 2) && !bus[i];
+
+    /* Returns the i-th bit of the numerical value v.
+     */
+    bit(v,i) =
+      i <= 0     : v % 2
+      otherwise : bit(v / 2,i - 1);
+
+    /* Discrete logarithm.
+     */
+    log2(x) =
+      x <= 1     : 1
+      otherwise : 1 + log2(x / 2);
+
+    /* Checks whether a bus of size n is low at index i. 
+     */
+    lowat(bus,i) =
+      &&[0 <= j < SIZEOF bus]
+        (value(i,j) -> !bus[j]);
+
+    /* Chained Weak Until
+     */
+    CWU(f1,f2,i) =
+      i > 1 : f1 W (f2 && X CWU(f1,f2,i - 1))
+      i <= 1 : f1 W f2;
+  } 
+}
+
+MAIN {
+
+  INPUTS {
+    /* A request from Master i to access the bus. Driven by the masters.
+     */
+    HBUSREQ[n];
+
+    /* A request from Master i to receive a locked (uninterruptible)
+     * access to the bus. (Raised in combination with HBUSREQ[i]).
+     * Driven by the masters
+     */
+    HLOCK[n];
+
+    /* High if the slave has finished processing the current data. Change 
+     * of bus ownership and commencement of transfers only take place when
+     * HREADY is high. Driven by the slave.
+     */
+    HREADY;
+
+    /* Either 
+     *   SINGLE (a single transfer), 
+     *   BURST4 (a four-transfer burst access), or
+     *   INCR (unspecified length burst).
+     */
+    HBURST[2];
+  } 
+
+  OUTPUTS {
+    /* The master that currently owns the address bus (binary encoding).
+     * Driven by the arbiter.
+     */
+    HMASTER[m];
+
+    /* Signals that if HREADY is high, HMASTER[i] will hold in the next
+     * tick. Driven by the arbiter.
+     */
+    HGRANT[n];
+
+    /* Indicates that the current master is performing a locked access.
+     * if the signal is low, a burst access may be interrupted when the
+     * bus is assigned to a different master. Driven by the arbiter.
+     */
+    HMASTLOCK;
+
+
+    //// Auxillary Variables ////
+    
+
+    /* Indicates the start of an access.
+     */
+    START;
+
+    /* Indicates if the bus will be locked at the next start of an 
+     * access.
+     */
+    LOCKED;
+
+    /* Indicates the time slot in which the arbiter decides who the next
+     * master will be, and whether its access will be locked.
+     */
+    DECIDE;
+
+    /* Indicates a bus request.
+     */
+    BUSREQ;
+  }
+
+  ASSUMPTIONS {
+    /* Assumption 1: During a locked unspecified length burst, leaving 
+     *   HBUSREQ[i] high locks the bus. This this is forbidden by the 
+     *   standard.
+     */
+    G (HMASTLOCK && INCR(HBURST) -> X F !BUSREQ);
+    
+    /* Assumption 2: Leaving HREADY low locks the bus, the standard 
+     *   forbids is.
+     */
+    G F HREADY;  
+
+    /* Assumption 3: The lock signal is asserted by a master at the same 
+     *   time as the bus request signal.
+     */
+    &&[0 <= i < n]
+      G (HLOCK[i] -> HBUSREQ[i]);
+      
+    /* Assumption 4: We assume that all the signals are low initially.
+     */
+    !HREADY;
+    
+    &&[0 <= i < n]
+      (!HBUSREQ[i] && !HLOCK[i]);
+  }
+
+  INVARIANTS {
+    /* Invariant of Assumption 1
+     */
+    &&[0 <= i < n]
+      (value(HMASTER,i) -> (BUSREQ <-> HBUSREQ[i]));
+
+    /* Guarantee 1: A new access can only start when HREADY is high.
+     */
+    !HREADY -> X !START;
+
+    /* Guarantee 2: When a locked unspecified length burst starts,
+     *   a new access does not start until the current master 
+     *   (HMASTER) releases the bus by lowering HBUSREQ[HMASTER].
+     */
+    HMASTLOCK && INCR(HBURST) && START ->
+      X (!START W (!START && !BUSREQ));
+
+    /* Guarantee 3: When a length-four locked burst starts, no other
+     *   accesses start until the end of the burst. We can only 
+     *   transfer data when HREADY is high, so the current burst ends
+     *   at the fourth occurrence of HREADY. (In the formula, we treat 
+     *   the cases where HREADY is true initially separately from the 
+     *   case in which it is not.)
+     */
+    HMASTLOCK && BURST4(HBURST) && START && HREADY ->
+      X CWU(!START, !START && HREADY, 3);
+     
+    HMASTLOCK && BURST4(HBURST) && START && !HREADY ->
+      X CWU(!START, !START && HREADY, 4); 
+
+    /* Guarantee 4: The HMASTER signal follows the grants: When HREADY
+     *   is high, HMASTER is set to the master that is currently 
+     *   granted. This implies that no two grants may be high 
+     *   simultaneously and that the arbiter cannot change HMASTER 
+     *   without a grant.
+     */
+    &&[0 <= i < n]
+      (HREADY -> (HGRANT[i] <-> X value(HMASTER,i)));
+
+    /* Guarantee 5: Whenever HREADY is high, the signal HMASTLOCK 
+     *   copies the signal LOCKED.
+     */
+    HREADY ->
+      (LOCKED <-> X HMASTLOCK);
+
+    /* Guarantee 6: If we do not start an access in the next time step,
+     *   the bus is not reassigned and HMASTLOCK does not change.
+     */
+    &&[0 <= i < n]
+      (X !START ->
+        ((value(HMASTER,i) <-> X value(HMASTER,i)) &&
+                (HMASTLOCK <-> X HMASTLOCK)));
+
+    /* Guarantee 7: When the arbiter decides to grant the bus, it uses
+     *   LOCKED to remember whether a locked access was requested.
+     */
+    &&[0 <= i < n] 
+      (DECIDE && X HGRANT[i] ->
+        (HLOCK[i] <-> X LOCKED));
+
+    /* Guarantee 8: We do not change the grant or locked signals if
+     *   DECIDE is low.
+     */
+    !DECIDE ->
+      &&[0 <= i < n]
+        (HGRANT[i] <-> X HGRANT[i]);
+
+    !DECIDE ->
+      (LOCKED <-> X LOCKED);
+
+    /* Guarantee 9: We have a fair bus. Note that this is not required
+     *   by the AMBA standard, and there are valid alternatives, such
+     *   as a fixed-priority scheme. (Without this property, there is
+     *   no need for the arbiter to serve any master at all.)
+     */
+    &&[0 <= i < n]
+      (HBUSREQ[i] -> F (!HBUSREQ[i] || value(HMASTER,i)));
+      
+    /* Guarantee 10: We do not grant the bus without a request, except
+     *   to Master 0. If there are no requests, the bus is granted to 
+     *   Master 0.
+     */
+    &&[0 < i < n] 
+      (!HGRANT[i] -> (!HGRANT[i] W HBUSREQ[i]));
+
+    &&[0 <= i < n] !HBUSREQ[i] && DECIDE ->
+      X HGRANT[0]; 
+  }
+
+  GUARANTEES {
+    /* Guarantee 11: An access by Master 0 starts in the first clock
+     *   tick and simultaneously, a decision is taken. Thus, the 
+     *   signals DECIDE, START, and HGRANT[0] are high and all others
+     *   are low.
+     */
+    DECIDE;
+    
+    START;
+    
+    HGRANT[0];
+    
+    value(HMASTER,0);
+    
+    !HMASTLOCK;
+    
+    &&[0 < i < n]
+      !HGRANT[i];
+  }
+  
+}

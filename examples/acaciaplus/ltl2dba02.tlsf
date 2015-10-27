@@ -1,0 +1,26 @@
+INFO {
+  TITLE:       "LTL -> DBA  -  Example 2"
+  DESCRIPTION: "One of the Acacia+ example files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    p;
+    q;
+    r;
+  }
+
+  OUTPUTS {
+    acc;
+  }
+
+  GUARANTEES {
+    (p U q U r) && (q U r U p) && (r U p U q)
+      <-> G F acc;
+  }
+
+}
+

@@ -1,0 +1,33 @@
+INFO {
+  TITLE:       "Lily Demo V17"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    i0;
+    i1;
+  }
+
+  OUTPUTS {
+    a0;
+    a1;
+    a2;
+  }
+
+  INVARIANTS {
+    !(a0 && a1);
+    !(a1 && a2);
+    !(a2 && a0);
+  }
+
+  GUARANTEES {
+    G F i0 -> G F a0;
+    G F i1 -> G F a1;
+    G F a2;
+  }
+
+}

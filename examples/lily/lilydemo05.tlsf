@@ -1,0 +1,36 @@
+INFO {
+  TITLE:       "Lily Demo V5"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    req;
+    cancel;
+    go;
+  }
+
+  OUTPUTS {
+    grant;
+  }
+
+  ASSUMPTIONS {
+    // A1 assume always(cancel -> next_e[1:2](go));
+    G (cancel -> X (go || X go));
+  } 
+
+  INVARIANTS {
+    // always(req -> next_e[1:3] (grant || cancel));
+    req -> X (grant || cancel || X (grant || cancel || X (grant || cancel)));
+
+    // always(grant -> next(!grant));
+    grant -> X !grant;
+
+    // always(cancel -> next((!grant) until! go));
+    cancel -> X (!grant U go);
+  }
+  
+}

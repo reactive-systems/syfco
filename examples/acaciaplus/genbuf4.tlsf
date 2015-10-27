@@ -1,0 +1,86 @@
+INFO {
+  TITLE:       "Generalized Buffer  -  4 Receivers"
+  DESCRIPTION: "One of the Acacia+ Example files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    s2b_req0;
+    s2b_req1;
+    r2b_ack0;
+    r2b_ack1;
+    r2b_ack2;
+    r2b_ack3;
+  }
+
+  OUTPUTS {
+    b2s_ack0;
+    b2s_ack1;
+    b2r_req0;
+    b2r_req1;
+    b2r_req2;
+    b2r_req3;
+  }
+
+  GUARANTEES {
+    // [spec_unit s2b_0]
+    (!s2b_req0 && G (s2b_req0 && !b2s_ack0 -> X s2b_req0) && G (b2s_ack0 -> X !s2b_req0))
+      -> (G (!s2b_req0 && X s2b_req0 -> X (!b2s_ack0 && X F b2s_ack0)) &&
+         G (!b2s_ack0 && X !s2b_req0 -> X !b2s_ack0) &&
+         G (!b2s_ack0 || !b2s_ack1) && !b2s_ack0);
+
+    // [spec_unit s2b_1]
+    (!s2b_req1 && G (s2b_req1 && !b2s_ack1 -> X s2b_req1) && G (b2s_ack1 -> X !s2b_req1))
+      -> (G (!s2b_req1 && X s2b_req1 -> X (!b2s_ack1 && X F b2s_ack1)) &&
+         G (!b2s_ack1 && X !s2b_req1 -> X !b2s_ack1) &&
+         G (!b2s_ack0 || !b2s_ack1) && !b2s_ack1);
+
+    // [spec_unit b2r_0]
+    (!r2b_ack0 && G (!b2r_req0 -> X !r2b_ack0) && G (b2r_req0 -> X F r2b_ack0))
+      -> (G (r2b_ack0 -> X !b2r_req0) && !b2r_req0 &&
+         G (b2r_req0 && !r2b_ack0 -> X b2r_req0) &&
+         G (b2r_req0 && X !b2r_req0 -> X (!b2r_req0 U (!b2r_req0 && b2r_req3))) &&
+         G ((s2b_req0 || s2b_req1) -> X F (b2r_req0 || b2r_req1 || b2r_req2 || b2r_req3)) &&
+         G ((!b2r_req0 && !b2r_req1 && !b2r_req2) ||
+            (!b2r_req1 && !b2r_req2 && !b2r_req3) ||
+            (!b2r_req2 && !b2r_req3 && !b2r_req0) || 
+            (!b2r_req3 && !b2r_req0 && !b2r_req1)));
+     
+    // [spec_unit b2r_1]
+    (!r2b_ack1 && G (!b2r_req1 -> X !r2b_ack1) && G (b2r_req1 -> X F r2b_ack1))
+      -> (G (r2b_ack1 -> X !b2r_req1) && !b2r_req1 &&
+         G (b2r_req1 && !r2b_ack1 -> X b2r_req1) &&
+         G (b2r_req1 && X !b2r_req1 -> X (!b2r_req1 U (!b2r_req1 && b2r_req0))) &&
+         G ((s2b_req0 || s2b_req1) -> X F (b2r_req0 || b2r_req1 || b2r_req2 || b2r_req3)) &&
+         G ((!b2r_req0 && !b2r_req1 && !b2r_req2) ||
+            (!b2r_req1 && !b2r_req2 && !b2r_req3) ||
+            (!b2r_req2 && !b2r_req3 && !b2r_req0) || 
+            (!b2r_req3 && !b2r_req0 && !b2r_req1)));
+
+    // [spec_unit b2r_2]
+    (!r2b_ack2 && G (!b2r_req2 -> X !r2b_ack2) && G (b2r_req2 -> X F r2b_ack2))
+      -> (G (r2b_ack2 -> X (!b2r_req2)) && !b2r_req2 &&
+         G (b2r_req2 && !r2b_ack2 -> X b2r_req2) &&
+         G (b2r_req2 && X !b2r_req2 -> X (!b2r_req2 U (!b2r_req2 && b2r_req1))) &&
+         G ((s2b_req0 || s2b_req1) -> X F (b2r_req0 || b2r_req1 || b2r_req2 || b2r_req3)) &&
+         G ((!b2r_req0 && !b2r_req1 && !b2r_req2) ||
+            (!b2r_req1 && !b2r_req2 && !b2r_req3) ||
+            (!b2r_req2 && !b2r_req3 && !b2r_req0) || 
+            (!b2r_req3 && !b2r_req0 && !b2r_req1)));
+
+    // [spec_unit b2r_3]
+    (!r2b_ack3 && G (!b2r_req3 -> X !r2b_ack3) && G (b2r_req3 -> X F r2b_ack3))
+      -> (G (r2b_ack3 -> X !b2r_req3) && !b2r_req3 &&
+         G (b2r_req3 && !r2b_ack3 -> X b2r_req3) &&
+         G (b2r_req3 && X !b2r_req3 -> X (!b2r_req3 U (!b2r_req3 && b2r_req2))) &&
+         G ((s2b_req0 || s2b_req1) -> X F (b2r_req0 || b2r_req1 || b2r_req2 || b2r_req3)) &&
+         G ((!b2r_req0 && !b2r_req1 && !b2r_req2) ||
+            (!b2r_req1 && !b2r_req2 && !b2r_req3) ||
+            (!b2r_req2 && !b2r_req3 && !b2r_req0) || 
+            (!b2r_req3 && !b2r_req0 && !b2r_req1)));
+  }
+
+}

@@ -1,0 +1,39 @@
+INFO {
+  TITLE:       "Lily Demo V19"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    ets;
+    ec;
+  }
+
+  OUTPUTS {
+    hl;
+    fl;
+  }
+
+  ASSUMPTIONS {
+    // timer
+    G F ets;
+  }
+
+  INVARIANTS {
+    // green lasts at least for one time slot:
+    hl -> (hl U ets);
+    fl -> (fl U ets);
+
+    // safety: at least one red
+    !(hl && fl);
+
+    // lifeness: farm cars cause a green light, highway 
+    //           is regularly set to green
+    ec -> F fl;
+    F hl;
+  }
+
+}
