@@ -1,20 +1,67 @@
-module Data.LookupTable
-       ( LookupTable
-       , IdRec(..)
-       , printLT
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.LookupTable
+-- Description :  Data type to store all identifier specific information
+-- License     :  MIT (see the LICENSE file)
+-- 
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Data type to store all identifier specific information
+-- 
+-----------------------------------------------------------------------------
 
----
+module Data.LookupTable
+    ( LookupTable
+    , IdRec(..)
+    , ltToCSV
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Data.Types
+   ( IdType(..)
+   )
+   
 import Data.Expression
-import Data.Array 
+   ( Expr
+   , ExprPos(..)
+   , SrcPos(..)
+   , prExpr
+   )
 
----
+import Data.Char
+   ( ord
+   , chr
+   )  
+
+import Data.Array
+   ( Array
+   , assocs  
+   )
+
+-----------------------------------------------------------------------------
+
+-- | A lookup table is an array mapping identifieres, represend by integers,
+-- to blocks of information.
 
 type LookupTable = Array Int IdRec
 
----
+-----------------------------------------------------------------------------
+
+-- | Each block contains:
+-- 
+--     * The name of the identifier
+-- 
+--     * The position of the identifer definition in the source file
+-- 
+--     * The arguemnts, in case the identifier describes a function
+-- 
+--     * The expression, the identifier is bound to
+-- 
+--     * The type of the identifier
+-- 
+--     * The list of identifiers, which have to be evaluated first to
+--       evaluate this identifier
 
 data IdRec =
   IdRec
@@ -26,89 +73,63 @@ data IdRec =
   , idDeps :: [Int]
   }
 
----
+-----------------------------------------------------------------------------
 
-printLT
+-- | Prints a lookup table in the CVS format (for debugging purposes only).
+
+ltToCSV
   :: LookupTable -> IO ()
 
-printLT lt =
-  let
-    li = foldl max 0 $ map (length . show . fst) $ assocs lt
-    ln = foldl max 0 $ map (length . idName . snd) $ assocs lt
-    lp = foldl max 0 $ map (length . prExprPos . idPos . snd) $ assocs lt
-    la = foldl max 0 $ map (length . commasepxs . idArgs . snd) $ assocs lt
-    lb = foldl max 0 $ map (length . prExpr .  idBindings . snd) $ assocs lt
-    ly = foldl max 0 $ map (length . prType . idType . snd) $ assocs lt
-    ld = foldl max 0 $ map (length . commasepxs . idDeps . snd) $ assocs lt
-  in
-    mapM_ (printRec li ln lp la lb ly ld) $ assocs lt
+ltToCSV lt = do
+    putStrLn "Id;Name;Position;Arguments;Binding;Type;Dependencies;"
+    mapM_ printEntry $ assocs lt
 
   where
-    printRec a b c d e f g (i,r) = do
-      putStr " "
-      putStr $ filll a $ show i
-      putStr " | "
-      putStr $ fillr b $ idName r
-      putStr " | "
-      putStr $ fillr c $ prExprPos $ idPos r
-      putStr " | "
-      putStr $ fillr d $ commasepxs $ idArgs r
-      putStr " | "
-      putStr $ fillr e $ prExpr $ idBindings r
-      putStr " | "
-      putStr $ fillr f $ prType $ idType r
-      putStr " | "
-      putStr $ fillr g $ commasepxs $ idDeps r
-      putStrLn " |"
+    printEntry (i,r) = do
+      putStr $ show i
+      putStr ";"
+      putStr $ idName r
+      putStr ";"
+      putStr $ prExprPos $ idPos r
+      putStr ";"
+      putStr $ commasepxs $ idArgs r
+      putStr ";"
+      putStr $ prExpr $ idBindings r
+      putStr ";"
+      putStr $ prType $ idType r
+      putStr ";"
+      putStr $ commasepxs $ idDeps r
+      putStrLn ";"
 
-    filll x y = replicate (x - length y) ' ' ++ y
-    fillr x y = y ++ replicate (x - length y) ' '
-      
----
+    commasepxs xs = case xs of
+      (x:xr) -> show x ++ (concatMap ((:) ',') $ map show xr)
+      []     -> ""
 
-prExprPos
-  :: ExprPos -> String
+    prExprPos pos =
+      let 
+        bl = srcLine $ srcBegin pos
+        bc = srcColumn $ srcBegin pos
+        el = srcLine $ srcEnd pos
+        ec = srcColumn $ srcEnd pos
+      in
+        "(" ++ show bl ++ "," ++ show (bc - 1) ++
+        if bl == el then
+          "-" ++ show (ec - 2) ++ ")"
+        else
+          show el ++ ":" ++ show ec ++ ")"
+    
+    prType t = case t of
+      TNumber   -> "number"
+      TSignal x -> show (TSignal x)
+      TLtl      -> "ltl"
+      TBoolean  -> "bool"
+      TPattern  -> "pattern"
+      TEmptySet -> "empty set"
+      TSet x    -> prType x ++ " set"
+      TPoly i   ->
+        if i >= ord 'a' && i <= ord 'z'
+        then [chr i]
+        else "a" ++ show i
 
-prExprPos pos =
-  "(" ++ show bl ++ "," ++ show (bc - 1) ++
-  if bl == el then
-    "-" ++ show (ec - 2) ++ ")"
-  else
-    show el ++ ":" ++ show ec ++ ")"
+-----------------------------------------------------------------------------                
 
-  where
-    bl = srcLine $ srcBegin pos
-    bc = srcColumn $ srcBegin pos
-    el = srcLine $ srcEnd pos
-    ec = srcColumn $ srcEnd pos
-
----
-
-commasepxs
-  :: Show a => [a] -> String
-
-commasepxs xs = case xs of
-  (x:xr) -> show x ++ (concatMap ((:) ',') $ map show xr)
-  []     -> ""
-
----
-
-prType
-  :: IdType -> String
-
-prType t = case t of
-  TPoly i -> case i of
-    0 -> "a"
-    1 -> "b"
-    2 -> "c"
-    3 -> "d"
-    _ -> "a" ++ show i
-  TNumber -> "number"
-  TSignal x -> show (TSignal x)
-  TLtl -> "ltl"
-  TBoolean -> "bool"
-  TPattern -> "pattern"
-  TEmptySet -> "empty set"
-  TSet x -> prType x ++ " set"
-  
----    

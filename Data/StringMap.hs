@@ -1,72 +1,97 @@
-module Data.StringMap
-       ( StringMap
-       , empty
-       , lookup
-       , insert
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.StringMap
+-- Description :  A simple data structure to map strings to integers
+-- License     :  MIT (see the LICENSE file)
+-- 
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- A simple data structure to map strings to integers
+-- 
+-----------------------------------------------------------------------------
 
----
+module Data.StringMap
+    ( StringMap
+    , empty
+    , lookup
+    , insert
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Prelude hiding (lookup)
 
----
+-----------------------------------------------------------------------------
 
-data StringMap = E | L (String,Int) | N (Maybe Int,[(Char, StringMap)]) deriving (Show)
+-- | Internal data structure of the mapping.
 
----
+data StringMap =
+    Empty
+  | Leaf (String, Int)
+  | Node (Maybe Int, [(Char, StringMap)])
+
+-----------------------------------------------------------------------------
+
+-- | Returns the empty mapping.
 
 empty
   :: StringMap
 
-empty = E
+empty = Empty
 
----
+-----------------------------------------------------------------------------
+
+-- | Lookups a string in the mapping.
 
 lookup
   :: String -> StringMap -> Maybe Int
 
-lookup s m = case m of
-  E        -> Nothing
-  L (e,v)  -> if (e == s) then Just v else Nothing
-  N (v,xs) -> case s of
+lookup str mapping = case mapping of
+  Empty       -> Nothing
+  Leaf (e,v)  -> if e == str then Just v else Nothing
+  Node (v,xs) -> case str of
     []   -> v
-    x:xr -> case find' x xs of
-      Just m' -> lookup xr m'
-      _       -> Nothing
+    x:xr -> case findMatch x xs of
+      Just mapping' -> lookup xr mapping'
+      _             -> Nothing
 
   where
-    find' x xs = case xs of
-      ((y,n) : xr) ->
-        if x == y then Just n else find' x xr      
-      _ -> Nothing
+    findMatch x xs = case xs of
+      []           -> Nothing
+      ((y,n) : xr) -> if x == y then Just n
+                     else findMatch x xr      
 
----
+-----------------------------------------------------------------------------
+
+-- | Inserts a new string-int pair to the given mapping. If the mapping 
+-- already containts the given string, then the corresponding value is
+-- updated.      
 
 insert
   :: String -> Int -> StringMap -> StringMap
 
 insert s i m = case m of
-  E       -> L (s,i)
-  L (e,v) -> if e == s then L (s,i) else case e of
-    []     -> N (Just v, [(head s, L (tail s,i))])
+  Empty      -> Leaf (s,i)
+  Leaf (e,v) -> if e == s then Leaf (s,i) else case e of
+    []     -> Node (Just v, [(head s, Leaf (tail s,i))])
     (x:xr) -> case s of
-      []     -> N (Just i, [(x,L (xr,v))])
+      []     -> Node (Just i, [(x,Leaf (xr,v))])
       (y:yr) ->
         if x == y then
-          N (Nothing, [(x, insert yr i (L (xr,v)))])
+          Node (Nothing, [(x, insert yr i (Leaf (xr,v)))])
         else
-          N (Nothing, [(x, L (xr,v)),(y, L (yr,i))])
-  N (v,xs) -> case s of
-    []     -> N (Just i,xs)
-    (x:xr) -> N (v, add x xr i xs)
+          Node (Nothing, [(x, Leaf (xr,v)),(y, Leaf (yr,i))])
+  Node (v,xs) -> case s of
+    []     -> Node (Just i,xs)
+    (x:xr) -> Node (v, add x xr i xs)
 
   where
     add x xr j xs = case xs of
-      []         -> [(x, L (xr,j))]
+      []         -> [(x, Leaf (xr,j))]
       ((c,n):yr) ->
         if x == c then
-          ((c,insert xr j n):yr)
+          (c,insert xr j n):yr
         else
-          ((c,n) : add x xr j yr)
+          (c,n) : add x xr j yr
 
----
+-----------------------------------------------------------------------------

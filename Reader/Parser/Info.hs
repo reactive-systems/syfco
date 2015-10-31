@@ -1,30 +1,82 @@
-module Reader.Parser.Info
-       ( infoParser
-       , targetParser
-       , semanticsParser
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Reader.Parser.Info
+-- Description :  Parser for the INFO section
+-- License     :  MIT (see the LICENSE file)
+-- 
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Parser for the INFO section
+-- 
+-----------------------------------------------------------------------------
 
----
+module Reader.Parser.Info
+    ( infoParser
+    , targetParser
+    , semanticsParser
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Data.Types
+    ( Semantics(..)
+    , Target(..)
+    )  
+
 import Reader.Parser.Data
+    ( globalDef
+    )
+    
 import Reader.Parser.Utils
+    ( stringParser
+    , identifier
+    )  
 
 import Control.Monad
+    ( void
+    )  
+
 import Data.Functor.Identity
+    ( Identity
+    )  
 
 import Text.Parsec
+    ( ParsecT
+    , (<|>)
+    , char
+    , unexpected  
+    , parserFail  
+    )
+    
 import Text.Parsec.String
-import Text.Parsec.Token hiding (identifier)
+    ( Parser
+    )
+    
+import Text.Parsec.Token
+    ( TokenParser
+    , commaSep
+    , reservedNames  
+    , whiteSpace
+    , makeTokenParser
+    , reserved  
+    )  
 
----
+-----------------------------------------------------------------------------
 
-data Sem = SE | SO | SS | SN
-
----
+-- | Parses the INFO section of a specification file. It returns:
+-- 
+--     * the title of the specification
+-- 
+--     * the description of the specification
+-- 
+--     * the semantics of the specification
+-- 
+--     * the target of the specification
+-- 
+--     * the tag list of the specification
 
 infoParser
-  :: Parser (String,String,Semantics,Target,[String])
+  :: Parser (String, String, Semantics, Target, [String])
 
 infoParser = (~~) >> do
   keyword "INFO"
@@ -90,7 +142,9 @@ infoParser = (~~) >> do
       unexpected $
       str ++ " (already defined)"
 
----
+-----------------------------------------------------------------------------
+
+-- | Parses the target description.
 
 targetParser
   :: Parser Target
@@ -99,34 +153,36 @@ targetParser =
       do { keyword "Mealy"; return TargetMealy }
   <|> do { keyword "Moore"; return TargetMoore }
 
----      
+-----------------------------------------------------------------------------      
+
+-- | Parses the semantics description.
 
 semanticsParser
   :: Parser Semantics
 
 semanticsParser = do
-  x <-     do { keyword "Mealy"; return SE }
-      <|> do { keyword "Moore"; return SO }
-      <|> do { keyword "Strict"; return SS }
-  z <-     do { void $ char ',';
-                   do { keyword "Mealy"; return SE }
-               <|> do { keyword "Moore"; return SO }
-               <|> do { keyword "Strict"; return SS } }
-      <|> (return SN)
+  x <- semanticKeyword
+  z <- do { void $ char ','; semanticKeyword } <|> (return "none")
   case (x,z) of
-    (SE,SN) -> return SemanticsMealy
-    (SO,SN) -> return SemanticsMoore
-    (SE,SS) -> return SemanticsStrictMealy
-    (SS,SE) -> return SemanticsStrictMealy
-    (SO,SS) -> return SemanticsStrictMoore
-    (SS,SO) -> return SemanticsStrictMoore
-    (SE,SO) -> unexpected "Moore"
-    (SO,SO) -> unexpected "Mealy"
-    (SO,SE) -> unexpected "Mealy"
-    (SE,SE) -> unexpected "Mealy"
-    _       -> unexpected "Strict"                     
+    ("mealy","none")  -> return SemanticsMealy
+    ("moore","none")  -> return SemanticsMoore
+    ("mealy","strict") -> return SemanticsStrictMealy
+    ("strict","mealy") -> return SemanticsStrictMealy
+    ("moore","strict") -> return SemanticsStrictMoore
+    ("strict","moore") -> return SemanticsStrictMoore
+    ("mealy","moore")  -> unexpected "Moore"
+    ("moore","moore")  -> unexpected "Mealy"
+    ("moore","mealy")  -> unexpected "Mealy"
+    ("mealy","mealy")  -> unexpected "Mealy"
+    _                  -> unexpected "Strict"
 
----
+  where
+    semanticKeyword =
+          do { keyword "Mealy"; return "mealy" }
+      <|> do { keyword "Moore"; return "moore" }
+      <|> do { keyword "Strict"; return "strict" }
+
+-----------------------------------------------------------------------------          
 
 tokenparser
   :: TokenParser a
@@ -137,11 +193,11 @@ tokenparser =
        ["INFO","TITLE","DESCRIPTION", "SEMANTICS",
         "TAGS","Strict","Mealy","Moore","TARGET"] }
 
----    
+-----------------------------------------------------------------------------            
 
 keyword
   :: String -> ParsecT String u Identity ()
 
 keyword = void . reserved tokenparser
 
----
+-----------------------------------------------------------------------------            

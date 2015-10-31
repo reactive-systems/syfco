@@ -1,21 +1,76 @@
-module Reader.Parser.Expression
-       ( exprParser
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Reader.Parser.Expression
+-- Description :  Expression Parser
+-- License     :  MIT (see the LICENSE file)
+-- 
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Expression Parser
+-- 
+-----------------------------------------------------------------------------
 
----
+module Reader.Parser.Expression
+    ( exprParser
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Data.Expression
+    ( Expr(..)
+    , Expr'(..)
+    , SrcPos(..)
+    , ExprPos(..)  
+    )  
 import Reader.Parser.Data
+    ( globalDef
+    )
+    
 import Reader.Parser.Utils
+    ( getPos
+    , identifier
+    , positionParser  
+    )  
 
 import Control.Monad
+    ( liftM
+    , void
+    )  
 
 import Text.Parsec
+    ( (<|>)
+    , char
+    , try  
+    , oneOf
+    , many1
+    , digit  
+    , lookAhead  
+    , notFollowedBy
+    )
+    
 import Text.Parsec.Expr
+    ( Assoc(..)
+    , Operator(..)
+    , buildExpressionParser  
+    )
+    
 import Text.Parsec.String
-import Text.Parsec.Token hiding (identifier)
+    ( Parser
+    )
+    
+import Text.Parsec.Token
+    ( GenLanguageDef(..)
+    , commaSep
+    , reservedNames  
+    , whiteSpace
+    , makeTokenParser
+    , reserved
+    , reservedOp  
+    )  
 
----
+-----------------------------------------------------------------------------
+
+-- | Parses an expression.
 
 exprParser
   :: Parser (Expr String)
@@ -295,9 +350,10 @@ exprParser = (~~) >> buildExpressionParser table term
 
     (~~) = whiteSpace tokenparser
     
-    ch = void . char        
+    ch = void . char
 
----
+-----------------------------------------------------------------------------    
+
 
         
 

@@ -1,21 +1,36 @@
-module Utils where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Utils
+-- Description :  Functions on standard data types that are not in Prelude
+-- License     :  MIT (see the LICENSE file)
+-- 
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Functions on standard data types that are not in Prelude
+-- 
+-----------------------------------------------------------------------------
 
----
+module Utils
+    ( strictsort
+    , iter
+    , imLookup
+    ) where
 
-import qualified Data.IntMap as IM (Key, IntMap, lookup)
-import Data.Maybe (fromJust)
+-----------------------------------------------------------------------------
 
----
+import qualified Data.IntMap as IM
+    ( Key
+    , IntMap
+    , lookup
+    )
 
-split
-  :: [a] -> ([a],[a])
+import Data.Maybe
+    ( fromJust
+    )
 
-split = split' [] []
-  where
-    split' a b [] = (a,b)
-    split' a b (x:xr) = split' b (x:a) xr
+-----------------------------------------------------------------------------
 
----
+-- | Strict version of 'sort'.
 
 strictsort
   :: Ord a => [a] -> [a]
@@ -23,7 +38,7 @@ strictsort
 strictsort vs = case vs of
   []  -> []
   [x] -> [x]
-  _   -> let (ys,zs) = split vs
+  _   -> let (ys,zs) = split [] [] vs
         in  strictmerge [] (strictsort ys) (strictsort zs)
 
   where
@@ -37,26 +52,31 @@ strictsort vs = case vs of
         
     rappend xs ys = foldl (flip (:)) ys xs
 
----
+    split a b xs = case xs of
+      (x:xr) -> split b (x:a) xr      
+      []     -> (a,b)
+
+-----------------------------------------------------------------------------
+
+-- | @iter f n s@ applies the function @f@ @n@ times to @s@.
 
 iter
   :: (a -> a) -> Int -> a -> a
 
-iter f i a = if i == 0 then a else iter f (i-1) (f a)
-    
----
+iter f n s =
+  if n == 0 then s
+  else iter f (n-1) (f s)
 
-map2
-  :: (a -> b) -> (c -> d) -> [(a,c)] -> [(b,d)]
+-----------------------------------------------------------------------------
 
-map2 f1 f2 = map (\(x,y) -> (f1 x, f2 y))
-
----
+-- | @imLookup n im@ looks up an element @n@ of an int map @im@ and takes it
+-- out of the 'Maybe' monad. The function assumes that the corresponding
+-- element exists in @im@.
 
 imLookup
   :: IM.Key -> IM.IntMap a -> a
 
-imLookup i t =
-  fromJust $ IM.lookup i t
+imLookup n im =
+  fromJust $ IM.lookup n im
 
---  
+-----------------------------------------------------------------------------

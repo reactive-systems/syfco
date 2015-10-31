@@ -83,7 +83,7 @@ pcSpec s = do
 ---
 
 pcBind
-  :: Prescinder (Bind Expr String) (Bind Expr Int)
+  :: Prescinder (BindExpr String) (BindExpr Int)
 
 pcBind b = do
   a <- get
@@ -99,7 +99,7 @@ pcBind b = do
     tArgs = IM.insert i (map fst as) $ tArgs a'
     }  
     
-  return Bind
+  return BindExpr
     { bIdent = i
     , bArgs = as
     , bPos = bPos b              

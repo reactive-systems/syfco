@@ -1,10 +1,36 @@
-module Data.Expression where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Expression
+-- Description :  Data types to store expressions and some helper functions
+-- License     :  MIT (see the LICENSE file)
+-- 
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Data types to store expressions and some helper functions
+-- 
+-----------------------------------------------------------------------------
 
----
+module Data.Expression
+    ( Constant
+    , Expr(..)
+    , Expr'(..)
+    , ExprPos(..)
+    , SrcPos(..)
+    , subExpressions
+    , prExpr
+    ) where
+
+-----------------------------------------------------------------------------
+
+-- | A constant is represted by an integer
 
 type Constant = Int
 
----
+-----------------------------------------------------------------------------
+
+-- | Each expression consists of two parts, the main expression itself, i.e.,
+-- the basic term or an operation, and the position of the expression in the
+-- source code. The type $a$ specifies the representation of an identifier.
 
 data Expr a =
   Expr
@@ -12,7 +38,13 @@ data Expr a =
   , srcPos :: ExprPos
   } deriving (Show,Eq)
 
----             
+-----------------------------------------------------------------------------
+
+-- | An expression is either a basic term or the composition of multiple
+-- sub-expressions using an operator. To obtain a stepwise refinement of the
+-- parsed data, an expression does not need to be type consistent ia the 
+-- first place, e.g., techniqually we could add to boolean expressions.
+-- Such behaviour is ruled out later during the type analysis.
 
 data Expr' a =
     BaseWild
@@ -73,7 +105,10 @@ data Expr' a =
   | Pattern (Expr a) (Expr a)
   deriving (Show, Eq)
 
----
+-----------------------------------------------------------------------------
+
+-- | The position of an expression is denoted by its starting position and
+-- ending position in the source code.
 
 data ExprPos =
   ExprPos
@@ -81,7 +116,11 @@ data ExprPos =
   , srcEnd :: SrcPos
   } deriving (Eq, Ord, Show)
 
----
+
+-----------------------------------------------------------------------------
+
+-- | A position in the source code is uniquely identified by its line and
+-- column.
 
 data SrcPos =
   SrcPos
@@ -89,7 +128,11 @@ data SrcPos =
   , srcColumn :: Int
   } deriving (Eq, Ord, Show)
 
----             
+-----------------------------------------------------------------------------
+
+-- | Returns all direct sub-formulas of the given formula, i.e., the formulas
+-- that appear under the first operator. If the given formula is a basic
+-- term, an empty list is returned.
 
 subExpressions
   :: Expr a -> [Expr a]
@@ -148,6 +191,10 @@ subExpressions e = case expr e of
   BlnRAnd xs x     -> x:xs
 
 ---
+
+-- | Some debugging function to give a more readable version of the expression.
+-- In constrast to @show@, this function drops all position information in the
+-- resulting output (for debugging purposes only).
 
 prExpr
   :: Expr Int -> String

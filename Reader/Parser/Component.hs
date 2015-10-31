@@ -1,8 +1,20 @@
-module Reader.Parser.Component
-       ( componentParser
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Reader.Parser.Component
+-- Description :  Parser for the MAIN section
+-- License     :  MIT (see the LICENSE file)
+-- 
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Parser for the MAIN section
+-- 
+-----------------------------------------------------------------------------
 
----
+module Reader.Parser.Component
+    ( componentParser
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Text.Parsec
 import Text.Parsec.String
@@ -17,21 +29,34 @@ import Reader.Parser.Expression
 import Data.Maybe 
 import Control.Monad 
 
----
+-----------------------------------------------------------------------------
 
 data Component =
   Component
-  { inputs :: [Bind Expr String]
-  , outputs :: [Bind Expr String]
+  { inputs :: [BindExpr String]
+  , outputs :: [BindExpr String]
   , assumptions :: [Expr String]
   , invariants :: [Expr String]
   , guarantees :: [Expr String]
   }
 
----  
+-----------------------------------------------------------------------------  
+
+-- | Parses the MAIN section of a specification file. It returns:
+-- 
+--     * the input signals of the specification
+-- 
+--     * the output signals of the specification
+-- 
+--     * the assumptions of the specification
+-- 
+--     * the invariants of the specification
+-- 
+--     * the guarantees of the specification
 
 componentParser
-  :: Parser ([Bind Expr String], [Bind Expr String], [Expr String], [Expr String], [Expr String])
+  :: Parser ([BindExpr String], [BindExpr String], [Expr String],
+            [Expr String], [Expr String])
 
 componentParser = do
   keyword "MAIN"
@@ -68,21 +93,26 @@ componentParser = do
       }
 
     componentContentParser c =
-          (sectionParser "INPUTS"      signalParser >>= \x -> return c { inputs = x      })      
-      <|> (sectionParser "OUTPUTS"     signalParser >>= \x -> return c { outputs = x     })
-      <|> (sectionParser "ASSUMPTIONS" exprParser   >>= \x -> return c { assumptions = x })
-      <|> (sectionParser "INVARIANTS"  exprParser   >>= \x -> return c { invariants = x  })
-      <|> (sectionParser "GUARANTEES"  exprParser   >>= \x -> return c { guarantees = x  })
+          (sectionParser "INPUTS"      signalParser
+             >>= \x -> return c { inputs = x      })      
+      <|> (sectionParser "OUTPUTS"     signalParser
+             >>= \x -> return c { outputs = x     })
+      <|> (sectionParser "ASSUMPTIONS" exprParser
+             >>= \x -> return c { assumptions = x })
+      <|> (sectionParser "INVARIANTS"  exprParser
+             >>= \x -> return c { invariants = x  })
+      <|> (sectionParser "GUARANTEES"  exprParser
+             >>= \x -> return c { guarantees = x  })
 
     signalParser = do
       (x,pos) <- identifier (~~)
-      busParser x pos <|> return (Bind x [] pos [])
+      busParser x pos <|> return (BindExpr x [] pos [])
 
     busParser x pos = do
       ch '['; (~~)
       e <- exprParser
       ch ']'; p <- getPos; (~~)
-      return $ Bind x [] (ExprPos (srcBegin pos) p) [e]
+      return $ BindExpr x [] (ExprPos (srcBegin pos) p) [e]
 
     sectionParser x p = do
       keyword x
@@ -97,5 +127,6 @@ componentParser = do
     rOp = reservedOp tokenparser
     (~~) = whiteSpace tokenparser
     keyword = void . reserved tokenparser
+
+-----------------------------------------------------------------------------    
     
----

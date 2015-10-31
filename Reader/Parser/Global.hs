@@ -1,24 +1,80 @@
-module Reader.Parser.Global where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Reader.Parser.Global
+-- Description :  Parser for the Global section
+-- License     :  MIT (see the LICENSE file)
+-- 
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Parser for the GLOBAl section
+-- 
+-----------------------------------------------------------------------------
 
----
+module Reader.Parser.Global
+    ( globalParser
+    ) where
 
-import Text.Parsec
-import Text.Parsec.String
-import Text.Parsec.Token hiding (identifier)
+-----------------------------------------------------------------------------
 
 import Data.Binding
+    ( BindExpr(..)
+    )
+    
 import Data.Expression
+    ( ExprPos(..)
+    )
+    
 import Reader.Parser.Data
+    ( globalDef
+    )
+    
 import Reader.Parser.Utils
+    ( identifier
+    , getPos
+    )
+      
 import Reader.Parser.Expression
+    ( exprParser
+    )  
 
-import Data.Maybe 
-import Control.Monad 
+import Data.Maybe
+    ( catMaybes
+    )
+    
+import Control.Monad
+    ( void
+    )  
 
----
+import Text.Parsec
+    ( (<|>)
+    , char
+    , oneOf
+    , sepBy
+    , many1
+    )
+    
+import Text.Parsec.String
+    ( Parser
+    )
+    
+import Text.Parsec.Token
+    ( GenLanguageDef(..)
+    , commaSep
+    , reservedNames  
+    , whiteSpace
+    , makeTokenParser
+    , reserved
+    , braces 
+    , reservedOp      
+    )  
+
+-----------------------------------------------------------------------------
+
+-- | Parses the GLOBAL section of a specification file and returns the list
+-- of parameter bindings and the list of the remaining definitions.
 
 globalParser
-  :: Parser ([Bind Expr String], [Bind Expr String])
+  :: Parser ([BindExpr String], [BindExpr String])
 
 globalParser = do
   keyword "GLOBAL"
@@ -64,7 +120,7 @@ globalParser = do
     reminderParser x args pos = do
       rOp "="            
       es <- many1 exprParser
-      return $ Just $ Bind x args pos es
+      return $ Just $ BindExpr x args pos es
 
     ch = void . char
     br = braces tokenparser
@@ -72,4 +128,4 @@ globalParser = do
     (~~) = whiteSpace tokenparser
     keyword = void . reserved tokenparser    
 
----
+-----------------------------------------------------------------------------
