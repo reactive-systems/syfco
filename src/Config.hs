@@ -1,15 +1,138 @@
-module Config
-       ( Configuration(..)
-       , parseArguments
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Config
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Configuration of the tool, set up via the command line arguments.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Config
+    ( Configuration(..)
+    , parseArguments
+    , defaultCfg  
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Data.Error
+    ( Error
+    , argsError
+    )
+    
 import Writer.Formats
-import Writer.Data
+    ( WriteFormat(..)
+    , parseFormat  
+    )  
 
----
+import Writer.Data
+    ( WriteMode(..)
+    )
+
+-----------------------------------------------------------------------------
+
+-- | The @Configuartion@ data type contains all flags and settings that can
+-- be adjusted via the command line arguments. This includes:
+-- 
+--     * The list of input files containing the specifications
+-- 
+--     * An optional path to the output file, the transformed specification
+--       is written to
+-- 
+--     * The format specifiying the corresponding writer to use
+-- 
+--     * The mode used by the writer
+-- 
+--     * A boolean flag specifying whether a partition file should be
+--       createad or not
+-- 
+--     * A boolean flag specifying whether only a partition file should be
+--       created or not
+-- 
+--     * The delimiter string to seperate the bus index from the signal
+--       name
+-- 
+--     * A boolean flag specifying whether the input should be read from
+--       STDIN or not
+-- 
+--     * An optional flag which allows to overwrite the semantics of the
+--       given input specifications
+-- 
+--     * An optional flag which allows to overwrite the target of the
+--       given input specifications
+-- 
+--     * An optional flag which allows to overwrite a list of parmaters
+--       of the given input specification
+-- 
+--     * A boolean flag specifying whether weak simplifications should
+--       be applied or not
+-- 
+--     * A boolean flag specifying whether strong simplifications should
+--       be applied or not
+-- 
+--     * A boolean flag specifying whether the given specification should
+--       be turned into negation normal form.
+-- 
+--     * A boolean flag specifying whether globally perators should be 
+--       pushed over conjunctions deeper into the formula.
+-- 
+--     * A boolean flag specifying whether finally operators should be 
+--       pushedover disjunctions deeper into the formula.
+-- 
+--     * A boolean flag specifying whether next operators should be pushed
+--       over conjunctions and disjunctions deeper into the formula.
+-- 
+--     * A boolean flag specifying whether globally perators should be 
+--       pulled over conjunctions outside the formula.
+-- 
+--     * A boolean flag specifying whether finally operators should be 
+--       pulled over disjunctions outside the formula.
+-- 
+--     * A boolean flag specifying whether next operators should be pulled
+--       over conjunctions and disjunctions outside the formula.
+-- 
+--     * A boolean flag specifying whether weak until operators should be
+--       replaced by alternative operators inside the created formula.
+-- 
+--     * A boolean flag specifying whether release operators should be
+--       replaced by alternative operators inside the created formula.
+-- 
+--     * A boolean flag specifying whether finally operators should be
+--       replaced by alternative operators inside the created formula.
+-- 
+--     * A boolean flag specifying whether globally operators should be
+--       replaced by alternative operators inside the created formula.
+-- 
+--     * A boolean flag specifying whether any derived operators should be
+--       replaced by alternative operators inside the created formula.
+-- 
+--     * A boolean flag specifying whether the given input files should
+--       just be checked for syntactical and type correctenss.
+-- 
+--     * A boolean flag specifying whether just the title of the given
+--       input files should be printed or not
+-- 
+--     * A boolean flag specifying whether just the description of the
+--       given input files should be printed or not
+-- 
+--     * A boolean flag specifying whether just the semantics of the 
+--       given input files should be printed or not
+-- 
+--     * A boolean flag specifying whether just the target of the given
+--       input files should be printed or not
+-- 
+--     * A boolean flag specifying whether just the tag list  of the 
+--       given input files should be printed or not
+-- 
+--     * A boolean flag specifying whether just the complete input section 
+--        of the given input files should be printed or not
+-- 
+--     * A boolean flag specifying whether the version info should be
+--       printed or not
+-- 
+--     * A boolean flag specifying whether the help info should be
+--       printed or not
 
 data Configuration =
   Configuration
@@ -50,7 +173,9 @@ data Configuration =
   , pHelp :: Bool
   }
 
----
+-----------------------------------------------------------------------------
+
+-- | The default configuration.
 
 defaultCfg
   :: Configuration
@@ -94,11 +219,15 @@ defaultCfg =
     pHelp = False
     }
 
----
+-----------------------------------------------------------------------------
 
 data Args a = None a | Single a
 
----
+-----------------------------------------------------------------------------
+
+-- | Argument parser, which reads the given command line arguments to
+-- the internal configuration and checks whether the given combinations
+-- are realizable.
 
 parseArguments
   :: [String] -> Either Error Configuration
@@ -171,30 +300,30 @@ parseArguments args = do
       "--overwrite-parameter"    -> case next of
         Nothing -> argsError "\"--overwrite-parameter\": No parameter given"
         _       -> parseArgument a "-op" next        
-      "-s0"                      -> return $ None $ a { simplifyWeak = True }
-      "-s1"                      -> return $ None $ a { simplifyStrong = True }
-      "-nnf"                     -> return $ None $ a { negNormalForm = True }
-      "-pgi"                     -> return $ None $ a { pushGlobally = True }
-      "-pfi"                     -> return $ None $ a { pushFinally = True }
-      "-pxi"                     -> return $ None $ a { pushNext = True }
-      "-pgo"                     -> return $ None $ a { pullGlobally = True }
-      "-pfo"                     -> return $ None $ a { pullFinally = True }
-      "-pxo"                     -> return $ None $ a { pullNext = True }
-      "-nw"                      -> return $ None $ a { noWeak = True }
-      "-nr"                      -> return $ None $ a { noRelease = True }
-      "-nf"                      -> return $ None $ a { noFinally = True }
-      "-ng"                      -> return $ None $ a { noGlobally = True }
-      "-nd"                      -> return $ None $ a { noDerived = True }
-      "-c"                       -> return $ None $ (clean a) { check = True }
-      "-t"                       -> return $ None $ (clean a) { pTitle = True }
-      "-d"                       -> return $ None $ (clean a) { pDesc = True }
-      "-s"                       -> return $ None $ (clean a) { pSemantics = True }
-      "-g"                       -> return $ None $ (clean a) { pTarget = True }
-      "-a"                       -> return $ None $ (clean a) { pTags = True }      
-      "-p"                       -> return $ None $ (clean a) { pParameters = True }
-      "-i"                       -> return $ None $ (clean a) { pInfo = True }
-      "-v"                       -> return $ None $ (clean a) { pVersion = True }
-      "-h"                       -> return $ None $ (clean a) { pHelp = True }
+      "-s0"                      -> simple $ a { simplifyWeak = True }
+      "-s1"                      -> simple $ a { simplifyStrong = True }
+      "-nnf"                     -> simple $ a { negNormalForm = True }
+      "-pgi"                     -> simple $ a { pushGlobally = True }
+      "-pfi"                     -> simple $ a { pushFinally = True }
+      "-pxi"                     -> simple $ a { pushNext = True }
+      "-pgo"                     -> simple $ a { pullGlobally = True }
+      "-pfo"                     -> simple $ a { pullFinally = True }
+      "-pxo"                     -> simple $ a { pullNext = True }
+      "-nw"                      -> simple $ a { noWeak = True }
+      "-nr"                      -> simple $ a { noRelease = True }
+      "-nf"                      -> simple $ a { noFinally = True }
+      "-ng"                      -> simple $ a { noGlobally = True }
+      "-nd"                      -> simple $ a { noDerived = True }
+      "-c"                       -> simple $ (clean a) { check = True }
+      "-t"                       -> simple $ (clean a) { pTitle = True }
+      "-d"                       -> simple $ (clean a) { pDesc = True }
+      "-s"                       -> simple $ (clean a) { pSemantics = True }
+      "-g"                       -> simple $ (clean a) { pTarget = True }
+      "-a"                       -> simple $ (clean a) { pTags = True }      
+      "-p"                       -> simple $ (clean a) { pParameters = True }
+      "-i"                       -> simple $ (clean a) { pInfo = True }
+      "-v"                       -> simple $ (clean a) { pVersion = True }
+      "-h"                       -> simple $ (clean a) { pHelp = True }
       "--no-part"                -> parseArgument a "-np" next
       "--part-only"              -> parseArgument a "-po" next
       "--stdin"                  -> parseArgument a "-in" next
@@ -222,7 +351,9 @@ parseArguments args = do
       "--print-info"             -> parseArgument a "-i" next
       "--version"                -> parseArgument a "-v" next
       "--help"                   -> parseArgument a "-h" next      
-      _                          -> return $ None $ a { inputFile = arg : inputFile a }
+      _                          -> return $ None $ a {
+                                     inputFile = arg : inputFile a
+                                     }
 
     clean a = a {
       check = False,
@@ -238,7 +369,9 @@ parseArguments args = do
 
     fixquotes s = tail $ init s
 
----        
+    simple = return . None
+
+-----------------------------------------------------------------------------
 
 checkConfiguration
   :: Configuration -> Either Error ()
@@ -320,5 +453,5 @@ checkConfiguration cfg
       head str /= '"' ||
       last str /= '"'
 
----
+-----------------------------------------------------------------------------
 

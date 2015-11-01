@@ -1,26 +1,70 @@
-module Reader where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Reader
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- The module reads a specification to the internal format.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Reader
+     ( readSpecification
+     ) where
+
+-----------------------------------------------------------------------------
 
 import Data.Error
+    ( Error
+    )
+    
 import Data.SymbolTable
+    ( SymbolTable
+    , IdRec(..)
+    )
+    
 import Data.Specification
+    ( Specification(..)
+    )  
 
 import Reader.Sugar
+    ( replaceSugar
+    )
+    
 import Reader.Parser
+    ( parse
+    )  
+ 
 import Reader.Bindings
+    ( specBindings
+    )
+    
 import Reader.InferType
+    ( inferTypes
+    )
+    
 import Reader.Abstraction
+    ( abstract
+    )  
+
+import Data.Maybe
+    ( fromJust
+    )
+    
+import Data.List
+    ( zip7
+    )
+
+import qualified Data.IntMap as IM
+
+import qualified Data.Array.IArray as A
 
 import qualified Reader.Data as RD
 
-import Data.Maybe (fromJust)
-import Data.List (zip7)
+-----------------------------------------------------------------------------
 
-import qualified Data.IntMap as IM
-import qualified Data.Array.IArray as A
-
----
+-- | Reads a specification from a string to the internal 'Specification'
+-- data structure.
 
 readSpecification
   :: String -> (Maybe String) -> (Maybe String) ->
@@ -48,7 +92,7 @@ readSpecification str m t ps = do
     , symboltable = symtable s4
     }  
 
----
+-----------------------------------------------------------------------------
 
 symtable
   :: RD.Specification -> SymbolTable
@@ -74,4 +118,4 @@ symtable s =
   in
    A.array (minkey, maxkey) xs
 
----
+-----------------------------------------------------------------------------

@@ -1,24 +1,70 @@
-module Main
-       ( main
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Main
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- The main module.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Main
+    ( main
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Info
+    ( prTitle
+    , prDescription
+    , prSemantics
+    , prTarget
+    , prTags
+    , prParameters
+    , prInfo
+    , prVersion
+    , prHelp
+    )
+    
 import Config
+    ( Configuration(..)
+    , parseArguments
+    )
+    
 import Reader
+    ( readSpecification
+    )
+    
 import Writer
-import Writer.Formats
-import Writer.Data
+    ( WriteFormat(..)
+    , WriteContents(..)  
+    , writeSpecification
+    )  
 
 import Data.Error
+    ( prError
+    , argsError 
+    )
+    
 import Data.Specification
+    ( Specification
+    )  
 
 import System.Environment
+    ( getArgs
+    )
+      
 import System.Directory
+    ( doesFileExist
+    )
+    
 import Control.Monad
+    ( unless
+    )  
 
----
+-----------------------------------------------------------------------------
+
+-- | The main function executed at the program invocation.
 
 main
   :: IO ()
@@ -32,7 +78,7 @@ main = do
       | pVersion c -> prVersion
       | otherwise  -> readContents c
 
----
+-----------------------------------------------------------------------------
 
 readContents
   :: Configuration -> IO ()
@@ -41,7 +87,7 @@ readContents c = do
   contents <- readInput c
   mapM_ (readContent c) contents
 
----
+-----------------------------------------------------------------------------
 
 readContent
   :: Configuration -> (String,Maybe String) -> IO ()
@@ -62,7 +108,7 @@ readContent c (content,file) =
       | pInfo c       -> prInfo s
       | otherwise     -> writeOutput c s
 
----
+-----------------------------------------------------------------------------
 
 readInput
   :: Configuration -> IO [(String,Maybe String)]
@@ -80,8 +126,7 @@ readInput c = case inputFile c of
       Left err -> prError err
       _        -> error "Internal Error") xs
 
-
----
+-----------------------------------------------------------------------------
 
 writeOutput
   :: Configuration -> Specification -> IO ()
@@ -111,4 +156,4 @@ writeOutput c s = case writeSpecification c s of
       'l':'t':'l':'.':xr     -> reverse xr
       _                      -> path
 
----
+-----------------------------------------------------------------------------

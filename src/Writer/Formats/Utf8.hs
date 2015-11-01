@@ -1,8 +1,18 @@
-module Writer.Formats.Utf8
-       ( writeUtf8
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Writer.Formats.Utf8
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Transforms a specification to a UTF8 string.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Writer.Formats.Utf8
+    ( writeUtf8
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Config
 import Simplify
@@ -15,7 +25,7 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
----
+-----------------------------------------------------------------------------
 
 opNames
   :: OperatorNames
@@ -36,7 +46,9 @@ opNames = OperatorNames
   , opWeak = "W"
   }
 
----
+-----------------------------------------------------------------------------
+
+-- | UTF8 writer.
 
 writeUtf8
   :: Configuration -> Specification -> Either Error WriteContents
@@ -54,6 +66,6 @@ writeUtf8 c s =
       mainFile = pretty mode opNames fml1,
       partitionFile = Just $ partition (fmlInputs fml1) (fmlOutputs fml1)
       }
-    
----
+
+-----------------------------------------------------------------------------
 

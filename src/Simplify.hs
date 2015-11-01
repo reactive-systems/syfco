@@ -1,14 +1,38 @@
-module Simplify where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Simplify
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Linear temporal logic formula simplifcations.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Simplify
+    ( simplify
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Config
+    ( Configuration(..)
+    )
+    
 import Data.LTL
+    ( Formula(..)
+    )
+    
 import Data.Error
+    ( Error
+    )  
 
-import Data.Either 
+import Data.Either
+    ( partitionEithers
+    )  
 
----
+-----------------------------------------------------------------------------
+
+-- | Applies the simplifications specified via the command line arguments.
 
 simplify
   :: Configuration -> Formula -> Either Error Formula
@@ -319,4 +343,4 @@ simplify c f =
     hn = pushNext c
     nd = noDerived c
 
----
+-----------------------------------------------------------------------------

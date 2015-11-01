@@ -1,8 +1,18 @@
-module Writer.Formats.Wring
-       ( writeWring
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Writer.Formats.Wring
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Transforms a specification to a wring format.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Writer.Formats.Wring
+    ( writeWring
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Config
 import Simplify
@@ -15,7 +25,7 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
----
+-----------------------------------------------------------------------------
 
 opNames
   :: OperatorNames
@@ -36,7 +46,9 @@ opNames = OperatorNames
   , opWeak = error "Wring does not support the weak until operator"
   }
 
----
+-----------------------------------------------------------------------------
+
+-- | Wring format writer.
 
 writeWring
   :: Configuration -> Specification -> Either Error WriteContents
@@ -62,5 +74,5 @@ writeWring c s =
       Atomic (Output x)       -> Atomic (Output (x ++ "=1"))            
       Atomic (Input x)        -> Atomic (Input (x ++ "=1"))
       _                       -> applySub adjust fml
-    
----
+
+-----------------------------------------------------------------------------    

@@ -1,8 +1,18 @@
-module Writer.Formats.Promela
-       ( writePromela
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Writer.Formats.Promela
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Transforms a specification to Spins Promela LTL.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Writer.Formats.Promela
+    ( writePromela
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Config
 import Simplify
@@ -15,7 +25,7 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
----
+-----------------------------------------------------------------------------
 
 opNames
   :: OperatorNames
@@ -36,7 +46,9 @@ opNames = OperatorNames
   , opWeak = "W"  
   }
 
----
+-----------------------------------------------------------------------------
+
+-- | Promela LTL writer.
 
 writePromela
   :: Configuration -> Specification -> Either Error WriteContents
@@ -54,7 +66,8 @@ writePromela c s =
       mainFile = pretty mode opNames fml1,
       partitionFile = Just $ partition (fmlInputs fml1) (fmlOutputs fml1)
       }
-    
----
+
+-----------------------------------------------------------------------------
+
 
          

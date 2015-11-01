@@ -1,27 +1,59 @@
-module Info
-       ( prTitle
-       , prDescription
-       , prSemantics
-       , prTarget
-       , prTags
-       , prInfo           
-       , prParameters
-       , prVersion
-       , prHelp         
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Info
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Several printers to report information back to the user.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Info
+    ( prTitle
+    , prDescription
+    , prSemantics
+    , prTarget
+    , prTags
+    , prInfo           
+    , prParameters
+    , prVersion
+    , prHelp         
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Data.Array
+    ( (!)
+    )  
+
 import Data.Types
+    ( Semantics(..)
+    , Target(..)  
+    )
+    
 import Data.Binding
+    ( BindExpr(..)
+    )
+    
 import Data.SymbolTable
+    ( IdRec(..)  
+    )
+    
 import Data.Specification
+    ( Specification(..)
+    )  
 
 import Control.Monad
+    ( unless
+    )
+      
 import System.Environment
+    ( getProgName
+    )  
 
----
+-----------------------------------------------------------------------------
+
+-- | Prints the title of the given specification.
 
 prTitle
   :: Specification -> IO ()
@@ -29,7 +61,9 @@ prTitle
 prTitle s =
   putStrLn $ title s
 
----
+-----------------------------------------------------------------------------
+
+-- | Prints the description of the given specification.
 
 prDescription
   :: Specification -> IO ()
@@ -37,7 +71,9 @@ prDescription
 prDescription s =
   putStrLn $ description s
 
----
+-----------------------------------------------------------------------------
+
+-- | Prints the semantics of the given specification.
 
 prSemantics 
   :: Specification -> IO ()
@@ -49,8 +85,9 @@ prSemantics s =
     SemanticsStrictMealy -> "Strict,Mealy"
     SemanticsStrictMoore -> "Strict,Moore"    
     
+-----------------------------------------------------------------------------
 
----
+-- | Prints the target of the given specification.
 
 prTarget
   :: Specification -> IO ()
@@ -59,8 +96,10 @@ prTarget s =
   putStrLn $ case target s of
     TargetMealy -> "Mealy"
     TargetMoore -> "Moore"
+    
+-----------------------------------------------------------------------------
 
----    
+-- | Prints the tag list of the given specification.
 
 prTags
   :: Specification -> IO ()
@@ -69,7 +108,9 @@ prTags s = case tags s of
   [] -> return ()
   xs -> putStrLn $ head xs ++ concatMap ((:) ' ' . (:) ',') (tail xs)
 
----
+-----------------------------------------------------------------------------
+
+-- | Prints the parameters of the given specification.  
 
 prParameters
   :: Specification -> IO ()
@@ -82,8 +123,10 @@ prParameters s =
     putStrLn $
     if null ys then ""
     else head ys ++ concatMap ((:) ',' . (:) ' ') (tail ys)
+ 
+-----------------------------------------------------------------------------
 
----
+-- | Prints the complete INFO section of the given specification.  
 
 prInfo
   :: Specification -> IO ()
@@ -99,16 +142,20 @@ prInfo s = do
     putStr "Tags:          "
     prTags s
 
----
+-----------------------------------------------------------------------------
+
+-- | Prints the version and the program name.
 
 prVersion
   :: IO ()
 
 prVersion = do
   name <- getProgName
-  putStrLn (name ++ " version 1.0.0")
+  putStrLn (name ++ " version 0.1.0.0")
 
----  
+-----------------------------------------------------------------------------
+
+-- | Prints the help of the program.
 
 prHelp
   :: IO ()
@@ -209,4 +256,4 @@ prHelp = do
     ++ "\n" ++ "  " ++ toolname ++ " -t file.tlsf"
     ++ "\n")
 
----
+-----------------------------------------------------------------------------

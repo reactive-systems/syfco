@@ -1,37 +1,94 @@
-module Writer.Eval where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Writer.Eval
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Unfolds all high level constructs of a specification to the corresponding
+-- low level constructs.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Writer.Eval
+    ( eval
+    ) where
 
-import Utils (iter)
+-----------------------------------------------------------------------------
+
+import Utils
+    ( iter
+    )
 
 import Data.LTL
+    ( Atomic(..)
+    , Formula(..)
+    , applyAtomic  
+    )
+    
 import Data.Types
-import Data.Error
+    ( IdType(..)
+    , SignalType(..)
+    )
+    
 import Data.Binding
+    ( BindExpr(..)
+    )
+    
 import Data.Expression
+    ( Expr(..)
+    , Expr'(..)
+    , ExprPos  
+    )
+    
 import Data.Specification
+    ( Specification(..)
+    )
+    
 import Data.SymbolTable
+    ( IdRec(..)
+    , SymbolTable
+    )  
 
 import Writer.Error
+    ( Error
+    , errBounds
+    , errMinSet
+    , errMaxSet
+    , errSetCap  
+    , errNoMatch  
+    )  
 
 import Control.Monad.State
+    ( StateT(..)
+    , execStateT
+    , evalStateT
+    , liftM2        
+    , liftM
+    , when 
+    , get
+    , put
+    )
+    
 import Data.Array.IArray
+    ( (!)
+    )  
 
 import qualified Data.Graph as G
-import qualified Data.LTL as LTL
+
 import qualified Data.IntMap as IM
+
 import qualified Data.Set as S
 
----
+-----------------------------------------------------------------------------
 
 data Value =
     VNumber Int
-  | VLtl LTL.Formula
+  | VLtl Formula
   | VSet (S.Set Value)
   | VEmpty
   deriving (Eq,Show)
 
----           
+-----------------------------------------------------------------------------
 
 instance Ord Value where
   compare x y = case (x,y) of
@@ -45,9 +102,11 @@ instance Ord Value where
     (VSet a, VSet b)       -> compare a b
     (VSet _, _)            -> GT
 
----
+-----------------------------------------------------------------------------
 
 type Evaluator a = a -> StateT ST (Either Error) Value
+
+-----------------------------------------------------------------------------
 
 data ST = ST
   { tLookup :: SymbolTable
@@ -55,18 +114,24 @@ data ST = ST
   , delimiter :: String  
   }
 
----
+-----------------------------------------------------------------------------
+
+-- | @eval d s@ Evaluates all high level constructs of the given
+-- specification @s@. Thereby, signals which are obtaind by bus
+-- accesses are printed using the delimiter string given by @d@.
 
 eval
-  :: String -> Specification -> Either Error ([LTL.Formula],[LTL.Formula],[LTL.Formula])
+  :: String -> Specification -> Either Error ([Formula],[Formula],[Formula])
 
 eval d s = do
   let
     xs = filter isunary $ map bIdent $ parameters s ++ definitions s
-    ys = concatMap (\i -> map (\j -> (i,j)) $ filter isunary $ idDeps $ symboltable s ! i) xs
+    ys = concatMap (\i -> map (\j -> (i,j)) $ filter isunary $
+                         idDeps $ symboltable s ! i) xs
     minkey = foldl min (head xs) xs
     maxkey = foldl max (head xs) xs
-    zs = if null xs then [] else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
+    zs = if null xs then []
+         else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
     ss = map bIdent $ inputs s ++ outputs s
 
   stt <- execStateT (mapM_ staticBinding zs) $ ST (symboltable s) IM.empty d
@@ -82,12 +147,12 @@ eval d s = do
 
     plainltl = (applyAtomic revert) . vltl
 
-    revert :: LTL.Atomic -> LTL.Formula
-    revert x = LTL.Atomic $ case x of
-      LTL.Input y  -> LTL.Input $ last $ words y
-      LTL.Output y -> LTL.Output $ last $ words y
+    revert :: Atomic -> Formula
+    revert x = Atomic $ case x of
+      Input y  -> Input $ last $ words y
+      Output y -> Output $ last $ words y
 
----
+-----------------------------------------------------------------------------
 
 staticBinding
   :: Int -> StateT ST (Either Error) ()
@@ -101,8 +166,8 @@ staticBinding x = do
   put $ st {
     tValues = IM.insert x v $ tValues st
     }
-  
----
+
+-----------------------------------------------------------------------------
 
 componentSignal
   :: Int -> StateT ST (Either Error) ()
@@ -111,15 +176,15 @@ componentSignal i = do
   st <- get
   let
     c = case idType $ tLookup st ! i of
-      TSignal STInput  -> LTL.Input
-      TSignal STOutput -> LTL.Output
+      TSignal STInput  -> Input
+      TSignal STOutput -> Output
       _                -> error "internal error (ERR 02)"
     n = show i ++ " " ++ (idName $ tLookup st ! i)
   put $ st {
-    tValues = IM.insert i (VLtl $ LTL.Atomic $ c n) $ tValues st
+    tValues = IM.insert i (VLtl $ Atomic $ c n) $ tValues st
     }
-  
----
+
+-----------------------------------------------------------------------------
 
 evalExpr
   :: Evaluator (Expr Int)
@@ -176,23 +241,23 @@ evalExpr e = case expr e of
   Colon {}        -> evalColon e  
   _               -> error "internal error (ERR_03)"
 
----  
+-----------------------------------------------------------------------------
 
 evalLtl
   :: Evaluator (Expr Int)
 
 evalLtl e = case expr e of
-  BaseTrue         -> return $ VLtl LTL.TTrue
-  BaseFalse        -> return $ VLtl LTL.FFalse  
-  BlnNot x         -> liftMLtl LTL.Not x  
-  LtlNext x        -> liftMLtl LTL.Next x
-  LtlGlobally x    -> liftMLtl LTL.Globally x
-  LtlFinally x     -> liftMLtl LTL.Finally x
-  LtlUntil x y     -> liftM2Ltl LTL.Until x y
-  LtlRelease x y   -> liftM2Ltl LTL.Release x y
-  LtlWeak x y      -> liftM2Ltl LTL.Weak x y
-  BlnImpl x y      -> liftM2Ltl LTL.Implies x y
-  BlnEquiv x y     -> liftM2Ltl LTL.Equiv x y  
+  BaseTrue         -> return $ VLtl TTrue
+  BaseFalse        -> return $ VLtl FFalse  
+  BlnNot x         -> liftMLtl Not x  
+  LtlNext x        -> liftMLtl Next x
+  LtlGlobally x    -> liftMLtl Globally x
+  LtlFinally x     -> liftMLtl Finally x
+  LtlUntil x y     -> liftM2Ltl Until x y
+  LtlRelease x y   -> liftM2Ltl Release x y
+  LtlWeak x y      -> liftM2Ltl Weak x y
+  BlnImpl x y      -> liftM2Ltl Implies x y
+  BlnEquiv x y     -> liftM2Ltl Equiv x y  
   BlnEQ x y        -> liftM2Num (==) x y 
   BlnNEQ x y       -> liftM2Num (/=) x y 
   BlnGE x y        -> liftM2Num (>) x y
@@ -208,47 +273,47 @@ evalLtl e = case expr e of
   LtlRNext x y     -> do
     VNumber n <- evalNum x
     VLtl v <- evalLtl y
-    return $ VLtl $ iter LTL.Next n v
+    return $ VLtl $ iter Next n v
   LtlRGlobally x y -> do
     (i,j) <- evalRange x
     if i > j then
-      return $ VLtl LTL.TTrue
+      return $ VLtl TTrue
     else do
       VLtl v <- evalLtl y      
-      return $ VLtl $ iter LTL.Next i $ 
-        iter (\a -> LTL.And [v, LTL.Next a]) (j - i) v
+      return $ VLtl $ iter Next i $ 
+        iter (\a -> And [v, Next a]) (j - i) v
   LtlRFinally x y  -> do
     (i,j) <- evalRange x
     if i > j then
-      return $ VLtl LTL.TTrue
+      return $ VLtl TTrue
     else do
       VLtl v <- evalLtl y      
-      return $ VLtl $ iter LTL.Next i $ 
-        iter (\a -> LTL.Or [v, LTL.Next a]) (j - i) v
+      return $ VLtl $ iter Next i $ 
+        iter (\a -> Or [v, Next a]) (j - i) v
 
   BlnElem x y      -> do
     a <- evalExpr x
     VSet b <- evalExpr y
     return $ VLtl $ if S.member a b then 
-      LTL.TTrue 
+      TTrue 
     else
-      LTL.FFalse
+      FFalse
   BlnOr x y        -> do
     VLtl a <- evalLtl x
     VLtl b <- evalLtl y
-    return $ VLtl $ LTL.Or [a,b]
+    return $ VLtl $ Or [a,b]
   BlnAnd x y       -> do
     VLtl a <- evalLtl x
     VLtl b <- evalLtl y
-    return $ VLtl $ LTL.And [a,b]
+    return $ VLtl $ And [a,b]
   BlnRAnd xs x     -> 
-    let f = VLtl . LTL.And . map (\(VLtl v) -> v)
+    let f = VLtl . And . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
   BlnROr xs x      -> 
-    let f = VLtl . LTL.Or . map (\(VLtl v) -> v)
+    let f = VLtl . Or . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
   BaseBus x y      -> do
-    VLtl (LTL.Atomic a) <- idValue y 
+    VLtl (Atomic a) <- idValue y 
     VNumber b <- evalNum x
     st <- get
     VSet z <- evalExpr $ idBindings $ tLookup st ! y
@@ -257,9 +322,9 @@ evalLtl e = case expr e of
         when (b < 0 || b >= s) $ 
           errBounds (show a) s b $ srcPos e
       _           -> return ()
-    return $ VLtl $ LTL.Atomic $ case a of
-      LTL.Input r  -> LTL.Input (show y ++ " " ++ r ++ delimiter st ++ show b)
-      LTL.Output r -> LTL.Output (show y ++ " " ++ r ++ delimiter st ++ show b)
+    return $ VLtl $ Atomic $ case a of
+      Input r  -> Input (show y ++ " " ++ r ++ delimiter st ++ show b)
+      Output r -> Output (show y ++ " " ++ r ++ delimiter st ++ show b)
   _                -> error "internal error (ERR_04)"
     
   where
@@ -276,10 +341,11 @@ evalLtl e = case expr e of
       VNumber x <- evalNum m
       VNumber y <- evalNum n
       return $ VLtl $ if f x y then 
-        LTL.TTrue 
+        TTrue 
       else 
-        LTL.FFalse
----
+        FFalse
+
+-----------------------------------------------------------------------------
 
 idValue
   :: Evaluator Int
@@ -321,10 +387,10 @@ evalNum e = case expr e of
     let xs = map (\(VNumber v) -> v) $ S.elems y
     return $ VNumber $ length xs
   NumSizeOf x   -> do
-    VLtl (LTL.Atomic y) <- evalExpr x
+    VLtl (Atomic y) <- evalExpr x
     let i = read $ head $ words $ case y of
-              LTL.Input z  -> z
-              LTL.Output z -> z
+              Input z  -> z
+              Output z -> z
     st <- get
     VSet s <- evalExpr $ idBindings $ (tLookup st) ! i 
     case  S.toList s of
@@ -349,8 +415,8 @@ evalNum e = case expr e of
       VNumber x <- evalNum m
       VNumber y <- evalNum n
       return $ VNumber $ f x y
-    
----
+
+-----------------------------------------------------------------------------
 
 evalBool 
   :: Expr Int -> StateT ST (Either Error) Bool
@@ -392,27 +458,27 @@ evalBool e = case expr e of
       VNumber y <- evalNum n
       return $ f x y
 
----
+-----------------------------------------------------------------------------
 
 checkPattern 
-  :: LTL.Formula -> Expr Int -> StateT ST (Either Error) Bool
+  :: Formula -> Expr Int -> StateT ST (Either Error) Bool
 
 checkPattern f e = case (f,expr e) of
   (_, BaseWild)                     -> return True  
-  (LTL.TTrue, BaseTrue)             -> return True
-  (LTL.FFalse, BaseFalse)           -> return True
-  (LTL.Not x, BlnNot y)             -> checkPattern x y
-  (LTL.Next x, LtlNext y)           -> checkPattern x y
-  (LTL.Globally x, LtlGlobally y)   -> checkPattern x y
-  (LTL.Finally x, LtlFinally y)     -> checkPattern x y
-  (LTL.Implies x y, BlnImpl z v)    -> binary x y z v
-  (LTL.Equiv x y, BlnEquiv z v)     -> binary x y z v
-  (LTL.Until x y, LtlUntil z v)     -> binary x y z v
-  (LTL.Release x y, LtlRelease z v) -> binary x y z v
-  (LTL.And xs, BlnAnd z v)          -> case xs of
+  (TTrue, BaseTrue)             -> return True
+  (FFalse, BaseFalse)           -> return True
+  (Not x, BlnNot y)             -> checkPattern x y
+  (Next x, LtlNext y)           -> checkPattern x y
+  (Globally x, LtlGlobally y)   -> checkPattern x y
+  (Finally x, LtlFinally y)     -> checkPattern x y
+  (Implies x y, BlnImpl z v)    -> binary x y z v
+  (Equiv x y, BlnEquiv z v)     -> binary x y z v
+  (Until x y, LtlUntil z v)     -> binary x y z v
+  (Release x y, LtlRelease z v) -> binary x y z v
+  (And xs, BlnAnd z v)          -> case xs of
     [x,y] -> binary x y z v
     _     -> error "internal error (ERR_08)"
-  (LTL.Or xs, BlnOr z v)            -> case xs of
+  (Or xs, BlnOr z v)            -> case xs of
     [x,y] -> binary x y z v
     _     -> error "internal error (ERR_09)"
   (_, BaseId i)                     -> do
@@ -431,7 +497,7 @@ checkPattern f e = case (f,expr e) of
       else
         return False
 
----
+-----------------------------------------------------------------------------
 
 evalSet
   :: Evaluator (Expr Int)
@@ -472,10 +538,11 @@ evalSet e = case expr e of
       VSet b <- evalSet y
       return $ VSet $ f a b
 
----
+-----------------------------------------------------------------------------
 
 evalConditional
-  :: (Expr Int -> StateT ST (Either Error) a) -> ([a] -> a) -> [Expr Int] -> Expr Int -> StateT ST (Either Error) a
+  :: (Expr Int -> StateT ST (Either Error) a) -> ([a] -> a)
+      -> [Expr Int] -> Expr Int -> StateT ST (Either Error) a
 
 evalConditional fun f xs x =
   if null xs then
@@ -519,7 +586,7 @@ evalConditional fun f xs x =
       put st
       return r
 
----  
+-----------------------------------------------------------------------------
 
 evalRange
   :: Expr Int -> StateT ST (Either Error) (Int,Int)
@@ -532,7 +599,7 @@ evalRange e = case expr e of
     return (a,b)
   _ -> error "internal error (ERR_11)"
 
----
+-----------------------------------------------------------------------------
 
 evalColon
   :: Evaluator (Expr Int)
@@ -550,7 +617,7 @@ evalColon e = case expr e of
       return VEmpty
   _ -> error "internal error (ERR_12)"
 
----  
+-----------------------------------------------------------------------------
 
 fmlValue
   :: [Expr Int] -> ExprPos -> Evaluator Int
@@ -570,16 +637,16 @@ fmlValue args p i = do
   else
     return $ head ys
 
----  
+-----------------------------------------------------------------------------
 
 vltl
-  :: Value -> LTL.Formula
+  :: Value -> Formula
 
 vltl x = case x of
   VLtl y -> y
   _      -> error "internal error (ERR_13)"
 
----
+-----------------------------------------------------------------------------
 
 prVal
   :: Value -> String
@@ -589,10 +656,11 @@ prVal v = case v of
   VLtl x -> asciiLTL x
   VSet x -> case S.toList x of
     []     -> "{}"
-    (y:yr) -> "{ " ++ prVal y ++ concatMap ((:) ',' . (:) ' ' . prVal) yr ++ " }"
+    (y:yr) -> "{ " ++ prVal y ++
+             concatMap ((:) ',' . (:) ' ' . prVal) yr ++ " }"
   VEmpty -> error "internal error"
-    
----
+
+-----------------------------------------------------------------------------
 
 asciiLTL
   :: Formula -> String
@@ -607,10 +675,12 @@ asciiLTL fml = case fml of
   Not x                   -> pnot ++ prUO' x 
   And []                  -> asciiLTL TTrue
   And [x]                 -> asciiLTL x
-  And (x:xr)              -> prAnd' x ++ concatMap (((" " ++ pand ++ " ") ++) . prAnd') xr 
+  And (x:xr)              -> prAnd' x ++ concatMap (((" " ++ pand ++ " ") ++)
+                                                    . prAnd') xr 
   Or []                   -> asciiLTL FFalse
   Or [x]                  -> asciiLTL x  
-  Or (x:xr)               -> prOr' x ++ concatMap (((" " ++ por ++ " ") ++) . prOr') xr
+  Or (x:xr)               -> prOr' x ++ concatMap (((" " ++ por ++ " ") ++)
+                                                   . prOr') xr
   Implies x y             -> prOr' x ++ " " ++ pimplies ++ " " ++ prOr' y
   Equiv x y               -> prOr' x ++ " " ++ pequiv ++ " " ++ prOr' y
   Next x                  -> pnext ++ prUO' x    
@@ -665,4 +735,4 @@ asciiLTL fml = case fml of
     prelease = "R" 
     pweak = "W"
 
----  
+-----------------------------------------------------------------------------

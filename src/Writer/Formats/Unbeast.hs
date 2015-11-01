@@ -1,7 +1,18 @@
-module Writer.Formats.Unbeast where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Writer.Formats.Unbeast
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Transforms a specification to the Unbeast format.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Writer.Formats.Unbeast
+    ( writeUnbeast
+    ) where
 
+-----------------------------------------------------------------------------
 
 import Config
 import Simplify
@@ -13,7 +24,9 @@ import Data.Specification
 import Writer.Eval
 import Writer.Data
 
----
+-----------------------------------------------------------------------------
+
+-- | Unbeast format writer.
 
 writeUnbeast
   :: Configuration -> Specification -> Either Error WriteContents
@@ -91,6 +104,6 @@ writeUnbeast c s = do
       Implies _ _ -> error "Unbeast does not support the implication operator"      
       Release _ _ -> error "Unbeast does not support the release operator"
 
----
+-----------------------------------------------------------------------------
 
 

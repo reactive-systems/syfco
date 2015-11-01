@@ -1,13 +1,39 @@
-module Writer.Utils where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Writer.Utils
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Functions shared among the different writer modules.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Writer.Utils
+    ( pretty
+    , merge
+    , partition  
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Data.LTL
-import Data.Error
+    ( Atomic(..)
+    , Formula(..)
+    )
+    
+import Writer.Error
+    ( Error
+    )  
 
 import Writer.Data
+    ( WriteMode(..)
+    , OperatorNames(..)  
+    )  
 
----
+-----------------------------------------------------------------------------
+
+-- | Gernealized pretty printer that prints an expression using standard
+-- semantics and the operations passed via @OperatorNames@.
 
 pretty
   :: WriteMode -> OperatorNames -> Formula -> String
@@ -24,7 +50,7 @@ pretty mode ops = pr
       Equiv _ _   -> parens $ p f
       Until _ _   -> parens $ p f
       Release _ _ -> parens $ p f
-      _              -> p f
+      _           -> p f
 
     prAnd p f = case f of
       Or _        -> parens $ p f
@@ -32,14 +58,14 @@ pretty mode ops = pr
       Equiv _ _   -> parens $ p f
       Until _ _   -> parens $ p f
       Release _ _ -> parens $ p f
-      _              -> p f      
+      _           -> p f      
 
     prOr p f = case f of
       Implies _ _ -> parens $ p f
       Equiv _ _   -> parens $ p f
       Until _ _   -> parens $ p f
       Release _ _ -> parens $ p f
-      _              -> p f      
+      _           -> p f      
 
     pr' = parens . pr
     
@@ -65,10 +91,14 @@ pretty mode ops = pr
       Not x                   -> pnot ++ prUO' x 
       And []                  -> pr TTrue
       And [x]                 -> pr x
-      And (x:xr)              -> prAnd' x ++ concatMap (((" " ++ pand ++ " ") ++) . prAnd') xr 
+      And (x:xr)              -> prAnd' x ++
+                                concatMap (((" " ++ pand ++ " ") ++)
+                                           . prAnd') xr 
       Or []                   -> pr FFalse
       Or [x]                  -> pr x  
-      Or (x:xr)               -> prOr' x ++ concatMap (((" " ++ por ++ " ") ++) . prOr') xr
+      Or (x:xr)               -> prOr' x ++
+                                concatMap (((" " ++ por ++ " ") ++)
+                                           . prOr') xr
       Implies x y             -> prOr' x ++ " " ++ pimplies ++ " " ++ prOr' y
       Equiv x y               -> prOr' x ++ " " ++ pequiv ++ " " ++ prOr' y
       Next x                  -> pnext ++ " " ++ prUO' x    
@@ -92,7 +122,11 @@ pretty mode ops = pr
     prelease = opRelease ops
     pweak = opWeak ops
 
----
+-----------------------------------------------------------------------------
+
+-- | Merges a list of assumption formulas, invariant formulas and guarantee
+-- formulas to one single formula without introducing any overhead in case
+-- one of the lists is empty or a singleton.
 
 merge
   :: [Formula] -> [Formula] -> [Formula] -> Either Error Formula
@@ -114,7 +148,10 @@ merge as is gs =
     [x] -> return $ Implies x fml
     _   -> return $ Implies (And as) fml
 
----           
+-----------------------------------------------------------------------------
+
+-- | Creates the contents of a standard partioning file from the lists
+-- of input and output signals.
 
 partition
   :: [String] -> [String] -> String
@@ -123,4 +160,4 @@ partition is os =
   ".inputs" ++ (concatMap (' ' :) is) ++ "\n" ++
   ".outputs" ++ (concatMap (' ' :) os) ++ "\n"
 
----
+-----------------------------------------------------------------------------

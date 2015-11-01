@@ -1,13 +1,28 @@
-module Writer.Formats
-       ( WriteFormat(..)
-       , parseFormat
-       ) where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Writer.Formats
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Main list of supported writer formats.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Writer.Formats
+    ( WriteFormat(..)
+    , parseFormat
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Data.Error
+    ( Error
+    , argsError
+    )  
 
----
+-----------------------------------------------------------------------------
+
+-- | Supported writer formats.
 
 data WriteFormat =
     UTF8
@@ -18,7 +33,9 @@ data WriteFormat =
   | SHORT
   | PSL
 
----    
+-----------------------------------------------------------------------------
+
+-- | Simple parser to read the corresponding format from the command line.
 
 parseFormat
   :: String -> Either Error WriteFormat
@@ -32,5 +49,5 @@ parseFormat s = case s of
   "psl"     -> return PSL
   "basic"   -> return SHORT
   x         -> argsError ("Unknown format: " ++ x)
-
----
+  
+-----------------------------------------------------------------------------  

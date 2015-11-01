@@ -1,6 +1,19 @@
-module Writer.Formats.Basic where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Writer.Formats.Basic
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Transforms a specification to the basic TLSF version without high level
+-- constructs.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Writer.Formats.Basic
+    ( writeBasic
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Config
 import Simplify
@@ -14,7 +27,7 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
----
+-----------------------------------------------------------------------------
 
 opNames
   :: OperatorNames
@@ -35,13 +48,14 @@ opNames = OperatorNames
   , opWeak = "W"
   }
 
+-----------------------------------------------------------------------------
 
----
+-- | Basic TLSF writer.
 
-writeShort
+writeBasic
   :: Configuration -> Specification -> Either Error WriteContents
 
-writeShort c s = do
+writeBasic c s = do
   (as,is,gs) <- eval d s
   as' <- mapM (simplify c) as
   is' <- mapM (simplify c) is
@@ -101,4 +115,4 @@ writeShort c s = do
     printSignal sig = 
       "\n    " ++ sig ++ ";"
 
----
+-----------------------------------------------------------------------------
