@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Expression
--- Description :  Data types to store expressions and some helper functions
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Data types to store expressions and some helper functions
+-- Data types to store expressions and some helper functions.
 -- 
 -----------------------------------------------------------------------------
 

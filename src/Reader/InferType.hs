@@ -1,25 +1,76 @@
-module Reader.InferType where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Reader.InferType
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Infers and checks types of all bound expressions.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Reader.InferType
+    ( inferTypes
+    ) where
 
-import Utils (imLookup)
+-----------------------------------------------------------------------------
+
+import Utils
+    ( imLookup
+    )
+    
 import Data.Types
-import Data.Error
+    ( IdType(..)
+    , SignalType(..)
+    )
+    
 import Data.Binding
+    ( BindExpr(..)  
+    )
+    
 import Data.Expression
+    ( Expr(..)
+    , Expr'(..)
+    , ExprPos  
+    )  
 
 import Reader.Data
+    ( TypeTable
+    , ExpressionTable  
+    , ArgumentTable
+    , Specification(..)  
+    )
+      
 import Reader.Error
+    ( Error
+    , errExpect
+    , errRange
+    , errPattern  
+    )  
 
-import Data.Maybe (fromJust)
-import Data.Either (partitionEithers)
+import Data.Maybe
+    ( fromJust
+    )
+    
+import Data.Either
+    ( partitionEithers
+    )
+    
 import Control.Monad.State
+    ( StateT(..)
+    , execStateT
+    , get
+    , put
+    , liftM  
+    , when  
+    )  
 
 import qualified Data.IntMap.Strict as IM
 
----
+-----------------------------------------------------------------------------
 
 type TypeChecker a = a -> StateT ST (Either Error) ()
+
+-----------------------------------------------------------------------------
 
 data ST = ST
   { tCount :: Int
@@ -27,7 +78,11 @@ data ST = ST
   , targs :: ArgumentTable
   }
 
----
+-----------------------------------------------------------------------------
+
+-- | Infers and checks types of all bound expressions as well as of
+-- the assumptions, the invariants and the guarantees. Additionally, a
+-- mapping from each identifier to its type is created.
 
 inferTypes
   :: Specification -> Either Error Specification
@@ -62,7 +117,7 @@ inferLtl s xs = do
   mapM_ (inferFromUsage TLtl) $ guarantees s
   checkTypes (arguments s) (bindings s) ys xs  
 
----
+-----------------------------------------------------------------------------
 
 checkTypes
   :: ArgumentTable -> ExpressionTable -> [(Int,Expr Int)] -> TypeChecker [Int]
@@ -81,7 +136,7 @@ checkTypes as bs ys xs = do
       TPoly _ -> Right i
       _       -> Left i
 
----
+-----------------------------------------------------------------------------
 
 inferType
   :: ArgumentTable ->  ExpressionTable -> TypeChecker [Int]
@@ -91,7 +146,7 @@ inferType as bs xs = do
   mapM_ updateType ys
   checkTypes as bs ys xs
 
----
+-----------------------------------------------------------------------------
 
 updateType
   :: TypeChecker (Int,Expr Int)
@@ -121,7 +176,7 @@ updateType (i,e) = do
       TSet t' -> TSet $ generalize t'
       t' -> t'
 
----
+-----------------------------------------------------------------------------
 
 checkType
   :: ArgumentTable -> TypeChecker (Int, Expr Int) 
@@ -135,7 +190,7 @@ checkType as (i,e) = do
       [] -> inferFromUsage (TSet t) e
       _  -> inferFromUsageFormula (TSet t) e
 
----
+-----------------------------------------------------------------------------
   
 inferFromExpr
   :: Expr Int -> StateT ST (Either Error) IdType
@@ -211,7 +266,7 @@ inferFromExpr e = case expr e of
           TEmptySet -> inferSetExplicit xr
           t'        -> return $ TSet t'
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsage
   :: IdType -> TypeChecker (Expr Int)
@@ -240,7 +295,7 @@ inferFromUsage t e = case t of
   TSet t' -> inferFromUsageSet t' e
   TSignal _ -> inferFromUsageSignal e
 
----  
+-----------------------------------------------------------------------------
 
 inferFromUsageFormula
   :: IdType -> TypeChecker (Expr Int)
@@ -252,7 +307,7 @@ inferFromUsageFormula t e = case expr e of
   _         ->
     inferFromUsage t e
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsageNum
   :: TypeChecker (Expr Int)
@@ -292,7 +347,7 @@ inferFromUsageNum e = case expr e of
     t <- inferFromExpr e
     errExpect TNumber t $ srcPos e
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsageBool
   :: TypeChecker (Expr Int)
@@ -328,7 +383,7 @@ inferFromUsageBool e = case expr e of
     t <- inferFromExpr e
     errExpect TBoolean t $ srcPos e
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsageLtl
   :: TypeChecker (Expr Int)
@@ -377,7 +432,7 @@ inferFromUsageLtl e = case expr e of
     t <- inferFromExpr e
     errExpect TLtl t $ srcPos e
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsagePattern
   :: TypeChecker (Expr Int)
@@ -403,7 +458,7 @@ inferFromUsagePattern e = case expr e of
   BaseId i         -> inferFromUsageId TLtl (srcPos e) i
   _                -> errPattern $ srcPos e
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsageEmptySet
   :: TypeChecker (Expr Int)
@@ -420,7 +475,7 @@ inferFromUsageEmptySet e = case expr e of
     t <- inferFromExpr e
     errExpect (TSet (TPoly (-1))) t $ srcPos e
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsageSet
   :: IdType -> TypeChecker (Expr Int)
@@ -442,7 +497,7 @@ inferFromUsageSet t e = case expr e of
     t' <- inferFromExpr e
     errExpect (TSet t) t' $ srcPos e
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsageSignal
   :: TypeChecker (Expr Int)
@@ -454,7 +509,7 @@ inferFromUsageSignal e = case expr e of
     t <- inferFromExpr e
     errExpect (TSignal STGeneric) t $ srcPos e
 
----    
+-----------------------------------------------------------------------------
 
 inferFromUsageRange
   :: TypeChecker (Expr Int)
@@ -507,7 +562,7 @@ inferFromUsageId t pos i = do
       TSignal _ -> False
       _         -> True
 
----
+-----------------------------------------------------------------------------
 
 inferFromUsageFml
   :: [Expr Int] -> IdType -> ExprPos -> TypeChecker Int
@@ -518,4 +573,4 @@ inferFromUsageFml as t pos i = do
   let xs = zip as $ map (\x -> imLookup x $ tTypes st) $ imLookup i $ targs st
   mapM_ (\(x,y) -> inferFromUsage y x) xs
 
----
+-----------------------------------------------------------------------------

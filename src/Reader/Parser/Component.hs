@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Reader.Parser.Component
--- Description :  Parser for the MAIN section
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Parser for the MAIN section
+-- Parser for the MAIN section.
 -- 
 -----------------------------------------------------------------------------
 

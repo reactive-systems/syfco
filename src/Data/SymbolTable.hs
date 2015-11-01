@@ -1,19 +1,17 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.LookupTable
--- Description :  Data type to store all identifier specific information
+-- Module      :  Data.SymbolTable
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Data type to store all identifier specific information
+-- Data type to store all identifier specific content.
 -- 
 -----------------------------------------------------------------------------
 
-module Data.LookupTable
-    ( LookupTable
+module Data.SymbolTable
+    ( SymbolTable
     , IdRec(..)
-    , ltToCSV
+    , stToCSV
     ) where
 
 -----------------------------------------------------------------------------
@@ -41,10 +39,10 @@ import Data.Array
 
 -----------------------------------------------------------------------------
 
--- | A lookup table is an array mapping identifieres, represend by integers,
+-- | A symbol table is an array mapping identifieres, represend by integers,
 -- to blocks of information.
 
-type LookupTable = Array Int IdRec
+type SymbolTable = Array Int IdRec
 
 -----------------------------------------------------------------------------
 
@@ -75,12 +73,12 @@ data IdRec =
 
 -----------------------------------------------------------------------------
 
--- | Prints a lookup table in the CVS format (for debugging purposes only).
+-- | Prints a symbol table in the CVS format (for debugging purposes only).
 
-ltToCSV
-  :: LookupTable -> IO ()
+stToCSV
+  :: SymbolTable -> IO ()
 
-ltToCSV lt = do
+stToCSV lt = do
     putStrLn "Id;Name;Position;Arguments;Binding;Type;Dependencies;"
     mapM_ printEntry $ assocs lt
 

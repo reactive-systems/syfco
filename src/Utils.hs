@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Utils
--- Description :  Functions on standard data types that are not in Prelude
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Functions on standard data types that are not in Prelude
+-- Functions on standard data types that are not in Prelude.
 -- 
 -----------------------------------------------------------------------------
 

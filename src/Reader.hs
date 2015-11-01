@@ -3,14 +3,14 @@ module Reader where
 ---
 
 import Data.Error
-import Data.LookupTable
+import Data.SymbolTable
 import Data.Specification
 
 import Reader.Sugar
 import Reader.Parser
-import Reader.Prescind
 import Reader.Bindings
 import Reader.InferType
+import Reader.Abstraction
 
 import qualified Reader.Data as RD
 
@@ -27,8 +27,8 @@ readSpecification
      ([String]) -> Either Error Specification
 
 readSpecification str m t ps = do
-  s0 <- parseSpecification str m t ps
-  s1 <- prescind s0
+  s0 <- parse str m t ps
+  s1 <- abstract s0
   s2 <- replaceSugar s1
   s3 <- specBindings s2
   s4 <- inferTypes s3
@@ -45,15 +45,15 @@ readSpecification str m t ps = do
     , assumptions = RD.assumptions s4
     , invariants  = RD.invariants s4
     , guarantees  = RD.guarantees s4
-    , lookuptable = ltable s4
+    , symboltable = symtable s4
     }  
 
 ---
 
-ltable
-  :: RD.Specification -> LookupTable
+symtable
+  :: RD.Specification -> SymbolTable
 
-ltable s =
+symtable s =
   let
     key f =
       if IM.null $ RD.names s then 0 else

@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Reader.Parser.Info
--- Description :  Parser for the INFO section
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Parser for the INFO section
+-- Parser for the INFO section.
 -- 
 -----------------------------------------------------------------------------
 

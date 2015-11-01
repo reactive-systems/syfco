@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Reader.Parser.Expression
--- Description :  Expression Parser
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Expression Parser
+-- Expression Parser.
 -- 
 -----------------------------------------------------------------------------
 

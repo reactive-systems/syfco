@@ -1,55 +1,47 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Reader.Parser.Data
--- Description :  Common data used by the parser module
+-- Module      :  Data.Specification
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Common data used by the parser module
+-- Internal data structure of a specification.
 -- 
 -----------------------------------------------------------------------------
 
-module Reader.Parser.Data
+module Data.Specification
     ( Specification(..)
-    , globalDef
+    , Expression  
     ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Types
-    ( Target
-    , Semantics
+    ( Semantics
+    , Target
     )
     
 import Data.Binding
-    ( BindExpr
+    ( Binding
     )
     
+import Data.SymbolTable
+    ( SymbolTable
+    )
+
 import Data.Expression
     ( Expr
-    )   
-
-import Text.Parsec
-    ( (<|>)
-    , char  
-    , letter
-    , alphaNum  
-    )
-    
-import Text.Parsec.Token
-    ( LanguageDef
-    , GenLanguageDef(..)  
-    )
-    
-import Text.Parsec.Language
-    ( emptyDef
     )
 
 -----------------------------------------------------------------------------
 
--- | The @Specification@ record contains all the data of a 
--- specification that is extracted by the parsing process. This includes:
+-- | We use the type @Expression@ as a shortcut for expressions, where
+-- identifiers are denoted by integers.
+
+type Expression = Expr Int
+
+-----------------------------------------------------------------------------
+
+-- | The internal representation of a specification. It includes:
 -- 
 --     * The title of the specification
 -- 
@@ -79,6 +71,8 @@ import Text.Parsec.Language
 -- 
 --     * The list of expressions representing the
 --       guarantees of the specification
+-- 
+--     * The symbol table used to access information about an identifier
 
 data Specification =
   Specification
@@ -86,33 +80,16 @@ data Specification =
   , description :: String
   , semantics :: Semantics
   , target :: Target
-  , tags :: [String]  
-  , parameters :: [BindExpr String]
-  , definitions :: [BindExpr String]    
-  , inputs :: [BindExpr String]
-  , outputs :: [BindExpr String]    
-  , assumptions :: [Expr String]
-  , invariants :: [Expr String]
-  , guarantees :: [Expr String]
+  , tags :: [String]
+  , parameters :: [Binding]
+  , definitions :: [Binding]    
+  , inputs :: [Binding]
+  , outputs :: [Binding]    
+  , assumptions :: [Expression]
+  , invariants :: [Expression]
+  , guarantees :: [Expression]
+  , symboltable :: SymbolTable
   }
 
------------------------------------------------------------------------------
-
--- | The language definition which is shared among all parsers.
-
-globalDef
-  :: LanguageDef a 
-
-globalDef =
-  emptyDef
-  { identStart     = letter <|> char '_' <|> char '@' 
-  , identLetter    = alphaNum <|> char '_' <|> char '@' <|> char '\''
-  , commentLine    = "//"
-  , commentStart   = "/*"
-  , commentEnd     = "*/"
-  , nestedComments = True                       
-  , caseSensitive  = True
-  }
-
------------------------------------------------------------------------------
+-----------------------------------------------------------------------------  
 

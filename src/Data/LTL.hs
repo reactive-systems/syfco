@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.LTL
--- Description :  Linear Temporal Logic
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Internal representation of Linear Temporal Logic formulas
+-- Internal representation of Linear Temporal Logic formulas.
 -- 
 -----------------------------------------------------------------------------
 

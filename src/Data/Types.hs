@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Types
--- Description :  Types of the different expressions, semantics and targets
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Types of the different expressions, semantics and targets
+-- Types of the different expressions, semantics and targets.
 -- 
 -----------------------------------------------------------------------------
 

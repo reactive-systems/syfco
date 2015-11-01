@@ -15,7 +15,7 @@ module Info
 import Data.Array
 import Data.Types
 import Data.Binding
-import Data.LookupTable
+import Data.SymbolTable
 import Data.Specification
 
 import Control.Monad
@@ -77,7 +77,7 @@ prParameters
 prParameters s =
   let
     xs = map bIdent $ parameters s
-    ys = map (\x -> idName $ lookuptable s ! x) xs
+    ys = map (\x -> idName $ symboltable s ! x) xs
   in
     putStrLn $
     if null ys then ""

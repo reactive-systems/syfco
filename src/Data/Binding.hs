@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Binding
--- Description :  A data type to store an identifier bound to an expression
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- A data type to store an identifier bound to an expression
+-- A data type to store an identifier bound to an expression.
 -- 
 -----------------------------------------------------------------------------
 

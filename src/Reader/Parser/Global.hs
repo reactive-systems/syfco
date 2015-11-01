@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Reader.Parser.Global
--- Description :  Parser for the Global section
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Parser for the GLOBAl section
+-- Parser for the GLOBAl section.
 -- 
 -----------------------------------------------------------------------------
 

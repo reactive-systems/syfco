@@ -1,4 +1,6 @@
-module Main where
+module Main
+       ( main
+       ) where
 
 ---
 
@@ -74,8 +76,10 @@ readInput c = case inputFile c of
     if b then do
       r <- readFile f
       return (r,Just f)
-    else prError $ ErrArgs $ ArgumentsError $ 
-         "File does not exist: " ++ f) xs
+    else case argsError $ "File does not exist: " ++ f of
+      Left err -> prError err
+      _        -> error "Internal Error") xs
+
 
 ---
 

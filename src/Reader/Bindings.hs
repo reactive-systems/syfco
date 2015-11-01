@@ -1,27 +1,84 @@
-module Reader.Bindings where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Reader.Bindings
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Extracts the static expression bindings from the specification.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Reader.Bindings
+    ( specBindings
+    ) where
 
-import Utils (strictsort,imLookup)
-import Data.Error
+-----------------------------------------------------------------------------
+
+import Utils
+    ( strictsort
+    , imLookup
+    )
+    
 import Data.Binding
+    ( Binding
+    , BindExpr(..)  
+    )
+    
 import Data.Expression
+    ( Expr(..)
+    , Expr'(..)
+    , SrcPos(..)
+    , ExprPos(..)
+    , subExpressions
+    )  
 
 import Reader.Data
+    ( Specification(..)
+    , ExpressionTable
+    , NameTable
+    , PositionTable
+    , ArgumentTable 
+    )
+    
 import Reader.Error
+    ( Error
+    , errArgArity
+    , errConditional
+    , errCircularDep  
+    ) 
 
 import Data.Graph
+    ( buildG      
+    , scc 
+    )
+    
 import Data.Tree
-import Data.Maybe (fromJust)
+    ( flatten
+    )
+    
+import Data.Maybe
+    ( fromJust
+    )
+    
 import Control.Monad.State
+    ( StateT(..)
+    , execStateT
+    , put
+    , get
+    , when  
+    )  
 
 import qualified Data.IntMap.Strict as IM
 
----
+-----------------------------------------------------------------------------
 
 type ArityTable = IM.IntMap Int
 
+-----------------------------------------------------------------------------
+
 type BindingsBuilder a = a -> StateT ST (Either Error) ()
+
+-----------------------------------------------------------------------------
 
 data ST = ST
   { tBinding :: ExpressionTable
@@ -30,8 +87,12 @@ data ST = ST
   , tArgs :: ArgumentTable
   , tAry :: ArityTable  
   }
-             
----
+
+-----------------------------------------------------------------------------
+
+-- | Extracts the static expression bindings from the specification and
+-- stores them in a corresponding mapping. Furthermore, depencency
+-- constraints are already checked.
 
 specBindings
   :: Specification -> Either Error Specification
@@ -55,8 +116,8 @@ specBindings spec = do
     { bindings = tBinding a'
     , dependencies = IM.map deps $ tBinding a'
     }
-        
----
+
+-----------------------------------------------------------------------------
 
 specificationBindings
   :: BindingsBuilder Specification
@@ -70,7 +131,7 @@ specificationBindings s = do
   mapM_ exprBindings $ assumptions s
   mapM_ exprBindings $ guarantees s   
 
----        
+-----------------------------------------------------------------------------
 
 binding
   :: BindingsBuilder Binding
@@ -79,7 +140,7 @@ binding b = do
   mapM_ (\a -> addBinding (bIdent b,a)) $ bVal b
   mapM_ exprBindings $ bVal b
 
----
+-----------------------------------------------------------------------------
         
 exprBindings
   :: BindingsBuilder (Expr Int)
@@ -134,7 +195,7 @@ exprBindings e = case expr e of
           }
       _        -> errConditional $ srcPos e
 
----
+-----------------------------------------------------------------------------
 
 addBinding
   :: BindingsBuilder (Int,Expr Int)
@@ -148,7 +209,7 @@ addBinding (i,x) = do
     tBinding = IM.insert i s $ tBinding a
     }
 
----             
+-----------------------------------------------------------------------------
 
 deps
   :: Expr Int -> [Int]
@@ -173,8 +234,8 @@ deps = strictsort . deps' []
     conditional k x = case expr x of
       BlnElem _ y -> deps' k y
       _           -> deps' k x
-      
----
+
+-----------------------------------------------------------------------------
 
 checkCircularDeps
   :: Specification -> Either Error Specification
@@ -207,6 +268,8 @@ checkCircularDeps s = do
         errCircularDep ys p
 
     checkSingelton (i,j) = when (i == j) $
-      errCircularDep [(imLookup i $ names s, imLookup i $ positions s)] $ imLookup i $ positions s
+      errCircularDep [(imLookup i $ names s, imLookup i $ positions s)] $
+      imLookup i $ positions s
 
----
+-----------------------------------------------------------------------------
+

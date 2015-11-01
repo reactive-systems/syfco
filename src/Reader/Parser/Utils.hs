@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Reader.Parser.Utils
--- Description :  Functions shared among the different parsers
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Functions shared among the different parsers
+-- Functions shared among the different parsers.
 -- 
 -----------------------------------------------------------------------------
 

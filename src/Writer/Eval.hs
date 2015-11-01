@@ -10,7 +10,7 @@ import Data.Error
 import Data.Binding
 import Data.Expression
 import Data.Specification
-import Data.LookupTable
+import Data.SymbolTable
 
 import Writer.Error
 
@@ -50,7 +50,7 @@ instance Ord Value where
 type Evaluator a = a -> StateT ST (Either Error) Value
 
 data ST = ST
-  { tLookup :: LookupTable
+  { tLookup :: SymbolTable
   , tValues :: IM.IntMap Value
   , delimiter :: String  
   }
@@ -63,13 +63,13 @@ eval
 eval d s = do
   let
     xs = filter isunary $ map bIdent $ parameters s ++ definitions s
-    ys = concatMap (\i -> map (\j -> (i,j)) $ filter isunary $ idDeps $ lookuptable s ! i) xs
+    ys = concatMap (\i -> map (\j -> (i,j)) $ filter isunary $ idDeps $ symboltable s ! i) xs
     minkey = foldl min (head xs) xs
     maxkey = foldl max (head xs) xs
     zs = if null xs then [] else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
     ss = map bIdent $ inputs s ++ outputs s
 
-  stt <- execStateT (mapM_ staticBinding zs) $ ST (lookuptable s) IM.empty d
+  stt <- execStateT (mapM_ staticBinding zs) $ ST (symboltable s) IM.empty d
   sti <- execStateT (mapM_ componentSignal ss) stt
   as <- evalStateT (mapM evalLtl $ assumptions s) sti
   is <- evalStateT (mapM evalLtl $ invariants s) sti
@@ -78,7 +78,7 @@ eval d s = do
   return (map (plainltl) as, map (plainltl) is, map (plainltl) gs)
 
   where
-    isunary x = null $ idArgs $ lookuptable s ! x
+    isunary x = null $ idArgs $ symboltable s ! x
 
     plainltl = (applyAtomic revert) . vltl
 

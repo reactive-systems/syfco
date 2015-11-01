@@ -1,12 +1,10 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.StringMap
--- Description :  A simple data structure to map strings to integers
 -- License     :  MIT (see the LICENSE file)
--- 
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- A simple data structure to map strings to integers
+-- A simple data structure to map strings to integers.
 -- 
 -----------------------------------------------------------------------------
 

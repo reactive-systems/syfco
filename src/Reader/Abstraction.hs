@@ -1,26 +1,66 @@
-module Reader.Prescind where
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Reader.Abstraction
+-- License     :  MIT (see the LICENSE file)
+-- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- 
+-- Abstracts from identifier names to integer IDs.
+-- 
+-----------------------------------------------------------------------------
 
----
+module Reader.Abstraction
+    ( abstract
+    ) where
+
+-----------------------------------------------------------------------------
 
 import Data.Binding
+    ( BindExpr(..)
+    )
+    
 import Data.Expression
+    ( Expr(..)
+    , Expr'(..)
+    , ExprPos  
+    )  
 
-import Data.Error
 import Reader.Data
+    ( NameTable
+    , PositionTable
+    , ArgumentTable
+    , Specification(..)  
+    )
+    
 import Reader.Error
-import qualified Reader.Parser.Data as PD
+    ( Error
+    , errUnknown
+    , errConflict
+    , errPattern  
+    )  
 
 import Data.Maybe
+    ( mapMaybe
+    )
+    
 import Control.Monad.State
+    ( StateT(..)
+    , evalStateT
+    , get
+    , put
+    , void  
+    )  
+
+import qualified Reader.Parser.Data as PD
 
 import qualified Data.IntMap.Strict as IM
+
 import qualified Data.StringMap as SM
 
----
+-----------------------------------------------------------------------------
 
-type Prescinder a b = a -> StateT ST (Either Error) b
+type Abstractor a b = a -> StateT ST (Either Error) b
 
----
+-----------------------------------------------------------------------------
 
 data ST = ST
   { count :: Int
@@ -30,39 +70,44 @@ data ST = ST
   , tArgs :: ArgumentTable  
   }
 
----
+-----------------------------------------------------------------------------
 
-prescind
+-- | Abstracts from identifiers represeted by strings to identifiers
+-- represented by integers. Additionally, a mapping from the integer
+-- representation back to the string representation as well as mapping to
+-- possible arguments and the position in the source file is created.
+
+abstract
   :: PD.Specification -> Either Error Specification
 
-prescind spec = do
-  evalStateT (pcSpec spec)
+abstract spec = do
+  evalStateT (abstractSpec spec)
     ST { count = 0
        , tIndex = SM.empty
        , tName = IM.empty
        , tPos = IM.empty
        , tArgs = IM.empty
        }
-             
----
+    
+-----------------------------------------------------------------------------    
 
-pcSpec
-  :: Prescinder PD.Specification Specification
+abstractSpec
+  :: Abstractor PD.Specification Specification
 
-pcSpec s = do
+abstractSpec s = do
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.parameters s
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.definitions s
-  ps <- mapM pcBind $ PD.parameters s 
-  vs <- mapM pcBind $ PD.definitions s
+  ps <- mapM abstractBind $ PD.parameters s 
+  vs <- mapM abstractBind $ PD.definitions s
 
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.inputs s
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.outputs s
-  is <- mapM pcBind $ PD.inputs s
-  os <- mapM pcBind $ PD.outputs s
+  is <- mapM abstractBind $ PD.inputs s
+  os <- mapM abstractBind $ PD.outputs s
   
-  as <- mapM pcExpr $ PD.assumptions s
-  bs <- mapM pcExpr $ PD.invariants s
-  gs <- mapM pcExpr $ PD.guarantees s
+  as <- mapM abstractExpr $ PD.assumptions s
+  bs <- mapM abstractExpr $ PD.invariants s
+  gs <- mapM abstractExpr $ PD.guarantees s
 
   st <- get
 
@@ -80,15 +125,15 @@ pcSpec s = do
     IM.empty
     IM.empty
 
----
+-----------------------------------------------------------------------------
 
-pcBind
-  :: Prescinder (BindExpr String) (BindExpr Int)
+abstractBind
+  :: Abstractor (BindExpr String) (BindExpr Int)
 
-pcBind b = do
+abstractBind b = do
   a <- get
   as <- mapM add $ bArgs b
-  es <- mapM pcExpr $ bVal b
+  es <- mapM abstractExpr $ bVal b
   a' <- get
   i <- case SM.lookup (bIdent b) $ tIndex a of
     Just j  -> return j
@@ -106,10 +151,10 @@ pcBind b = do
     , bVal = es
     }
   
----
+-----------------------------------------------------------------------------
 
 add
-  :: Prescinder (String,ExprPos) (Int,ExprPos)
+  :: Abstractor (String,ExprPos) (Int,ExprPos)
 
 add (i,pos) = do
   a <- get
@@ -127,10 +172,10 @@ add (i,pos) = do
       let Just p = IM.lookup j $ tPos a
       in errConflict i p pos
 
----
+-----------------------------------------------------------------------------
 
 check
-  :: Prescinder (String,ExprPos) (Int,ExprPos)
+  :: Abstractor (String,ExprPos) (Int,ExprPos)
 
 check (i,pos) = do
   a <- get
@@ -138,12 +183,12 @@ check (i,pos) = do
     Nothing -> errUnknown i pos
     Just j  -> return (j,pos)
 
----
+-----------------------------------------------------------------------------
 
-pcExpr
-  :: Prescinder (Expr String) (Expr Int)
+abstractExpr
+  :: Abstractor (Expr String) (Expr Int)
 
-pcExpr e = case expr e of
+abstractExpr e = case expr e of
   BaseOtherwise    -> return $ Expr BaseOtherwise $ srcPos e
   BaseWild         -> return $ Expr BaseWild $ srcPos e
   BaseTrue         -> return $ Expr BaseTrue $ srcPos e
@@ -193,27 +238,27 @@ pcExpr e = case expr e of
     return $ Expr (BaseId x') p
   BaseBus x y      -> do
     (y',p) <- check (y,srcPos e)
-    x' <- pcExpr x
+    x' <- abstractExpr x
     return $ Expr (BaseBus x' y') p
   BaseFml xs x     -> do
     (x',p) <- check (x,srcPos e)
-    xs' <- mapM pcExpr xs
+    xs' <- mapM abstractExpr xs
     return $ Expr (BaseFml xs' x') p
   SetExplicit xs   -> do
-    xs' <- mapM pcExpr xs
+    xs' <- mapM abstractExpr xs
     return $ Expr (SetExplicit xs') $ srcPos e
   SetRange x y z   -> do
-    x' <- pcExpr x
-    y' <- pcExpr y
-    z' <- pcExpr z
+    x' <- abstractExpr x
+    y' <- abstractExpr y
+    z' <- abstractExpr z
     return $ Expr (SetRange x' y' z') $ srcPos e
   Colon v z        -> case expr v of
     Pattern x y -> do
       a <- get
-      x' <- pcExpr x
+      x' <- abstractExpr x
       getPatternIds y 
-      y' <- pcExpr y
-      z' <- pcExpr z
+      y' <- abstractExpr y
+      z' <- abstractExpr z
       a' <- get
       put $ a' { tIndex = tIndex a }
       return $ Expr (Colon (Expr (Pattern x' y') (srcPos v)) z') (srcPos e)
@@ -222,19 +267,19 @@ pcExpr e = case expr e of
 
   where
     lift' c x = do
-      x' <- pcExpr x
+      x' <- abstractExpr x
       return $ Expr (c x') (srcPos e)
 
     lift2' c x y = do
-      x' <- pcExpr x
-      y' <- pcExpr y      
+      x' <- abstractExpr x
+      y' <- abstractExpr y      
       return $ Expr (c x' y') (srcPos e)
     
     cond c xs x = do
       a <- get
       _ <- mapM add $ mapMaybe getId xs
-      xs' <- mapM pcExpr xs
-      x' <- pcExpr x
+      xs' <- mapM abstractExpr xs
+      x' <- abstractExpr x
       a' <- get
       put $ a' { tIndex = tIndex a }
       return $ Expr (c xs' x') (srcPos e)
@@ -276,4 +321,4 @@ pcExpr e = case expr e of
       LtlRelease x y   -> mapM_ getPatternIds [x,y]      
       _                -> errPattern $ srcPos z
 
----
+-----------------------------------------------------------------------------
