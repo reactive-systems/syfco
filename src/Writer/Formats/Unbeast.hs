@@ -40,12 +40,12 @@ writeUnbeast c s = do
     ([],_)    -> gs
     ([x],[])  -> [Globally x]
     ([x],[y]) -> [Globally x,y]
-    ([x],_)   -> ((Globally x) : gs)
+    ([x],_)   -> Globally x : gs
     (_,[])    -> [Globally $ And is]
     (_,[x])   -> [Globally $ And is, x]
-    (_,_)     -> ((Globally $ And is) : gs)
+    (_,_)     -> (Globally $ And is) : gs
     
-  return $ WriteContents {
+  return WriteContents {
     mainFile = main as' vs',
     partitionFile = Nothing
     }
@@ -54,53 +54,86 @@ writeUnbeast c s = do
     main as vs =
       "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>" 
       ++ "\n" ++ "<!DOCTYPE SynthesisProblem SYSTEM \"" ++ specfile ++ "\">"
+      ++ "\n"
       ++ "\n" ++ "<!--"
-      ++ "\n" ++ "This specification was automatically created from a high level specification,"
+      ++ "\n" ++ "This specification was automatically created from a TLSF specification,"
       ++ "\n" ++ "using the SyFCo tool."
       ++ "\n"
       ++ "\n" ++ "Please consider that default values for the .dtd file and the LTL compiler"
       ++ "\n" ++ "have been used. To change them, you can use the 'updatePathsInXML.py' script,"
       ++ "\n" ++ "that is shipped with the Unbeast tool."
       ++ "\n" ++ "-->"
+      ++ "\n"
       ++ "\n" ++ "<SynthesisProblem>"
       ++ "\n" ++ "  <Title>" ++ title s ++ "</Title>"
-      ++ "\n" ++ "  <Description>" ++ description s ++ "</Description>"
+      ++ "\n" ++ "  <Description>" 
+      ++ "\n" ++ fixedIndent (description s)
+      ++ "\n" ++ "  </Description>"
       ++ "\n" ++ "  <PathToLTLCompiler>" ++ compiler ++ "</PathToLTLCompiler>"
       ++ "\n" ++ "  <GlobalInputs>"
-      ++ (concatMap printSignal $ fmlInputs $ Implies (And as) (And vs))
+      ++ concatMap printSignal (fmlInputs $ Implies (And as) (And vs))
       ++ "\n" ++ "  </GlobalInputs>"  
       ++ "\n" ++ "  <GlobalOutputs>"
-      ++ (concatMap printSignal $ fmlOutputs $ Implies (And as) (And vs))
+      ++ concatMap printSignal (fmlOutputs $ Implies (And as) (And vs))
       ++ "\n" ++ "  </GlobalOutputs>"
       ++ (if null as then "" 
-          else "\n" ++ "  <Assumptions>" ++ (concatMap printFormula as) ++ "\n" ++ "  </Assumptions>")
+          else "\n" ++ "  <Assumptions>" ++
+               concatMap (printFormula 4) as ++
+               "  </Assumptions>")
       ++ "\n" ++ "  <Specification>"
-      ++ (concatMap printFormula vs)
-      ++ "\n" ++ "  </Specification>"
+      ++ concatMap (printFormula 4) vs
+      ++ "  </Specification>"
       ++ "\n" ++ "</SynthesisProblem>"
       ++ "\n"
     
     specfile = "SynSpec.dtd"
     compiler = "ltl2ba -f"
 
+    fixedIndent str = case str of
+      []        -> []
+      (' ':xr)  -> fixedIndent xr
+      ('\t':xr) -> fixedIndent xr
+      ('\n':xr) -> fixedIndent xr
+      _         -> "    " ++
+                 concatMap ident (rmLeadingSpace [] False str)
+
+    ident chr = case chr of
+      '\n' -> "\n    "
+      _    -> [chr]
+
+    rmLeadingSpace a b str = case str of
+      []        -> reverse a
+      ('\n':xr) -> rmLeadingSpace ('\n':a) True xr
+      ('\t':xr) ->
+        if b
+        then rmLeadingSpace a b xr
+        else rmLeadingSpace (' ':a) b xr
+      (' ':xr)  ->
+        if b
+        then rmLeadingSpace a b xr
+        else rmLeadingSpace (' ':a) b xr             
+      (x:xr)    -> rmLeadingSpace (x:a) False xr            
+        
     d = busDelimiter c    
 
     printSignal sig =
       "\n    <Bit>" ++ sig ++ "</Bit>"
 
-    printFormula f = case f of
-      TTrue       -> "<True>"
-      FFalse      -> "<False>"
-      Atomic x    -> "<Var>" ++ show x ++ "</Var>"
-      Not x       -> "<Not>" ++ printFormula x ++ "</Not>"
-      Next x      -> "<X>" ++ printFormula x ++ "</X>"
-      Globally x  -> "<G>" ++ printFormula x ++ "</G>"
-      Finally x   -> "<F>" ++ printFormula x ++ "</F>"
-      Or xs       -> "<Or>" ++ concatMap printFormula xs ++ "</Or>"
-      And xs      -> "<And>" ++ concatMap printFormula xs ++ "</And>"
-      Equiv x y   -> "<Iff>" ++ printFormula x ++ printFormula y ++ "</Iff>"
-      Until x y   -> "<U>" ++ printFormula x ++ printFormula y ++ "</U>"
-      Weak x y    -> "<WU>" ++ printFormula x ++ printFormula y ++ "</WU>"
+    printFormula n f = replicate n ' ' ++ printFormula' (n + 2) f
+    
+    printFormula' n f = case f of
+      TTrue       -> "<True>\n"
+      FFalse      -> "<False>\n"
+      Atomic x    -> "<Var>" ++ show x ++ "</Var>\n"
+      Not x       -> "<Not>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</Not>\n"
+      Next x      -> "<X>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</X>\n"
+      Globally x  -> "<G>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</G>\n"
+      Finally x   -> "<F>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</F>\n"
+      Or xs       -> "<Or>\n" ++ concatMap (printFormula n) xs ++ replicate (n - 2) ' ' ++ "</Or>\n"
+      And xs      -> "<And>\n" ++ concatMap (printFormula n) xs ++ replicate (n - 2) ' ' ++ "</And>\n"
+      Equiv x y   -> "<Iff>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</Iff>\n"
+      Until x y   -> "<U>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</U>\n"
+      Weak x y    -> "<WU>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</WU>\n"
       Implies _ _ -> error "Unbeast does not support the implication operator"      
       Release _ _ -> error "Unbeast does not support the release operator"
 
