@@ -435,7 +435,7 @@ checkConfiguration cfg
         "(negation normal form, no release operators, " ++
         "no globally operators, and no weak until operatators)" ++
         "is impossible to satisfy.\n" ++
-        "Remove at least one of these constaints."
+        "Remove at least one of these constaints."        
       
   | negNormalForm cfg && noRelease cfg && noDerived cfg =
         
@@ -444,6 +444,60 @@ checkConfiguration cfg
         "(negation normal form, no release operatators, " ++
         "and no derived operators) is impossible to satisfy.\n" ++
         "Remove at least one of these constraints."
+
+  | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
+    outputFormat cfg == LTLXBA =
+
+      argsError $
+        "The given combination of transformations " ++
+        "(negation normal form, no release operators, and " ++
+        "no globally operators)" ++
+        "is impossible to satisfy when outputting to the " ++
+        "LTL2BA / LTL3BA format, since it does not support " ++ 
+        "the weak until operator.\n" ++
+        "Remove at least one of these constaints."
+
+  | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
+    outputFormat cfg == WRING =
+
+      argsError $
+        "The given combination of transformations " ++
+        "(negation normal form, no release operators, and " ++
+        "no globally operators)" ++
+        "is impossible to satisfy when outputting to the " ++
+        "Wring format, since it does not support " ++ 
+        "the weak until operator.\n" ++
+        "Remove at least one of these constaints."        
+
+  | negNormalForm cfg && noGlobally cfg && outputFormat cfg == PSL =
+
+      argsError $
+        "The given combination of transformations " ++
+        "(negation normal form and no globally operators)" ++
+        "is impossible to satisfy when outputting to the " ++
+        "PSL format, since it does not support " ++ 
+        "the weak until and the release operator.\n" ++
+        "Remove at least one of these constaints."
+
+  | negNormalForm cfg && noDerived cfg && outputFormat cfg == PSL =
+
+      argsError $
+        "The given combination of transformations " ++
+        "(negation normal form and no derived operators)" ++
+        "is impossible to satisfy when outputting to the " ++
+        "PSL format, since it does not support " ++ 
+        "the release operator.\n" ++
+        "Remove at least one of these constaints."
+
+  | negNormalForm cfg && noDerived cfg && outputFormat cfg == UNBEAST =
+
+      argsError $
+        "The given combination of transformations " ++
+        "(negation normal form and no derived operators)" ++
+        "is impossible to satisfy when outputting to the " ++
+        "UNBEAST format, since it does not support " ++ 
+        "the release operator.\n" ++
+        "Remove at least one of these constaints."        
         
   | otherwise = return ()
 
@@ -454,4 +508,3 @@ checkConfiguration cfg
       last str /= '"'
 
 -----------------------------------------------------------------------------
-

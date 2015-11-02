@@ -33,8 +33,8 @@ writeUnbeast
 
 writeUnbeast c s = do
   (as,is,gs) <- eval d s
-  as' <- mapM (simplify c) as
-  vs' <- mapM (simplify c) $ case (is,gs) of
+  as' <- mapM (simplify (c { noRelease = True }) . noImpl) as
+  vs' <- mapM (simplify (c { noRelease = True }) . noImpl) $ case (is,gs) of
     ([],[])   -> []
     ([],[x])  -> [x]
     ([],_)    -> gs
@@ -103,6 +103,10 @@ writeUnbeast c s = do
       Weak x y    -> "<WU>" ++ printFormula x ++ printFormula y ++ "</WU>"
       Implies _ _ -> error "Unbeast does not support the implication operator"      
       Release _ _ -> error "Unbeast does not support the release operator"
+
+    noImpl fml = case fml of
+      Implies x y -> Or [Not x, y]
+      _           -> applySub noImpl fml
 
 -----------------------------------------------------------------------------
 

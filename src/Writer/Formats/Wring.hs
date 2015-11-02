@@ -60,7 +60,7 @@ writeWring c s =
   in do
     (as,is,gs) <- eval d s
     fml0 <- merge as is gs
-    fml1 <- simplify c $ adjust fml0
+    fml1 <- simplify (c { noWeak = True }) $ adjust fml0
     
     return $ WriteContents {
       mainFile = pretty mode opNames fml1,
