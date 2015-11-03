@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool <br/> <small>(Version v0.1.0.0)</small>
+# Synthesis Format Conversion Tool<br/><span style="font-size:22px">(Version v0.1.0.0)</span>
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF (Temporal Logic Synthesis Format).
@@ -64,10 +64,8 @@ in the root directory. However, if you encounter any problems, please inform us 
 | Command                        | Description                                    |
 | ------------------------------ | ----------------------------------- |
 | ```-o, --output```             | Path of the output file (results are printed to STDOUT, if not  set) |
-| ```-f, --format```             | Output format. Possible values are               |
-| <nbsp&/>                       | <table><tbody><tr>  <td>```utf8```* </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```* </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```* </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```* </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```* </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> </br> * creates an additional partition (.part) file, if an output path is set |
-| ``` -m, --mode```              | Output mode. Possible values are
-| <nbsp&/>                       | <table><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
+| ```-f, --format```             | Output format. Possible values are </br> <table><tbody><tr>  <td>```utf8```* </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```* </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```* </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```* </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```* </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> </br> * creates an additional partition (.part) file, if an output path is set |
+| ``` -m, --mode```              | Output mode. Possible values are </br> <table><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
 | ```-np, --no-part```           | Do not create a partitioning (.part) file |
 | ```-po, --part-only```         | Only create a partitioning (.part) file |
 | ```-bd, --bus-delimiter```     | Delimiter used to print indexed bus signals (default: '_') |
@@ -88,28 +86,16 @@ in the root directory. However, if you encounter any problems, please inform us 
 | ```-s0, --weak-simplify```           | Simple simplifications (removal of true, false in boolean connectives, redundant temporal operators, etc.) |
 | ```-s1, --strong-simplify```         | Advanced simplifications </br> (includes: ```-s0 -nnf -nw -nr -lgo -lfo -lxo```) |
 | ```-nnf, --negation-normal-form```   | Convert the resulting LTL formula into negation normal form |
-| ```-pgi, --push-globally-inwards```  | Push global operators inwards |
-| <nbsp&/>                             | ```G (a && b) => (G a) && (G b)``` |
-| ```-pfi, --push-finally-inwards```   | Push finally operators inwards |
-| <nbsp&/>                             | <code>F (a &#124;&#124; b) => (F a) &#124;&#124; (F b)</code> |
-| ```-pxi, --push-next-inwards```      | Push next operators inwards |
-| <nbsp&/>                             |  ```X (a && b) => (X a) && (X b)``` |
-| <nbsp&/>                             |  <code>X (a &#124;&#124; b) => (X a) &#124;&#124; (X b)</code> |
-| ```-pgo, --pull-globally-outwards``` | Pull global operators outwards |
-| <nbsp&/>                             | ```(G a) && (G b) => G (a && b)``` |
-| ```-pfo, --pull-finally-outwards```  | Pull finally operators outwards |
-| <nbsp&/>                             | <code>(F a) &#124;&#124; (F b) => G (a &#124;&#124; b)</code>
-| ```-pxo, --pull-next-outwards```     | Pull next operators outwards |
-| <nbsp&/>                             | ```(X a) && (X b) => X (a && b)```
-| <nbsp&/>                             | <code>(X a) &#124;&#124; (X b) => X (a && b)</code>
-| ``` -nw, --no-weak-until```          | Replace weak until operators |
-| <nbsp&/>                             | <code>a W b => (a U b) &#124;&#124; (G a)</code>
-| ```-nr, --no-release```              | Replace release operators |
-| <nbsp&/>                             | ```a R b => b W (a && b)```
-| ```-nf, --no-finally```              | Replace finally operators |
-| <nbsp&/>                             | ```F a => true U a```
-| ```-ng, --no-globally```             | Replace global operators |
-| <nbsp&/>                             | ```G a => false R a```
+| ```-pgi, --push-globally-inwards```  | Push global operators inwards </br> ```G (a && b) => (G a) && (G b)``` |
+| ```-pfi, --push-finally-inwards```   | Push finally operators inwards </br> <code>F (a &#124;&#124; b) => (F a) &#124;&#124; (F b)</code> |
+| ```-pxi, --push-next-inwards```      | Push next operators inwards </br> ```X (a && b) => (X a) && (X b)``` </br>  <code>X (a &#124;&#124; b) => (X a) &#124;&#124; (X b)</code> |
+| ```-pgo, --pull-globally-outwards``` | Pull global operators outwards </br> ```(G a) && (G b) => G (a && b)``` |
+| ```-pfo, --pull-finally-outwards```  | Pull finally operators outwards  </br>  <code>(F a) &#124;&#124; (F b) => G (a &#124;&#124; b)</code>
+| ```-pxo, --pull-next-outwards```     | Pull next operators outwards </br> ```(X a) && (X b) => X (a && b)``` </br> <code>(X a) &#124;&#124; (X b) => X (a && b)</code>
+| ``` -nw, --no-weak-until```          | Replace weak until operators </br> <code>a W b => (a U b) &#124;&#124; (G a)</code>
+| ```-nr, --no-release```              | Replace release operators </br> ```a R b => b W (a && b)```
+| ```-nf, --no-finally```              | Replace finally operators </br> ```F a => true U a```
+| ```-ng, --no-globally```             | Replace global operators </br> ```G a => false R a```
 | ```-nd, --no-derived```              | Same as: ```-nw -nf -ng``` |
 
 ### Information about Specifications:
@@ -129,12 +115,12 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### Sample usage:
 
-<code>
-  syfco -o converted -f promela -m fulpar -nnf -nd file.tlsf </br>
-  syfco -f psl -op n=3 -os Strict,Mealy -o converted file.tlsf </br>
-  syfco -o converted -in </br>
-  syfco -t file.tlsf </br>
-</code>
+```
+syfco -o converted -f promela -m fulpar -nnf -nd file.tlsf
+syfco -f psl -op n=3 -os Strict,Mealy -o converted file.tlsf
+syfco -o converted -in
+syfco -t file.tlsf
+```
 
   
 ### Examples
