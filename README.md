@@ -51,7 +51,7 @@ Prerequisites:
 
 Building the tool should be simple using
 
-```make```
+<code>make</code>
 
 in the root directory. However, if you encounter any problems, please inform us via [this bug tracker](https://github.com/reactive-systems/syfco/issues).
 
