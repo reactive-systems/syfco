@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool<br/><span style="font-size:22px">(Version v0.1.0.0)</span>
+# Synthesis Format Conversion Tool<br/>(Version 0.1.0.0)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF (Temporal Logic Synthesis Format).
@@ -59,19 +59,19 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ```syfco [OPTIONS]... <file>```
 
-### File Operations:
+#### File Operations:
 
-| Command                        | Description                                    |
-| ------------------------------ | ----------------------------------- |
+| Command                        | Description                                                          |
+| ------------------------------ | -------------------------------------------------------------------- |
 | ```-o, --output```             | Path of the output file (results are printed to STDOUT, if not  set) |
-| ```-f, --format```             | Output format. Possible values are </br> <table><tbody><tr>  <td>```utf8```* </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```* </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```* </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```* </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```* </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> </br> * creates an additional partition (.part) file, if an output path is set |
-| ``` -m, --mode```              | Output mode. Possible values are </br> <table><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
-| ```-np, --no-part```           | Do not create a partitioning (.part) file |
-| ```-po, --part-only```         | Only create a partitioning (.part) file |
-| ```-bd, --bus-delimiter```     | Delimiter used to print indexed bus signals (default: '_') |
-| ```-in, --stdin```             | Read the input file from STDIN |
+| ```-f, --format```             | Output format. Possible values are: </br> <table><tbody><tr>  <td>```utf8```* </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```* </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```* </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```* </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```* </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> </br> * creates an additional partition (.part) file, if an output path is set |
+| ``` -m, --mode```              | Output mode. Possible values are: </br> <table><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
+| ```-np, --no-part```           | Do not create a partitioning (.part) file                            |
+| ```-po, --part-only```         | Only create a partitioning (.part) file                              |
+| ```-bd, --bus-delimiter```     | Delimiter used to print indexed bus signals (default: '_')           |
+| ```-in, --stdin```             | Read the input file from STDIN                                       |
 
-### File Modifications:
+#### File Modifications:
 
 | Command                          | Description                         |
 | -------------------------------- | ----------------------------------- |
@@ -81,8 +81,8 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### Formula Transformations (disabled by default):
 
-| Command                              | Description                         |
-| ------------------------------------ | ----------------------------------- |
+| Command                              | Description           |
+| ------------------------------------ | --------------------- |
 | ```-s0, --weak-simplify```           | Simple simplifications (removal of true, false in boolean connectives, redundant temporal operators, etc.) |
 | ```-s1, --strong-simplify```         | Advanced simplifications </br> (includes: ```-s0 -nnf -nw -nr -lgo -lfo -lxo```) |
 | ```-nnf, --negation-normal-form```   | Convert the resulting LTL formula into negation normal form |
@@ -100,7 +100,7 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### Information about Specifications:
 
-| Command                        | Description                             |
+| Command                       | Description                              |
 | ----------------------------- | ---------------------------------------- |
 | ```-c, --check```             | Check the input file                     |
 | ```-t, --print-title```       | Output the title of the input file       |
@@ -111,9 +111,9 @@ in the root directory. However, if you encounter any problems, please inform us 
 | ```-p, --print-parameters```  | Output the parameters of the input file  |
 | ```-i, --print-info```        | Output all data of the info section      |
 | ```-v, --version```           | Output version information               |
-| ```-h, --help```              | Display this help                        |
+| ```-h, --help```              | Display help                             |
 
-### Sample usage:
+#### Sample usage:
 
 ```
 syfco -o converted -f promela -m fulpar -nnf -nd file.tlsf
@@ -121,7 +121,6 @@ syfco -f psl -op n=3 -os Strict,Mealy -o converted file.tlsf
 syfco -o converted -in
 syfco -t file.tlsf
 ```
-
   
 ### Examples
 
@@ -130,7 +129,7 @@ A number of synthesis benchmarks in TLSF can be found in the
 
 ### Editor Support
 
-If you use emacs, you can try our emacs mode (```tlsf-mode.el```),
+If you use [Emacs](https://www.gnu.org/software/emacs/), you can try our emacs mode (```tlsf-mode.el```),
 which can be found in ```/misc```.
 
 ## Adding output formats
