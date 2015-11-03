@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool <br/> <font size="5">(Version v0.1.0.0)</font>
+# Synthesis Format Conversion Tool <br/> <small>(Version v0.1.0.0)</small>
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF (Temporal Logic Synthesis Format).
@@ -53,7 +53,7 @@ Building the tool should be simple using
 
 <code>make</code>
 
-in the root directory. However, if you encounter any problems, please inform us via [this bug tracker](https://github.com/reactive-systems/syfco/issues).
+in the root directory. However, if you encounter any problems, please inform us via [the project bug tracker](https://github.com/reactive-systems/syfco/issues).
 
 ## Usage
 
@@ -61,11 +61,9 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### File Operations:
 
-|                                |                                                                      |
-| ------------------------------ | -------------------------------------------------------------------- |
 | ```-o, --output```             | Path of the output file (results are printed to STDOUT, if not  set) |
 | ```-f, --format```             | Output format. Possible values are               |
-| <nbsp&/>                       | <table><thead><tr>  <th></th></tr></thead><tbody><tr>  <td>```utf8```*  </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```*</td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```*</td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```*</td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```*</td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> |
+| <nbsp&/>                       | <table><tbody><tr>  <td>```utf8```* </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```* </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```* </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```* </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```* </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> |
 | <nbsp&/>                       | * creates an additional partition (.part) file, if an output path is set |
 | ``` -m, --mode```              | Output mode. Possible values are
 | <nbsp&/>                       | <table><thead><tr><th></th></tr></thead><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
@@ -86,10 +84,8 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 |                                      |                                     |
 | ------------------------------------ | ----------------------------------- |
-| ```-s0, --weak-simplify```           | Simple simplifications (removal of true, false in boolean |
-| <nbsp&/>                             | connectives, redundant temporal operators, etc.) |
-| ```-s1, --strong-simplify```         | Advanced simplifications |
-| <nbsp&/>                             | (includes: ```-s0 -nnf -nw -nr -lgo -lfo -lxo```) |
+| ```-s0, --weak-simplify```           | Simple simplifications (removal of true, false in boolean connectives, redundant temporal operators, etc.) |
+| ```-s1, --strong-simplify```         | Advanced simplifications </br> (includes: ```-s0 -nnf -nw -nr -lgo -lfo -lxo```) |
 | ```-nnf, --negation-normal-form```   | Convert the resulting LTL formula into negation normal form |
 | ```-pgi, --push-globally-inwards```  | Push global operators inwards |
 | <nbsp&/>                             | ```G (a && b) => (G a) && (G b)``` |
