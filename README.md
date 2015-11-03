@@ -61,12 +61,13 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### File Operations:
 
+| Command                        | Description                                    |
+| ------------------------------ | ----------------------------------- |
 | ```-o, --output```             | Path of the output file (results are printed to STDOUT, if not  set) |
 | ```-f, --format```             | Output format. Possible values are               |
-| <nbsp&/>                       | <table><tbody><tr>  <td>```utf8```* </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```* </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```* </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```* </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```* </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> |
-| <nbsp&/>                       | * creates an additional partition (.part) file, if an output path is set |
+| <nbsp&/>                       | <table><tbody><tr>  <td>```utf8```* </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```* </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```* </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```* </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```* </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> </br> * creates an additional partition (.part) file, if an output path is set |
 | ``` -m, --mode```              | Output mode. Possible values are
-| <nbsp&/>                       | <table><thead><tr><th></th></tr></thead><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
+| <nbsp&/>                       | <table><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
 | ```-np, --no-part```           | Do not create a partitioning (.part) file |
 | ```-po, --part-only```         | Only create a partitioning (.part) file |
 | ```-bd, --bus-delimiter```     | Delimiter used to print indexed bus signals (default: '_') |
@@ -74,7 +75,7 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### File Modifications:
 
-|                                  |                                     |
+| Command                          | Description                         |
 | -------------------------------- | ----------------------------------- |
 | ```-os, --overwrite-semantics``` | Overwrite the semantics of the file |
 | ```-ot, --overwrite-target```    | Overwrite the target of the file    | 
@@ -82,7 +83,7 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### Formula Transformations (disabled by default):
 
-|                                      |                                     |
+| Command                              | Description                         |
 | ------------------------------------ | ----------------------------------- |
 | ```-s0, --weak-simplify```           | Simple simplifications (removal of true, false in boolean connectives, redundant temporal operators, etc.) |
 | ```-s1, --strong-simplify```         | Advanced simplifications </br> (includes: ```-s0 -nnf -nw -nr -lgo -lfo -lxo```) |
@@ -113,7 +114,7 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### Information about Specifications:
 
-|                               |                                          |
+| Command                        | Description                             |
 | ----------------------------- | ---------------------------------------- |
 | ```-c, --check```             | Check the input file                     |
 | ```-t, --print-title```       | Output the title of the input file       |
@@ -128,11 +129,13 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### Sample usage:
 
-```syfco -o converted -f promela -m fulpar -nnf -nd file.tlsf
-syfco -f psl -op n=3 -os Strict,Mealy -o converted file.tlsf
-syfco -o converted -in
-syfco -t file.tlsf
-```
+<code>
+  syfco -o converted -f promela -m fulpar -nnf -nd file.tlsf </br>
+  syfco -f psl -op n=3 -os Strict,Mealy -o converted file.tlsf </br>
+  syfco -o converted -in </br>
+  syfco -t file.tlsf </br>
+</code>
+
   
 ### Examples
 
