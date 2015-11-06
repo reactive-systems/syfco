@@ -122,12 +122,12 @@ syfco -o converted -in
 syfco -t file.tlsf
 ```
   
-### Examples
+## Examples
 
 A number of synthesis benchmarks in TLSF can be found in the
 ```/examples``` directory.
 
-### Editor Support
+## Editor Support
 
 If you use [Emacs](https://www.gnu.org/software/emacs/), you can try our emacs mode (```tlsf-mode.el```),
 which can be found in ```/misc```.
