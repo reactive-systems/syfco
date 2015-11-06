@@ -11,23 +11,45 @@
 module Writer.Utils
     ( pretty
     , merge
-    , partition  
+    , partition
+    , checkLower  
     ) where
 
 -----------------------------------------------------------------------------
+
+import Data.Char
+    ( toLower
+    )
 
 import Data.LTL
     ( Atomic(..)
     , Formula(..)
     )
+
+import Data.Binding
+    ( BindExpr(..)
+    )
+
+import Data.SymbolTable
+    ( IdRec(..)
+    )  
+
+import Data.Specification
+    ( Specification(..)
+    )
     
 import Writer.Error
     ( Error
+    , errToLower
     )  
 
 import Writer.Data
     ( WriteMode(..)
     , OperatorNames(..)  
+    )
+    
+import Data.Array.IArray
+    ( (!)
     )  
 
 -----------------------------------------------------------------------------
@@ -139,12 +161,12 @@ merge as is gs =
       ([],_)    -> And gs
       ([x],[])  -> Globally x
       ([x],[y]) -> And [Globally x,y]
-      ([x],_)   -> And ((Globally x) : gs)
+      ([x],_)   -> And (Globally x : gs)
       (_,[])    -> Globally $ And is
       (_,[x])   -> And [Globally $ And is, x]
       (_,_)     -> And ((Globally $ And is) : gs)
   in case as of
-    []  -> return $ fml
+    []  -> return fml
     [x] -> return $ Implies x fml
     _   -> return $ Implies (And as) fml
 
@@ -157,7 +179,34 @@ partition
   :: [String] -> [String] -> String
 
 partition is os =
-  ".inputs" ++ (concatMap (' ' :) is) ++ "\n" ++
-  ".outputs" ++ (concatMap (' ' :) os) ++ "\n"
+  ".inputs" ++ concatMap (' ' :) is ++ "\n" ++
+  ".outputs" ++ concatMap (' ' :) os ++ "\n"
+
+-----------------------------------------------------------------------------
+
+-- | Checks whether a conversion of the signal names to lower case would
+-- introduce any clash.
+
+checkLower
+  :: String -> Specification -> Either Error ()
+
+checkLower fmt s =
+  let
+    ids = map bIdent (inputs s) ++
+          map bIdent (outputs s)
+    names = map (idName . (symboltable s !)) ids
+    lnames = map (map toLower) names
+    znames = zip3 ids names lnames
+  in
+    checkDouble znames
+    
+  where
+    checkDouble xs = case xs of
+      [] ->  return ()
+      [_] -> return ()
+      ((i,a,b):(x,c,d):xr) ->
+        if b == d 
+        then errToLower fmt a c $ idPos $ symboltable s ! i
+        else checkDouble ((x,c,d) : xr)
 
 -----------------------------------------------------------------------------

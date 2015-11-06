@@ -18,6 +18,7 @@ import Config
 import Simplify
 
 import Data.LTL
+import Data.Char
 import Data.Error
 import Data.Specification
 
@@ -58,14 +59,20 @@ writePromela c s =
     d = busDelimiter c
     mode = outputMode c
   in do
+    checkLower "Promela" s
     (as,is,gs) <- eval d s
     fml0 <- merge as is gs
     fml1 <- simplify c fml0
     
     return $ WriteContents {
-      mainFile = pretty mode opNames fml1,
+      mainFile = pretty mode opNames $ applyAtomic lower fml1,
       partitionFile = Just $ partition (fmlInputs fml1) (fmlOutputs fml1)
       }
+
+  where
+    lower x = Atomic $ case x of
+      Input str  -> Input $ map toLower str
+      Output str -> Output $ map toLower str      
 
 -----------------------------------------------------------------------------
 

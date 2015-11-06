@@ -16,6 +16,7 @@ module Writer.Error
     , errMaxSet
     , errSetCap
     , errNoMatch
+    , errToLower  
     ) where
 
 -----------------------------------------------------------------------------
@@ -96,5 +97,19 @@ errNoMatch i xs pos =
                head xs ++ (concatMap ((:) ',' . (:) ' ') $ tail xs)) ++
             ")"
   in StateT $ \_ -> runtimeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that indicates a pair of variables that would clash
+-- if converted to lower case.
+
+errToLower
+  :: String -> String -> String -> ExprPos -> Either Error a 
+
+errToLower fmt n1 n2 pos =
+  let msg = "The " ++ fmt ++ " format only accepts lower case variables. " ++
+            "However, automatic conversion introduces a clash, since " ++
+            "then '" ++ n1 ++ "' equals '" ++ n2 ++ "'."
+  in runtimeError pos msg
 
 -----------------------------------------------------------------------------
