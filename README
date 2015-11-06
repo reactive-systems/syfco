@@ -1,0 +1,166 @@
+# Synthesis Format Conversion Tool
+# (Version 0.1.0.0)
+
+A tool for reading, manipulating and transforming synthesis
+specifications in TLSF (Temporal Logic Synthesis Format).
+
+## About this tool
+
+The tool interprets the high level constructs of TLSF (functions,
+sets, ...) and supports the transformation of the specification to
+Linear Temporal Logic (LTL) in different output formats. The tool has
+been designed to be modular with respect to the supported output
+formats and semantics. Furthermore, the tool allows to identify and
+manipulate parameters, targets and semantics of a specification on the
+fly. This is especially thought to be useful for comparative studies,
+as they are for example needed in the Synthesis Competition.
+
+The main features of the tool are summarized as follows:
+
+* Interpretation of high level constructs, which allows to reduce the
+  specification to its basic fragment where no more parameter and
+  variable bindings occur (i.e., without the GLOBAL section).
+  
+* Transformation to other existing specification formats, like Basic
+  TLSF, Promela LTL, PSL, Unbeast or Wring.
+
+* On the fly adjustment of parameters, semantics or targets.
+
+* Preprocessing of the resulting LTL formula
+
+    * conversion to negation normal form
+
+    * replacement of derived operators
+
+    * pushing/pulling next, eventually, or globally operators
+      inwards/outwards
+
+    * standard simplifications
+
+## Installation
+
+SyfCo is written in Haskell and can be compiled using the Glasgow
+Haskell Compiler (GHC).
+
+Prerequisites:
+
+* GHC (recommended version: >= 7.0.1, Haskell2010)
+ 
+* parsec (recommended version: >= 3.1)
+
+Building the tool should be simple using
+
+  make
+
+in the root directory. However, if you encounter any problems, please
+inform us via the project bug
+tracker (https://github.com/reactive-systems/syfco/issues).
+
+## Usage
+
+syfco [OPTIONS]... <file>
+
+
+### File Operations:
+
+  -o, --output                    : Path of the output file (results are printed
+                                    to STDOUT, if not set)
+  -f, --format                    : Output format. Possible values are
+
+      * utf8 (~) [default]        : Human readable output using UTF8 symbols
+      * wring (~)                 : Wring input format
+      * ltlxba (~)                : LTL2BA / LTL3BA input format
+      * promela (~)               : Promela LTL
+      * unbeast                   : Unbeast input format
+      * psl (~)                   : PSL Syntax
+      * basic                     : high level format (without global section)
+
+                                    (~) creates an additional partition (.part)
+                                        file, if an output path is set
+
+  -m, --mode                      : Output mode. Possible values are
+
+      * pretty [default]          : pretty printing (as less parentheses as possible)
+      * fully                     : output fully parenthesized formulas
+
+  -np, --no-part                  : Do not create a partitioning (.part) file
+  -po, --part-only                : Only create a partitioning (.part) file
+  -bd, --bus-delimiter            : Delimiter used to print indexed bus signals
+                                    (Default: '_')
+  -in, --stdin                    : Read the input file from STDIN
+
+### File Modifications:
+
+  -os, --overwrite-semantics      : Overwrite the semantics of the file
+  -ot, --overwrite-target         : Overwrite the target of the file
+  -op, --overwrite-parameter      : Overwrite a parameter of the file
+
+### Formula Transformations (disabled by default):
+
+  -s0, --weak-simplify            : Simple simplifications (removal of true, false in 
+                                    boolean connectives, redundant temporal operator,
+                                    etc.)
+  -s1, --strong-simplify          : Advanced simplifications (includes: -s0 -nnf -nw
+                                    -nr -lgo -lfo -lxo)
+  -nnf, --negation-normal-form    : Convert the resulting LTL formula into negation
+                                    normal form
+  -pgi, --push-globally-inwards   : Push global operators inwards
+                                      G (a && b) => (G a) && (G b)
+  -pfi, --push-finally-inwards    : Push finally operators inwards
+                                      F (a || b) => (F a) || (F b)
+  -pxi, --push-next-inwards       : Push next operators inwards
+                                      X (a && b) => (X a) && (X b)
+                                      X (a || b) => (X a) || (X b)
+  -pgo, --pull-globally-outwards  : Pull global operators outwards
+                                      (G a) && (G b) => G (a && b)
+  -pfo, --pull-finally-outwards   : Pull finally operators outwards
+                                      (F a) || (F b) => G (a || b)
+  -pxo, --pull-next-outwards      : Pull next operators outwards
+                                      (X a) && (X b) => X (a && b)
+                                      (X a) || (X b) => X (a && b)
+  -nw, --no-weak-until            : Replace weak until operators
+                                      a W b => (a U b) || (G a)
+  -nr, --no-release               : Replace release operators
+                                      a R b => b W (a && b)
+  -nf, --no-finally               : Replace finally operators
+                                      F a => true U a
+  -ng, --no-globally              : Replace global operators
+                                      G a => false R a
+  -nd, --no-derived               : Same as: -nw -nf -ng
+
+### Print Information (and exit):
+
+  -c, --check                     : Check the input file
+  -t, --print-title               : Output the title of the input file
+  -d, --print-description         : Output the description of the input file
+  -s, --print-semantics           : Output the semantics of the input file
+  -g, --print-target              : Output the target of the input file
+  -a, --print-tags                : Output the target of the input file
+  -p, --print-parameters          : Output the parameters of the input file
+  -i, --print-info                : Output all data of the info section
+
+  -v, --version                   : Output version information
+  -h, --help                      : Display this help
+
+### Sample usage:
+
+  syfco -o converted -f promela -m fulpar -nnf -nd file.tlsf
+  syfco -f psl -op n=3 -os Strict,Mealy -o converted file.tlsf
+  syfco -o converted -in
+  syfco -t file.tlsf
+  
+## Examples
+
+A number of synthesis benchmarks in TLSF can be found in the /examples
+directory.
+
+## Editor Support
+
+If you use Emacs, you can try our emacs mode (tlsf-mode.el), which can
+be found in /misc.
+
+## Adding output formats
+
+If you like to add a new output format, first consider
+/Writer/Formats/Example.hs, which contains the most common standard
+constructs and a short tutorial.
