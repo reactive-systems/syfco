@@ -117,7 +117,7 @@ in the root directory. However, if you encounter any problems, please inform us 
 #### Sample usage:
 
 ```
-syfco -o converted -f promela -m fulpar -nnf -nd file.tlsf
+syfco -o converted -f promela -m fully -nnf -nd file.tlsf
 syfco -f psl -op n=3 -os Strict,Mealy -o converted file.tlsf
 syfco -o converted -in
 syfco -t file.tlsf

@@ -308,7 +308,7 @@ prHelp = do
     ++ "\n"
     ++ "\n" ++ "Sample usage:"
     ++ "\n"
-    ++ "\n" ++ "  " ++ toolname ++ " -o converted -f promela -m fulpar -nnf -nd file.tlsf"
+    ++ "\n" ++ "  " ++ toolname ++ " -o converted -f promela -m fully -nnf -nd file.tlsf"
     ++ "\n" ++ "  " ++ toolname ++ " -f psl -op n=3 -os Strict,Mealy -o converted file.tlsf"
     ++ "\n" ++ "  " ++ toolname ++ " -o converted -in"
     ++ "\n" ++ "  " ++ toolname ++ " -t file.tlsf"
