@@ -1,0 +1,79 @@
+INFO {
+  TITLE:       "Parameterized Generalized Buffer"
+  DESCRIPTION: "Parameterized Generalized Buffer (generalized version of the Acacia+ benchmark)"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 2;
+  }
+
+  DEFINITIONS {
+    // ensures mutual exclusion on an n-ary bus
+    mutual_exclusion(bus) =
+      mone(bus,0,(SIZEOF bus) - 1);
+
+    // ensures that none of the signals
+    // bus[i] - bus[j] is HIGH
+    none(bus,i,j) =
+      &&[i <= t <= j]
+        !bus[t];
+
+    // ensures that at most one of the signals
+    // bus[i] - bus[j] is HIGH
+    mone(bus,i,j) =
+    i > j : false
+    i == j : true
+    i < j :
+      // either no signal of the lower half is HIGH and at 
+      // most one signal of the upper half is HIGH
+      (none(bus, i, m(i,j)) && mone(bus, m(i,j) + 1, j)) ||
+      // or at most one signal of the lower half is HIGH
+      // and no signal in of the upper half is HIGH
+      (mone(bus, i, m(i,j)) && none(bus, m(i,j) + 1, j));
+
+    // returns the position between i and j
+    m(i,j) = (i + j) / 2;
+
+    spec_unit_s2b(req, ack, i) =
+      !req[i] && G (req[i] && !ack[i] -> X req[i]) && G (ack[i] -> X !req[i])
+        -> (G (!req[i] && X req[i] -> X (!ack[i] && X F ack[i])) &&
+           G (!ack[i] && X !req[i] -> X !ack[i]) &&
+           G (!ack[0] || !ack[1]) && !ack[0]);    
+
+    spec_unit_b2r(req, ack, i) =
+      !ack[i] && G (!req[i] -> X !ack[i]) && G (req[i] -> X F ack[i])
+        -> (G (ack[i] -> X !req[i]) && !req[i] &&
+           G (req[i] && !ack[i] -> X req[i]) &&
+           G (req[i] && X !req[i]
+                -> X (!req[i] U (!req[i] && req[(n + i - 1) % n]))));
+  }   
+}
+
+MAIN {
+
+  INPUTS {
+    s2b_req[2];
+    r2b_ack[n];
+  }
+
+  OUTPUTS {
+    b2s_ack[2];
+    b2r_req[n];
+  }
+
+  GUARANTEES {
+    &&[0 <= i < 2]
+      spec_unit_s2b(s2b_req, b2s_ack, i);
+    
+    &&[0 <= i < n]
+      spec_unit_b2r(b2r_req, r2b_ack, i);
+
+    ||[0 <= i < n]
+      (!r2b_ack[i] && G (!b2r_req[i] -> X !r2b_ack[i]) && G (b2r_req[i] -> X F r2b_ack[i]))
+        -> (G ((s2b_req[0] || s2b_req[1]) -> X F ||[0 <= i < n] b2r_req[i]) &&
+           G mutual_exclusion(b2r_req));
+  }
+}
