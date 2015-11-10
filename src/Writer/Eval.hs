@@ -18,6 +18,14 @@ module Writer.Eval
 import Utils
     ( iter
     )
+    
+import Config
+    ( Configuration(..)
+    )
+
+import Data.Char
+    ( toLower
+    )  
 
 import Data.LTL
     ( Atomic(..)
@@ -56,6 +64,10 @@ import Writer.Error
     , errMaxSet
     , errSetCap  
     , errNoMatch  
+    )
+
+import Writer.Formats
+    ( needsLower
     )  
 
 import Control.Monad.State
@@ -121,9 +133,9 @@ data ST = ST
 -- accesses are printed using the delimiter string given by @d@.
 
 eval
-  :: String -> Specification -> Either Error ([Formula],[Formula],[Formula])
+  :: Configuration -> Specification -> Either Error ([Formula],[Formula],[Formula])
 
-eval d s = do
+eval c s = do
   let
     xs = filter isunary $ map bIdent $ parameters s ++ definitions s
     ys = concatMap (\i -> map (\j -> (i,j)) $ filter isunary $
@@ -134,24 +146,30 @@ eval d s = do
          else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
     ss = map bIdent $ inputs s ++ outputs s
 
-  stt <- execStateT (mapM_ staticBinding zs) $ ST (symboltable s) IM.empty d
+  stt <- execStateT (mapM_ staticBinding zs) $
+        ST (symboltable s) IM.empty $ busDelimiter c
   sti <- execStateT (mapM_ componentSignal ss) stt
   as <- evalStateT (mapM evalLtl $ assumptions s) sti
   is <- evalStateT (mapM evalLtl $ invariants s) sti
   gs <- evalStateT (mapM evalLtl $ guarantees s) sti
   
-  return (map (plainltl) as, map (plainltl) is, map (plainltl) gs)
+  return (map plainltl as, map plainltl is, map plainltl gs)
 
   where
     isunary x = null $ idArgs $ symboltable s ! x
 
-    plainltl = (applyAtomic revert) . vltl
+    plainltl = applyAtomic revert . vltl
 
     revert :: Atomic -> Formula
     revert x = Atomic $ case x of
-      Input y  -> Input $ last $ words y
-      Output y -> Output $ last $ words y
+      Input y  -> Input $ lower $ last $ words y
+      Output y -> Output $ lower $ last $ words y
 
+    lower x =
+      if needsLower (outputFormat c) 
+      then map toLower x
+      else x
+                
 -----------------------------------------------------------------------------
 
 staticBinding
@@ -179,7 +197,7 @@ componentSignal i = do
       TSignal STInput  -> Input
       TSignal STOutput -> Output
       _                -> error "internal error (ERR 02)"
-    n = show i ++ " " ++ (idName $ tLookup st ! i)
+    n = show i ++ " " ++ idName (tLookup st ! i)
   put $ st {
     tValues = IM.insert i (VLtl $ Atomic $ c n) $ tValues st
     }
@@ -392,7 +410,7 @@ evalNum e = case expr e of
               Input z  -> z
               Output z -> z
     st <- get
-    VSet s <- evalExpr $ idBindings $ (tLookup st) ! i 
+    VSet s <- evalExpr $ idBindings $ tLookup st ! i 
     case  S.toList s of
       [VNumber z] -> return $ VNumber z
       _           -> error "internal error (ERR_14)"
@@ -571,7 +589,7 @@ evalConditional fun f xs x =
             _ -> error "internal error (ERR_20)"
           _ -> error "internal error (ERR_21)"
         _ -> error "internal error (ERR_22)"
-      s = idBindings $ (tLookup st) ! i
+      s = idBindings $ tLookup st ! i
     VSet vs <- evalSet s
     rs <- mapM (bindExec i (tail xs) x) $ S.toList vs
     return $ f rs

@@ -39,14 +39,19 @@ import Reader
     
 import Writer
     ( WriteFormat(..)
-    , WriteContents(..)  
     , writeSpecification
-    )  
+    , partition  
+    )
 
 import Data.Error
     ( prError
     , argsError 
     )
+
+import Data.Maybe
+    ( isJust
+    , fromJust
+    )  
     
 import Data.Specification
     ( Specification
@@ -61,8 +66,9 @@ import System.Directory
     )
     
 import Control.Monad
-    ( unless
-    )  
+    ( when
+    )
+
 
 -----------------------------------------------------------------------------
 
@@ -137,21 +143,20 @@ writeOutput
 
 writeOutput c s = case writeSpecification c s of
   Left err -> prError err
-  Right wc -> case outputFile c of
-    Nothing -> putStrLn $ mainFile wc
-    Just f  -> do
-      let ending = case outputFormat c of
-            SHORT   -> ".tlsf"
-            UNBEAST -> ".xml"
-            _       -> ".ltl"
-
-      unless (onlyPartition c) $ 
-        writeFile (rmSuffix f ++ ending) $ mainFile wc
-
-      case partitionFile wc of
-        Nothing   -> return ()
-        Just part -> unless (noPartition c) $
-                    writeFile (rmSuffix f ++ ".part") part
+  Right wc -> do
+    case outputFile c of
+      Nothing -> putStrLn wc
+      Just f  -> do
+        let ending = case outputFormat c of
+              BASIC   -> ".tlsf"
+              UNBEAST -> ".xml"
+              _       -> ".ltl"
+        
+        writeFile (rmSuffix f ++ ending) wc
+        
+    when (isJust $ partFile c) $ do
+      part <- partition c s
+      writeFile (fromJust $ partFile c) part
 
   where
     rmSuffix path = case reverse path of

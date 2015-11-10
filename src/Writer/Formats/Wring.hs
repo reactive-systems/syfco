@@ -51,21 +51,14 @@ opNames = OperatorNames
 -- | Wring format writer.
 
 writeWring
-  :: Configuration -> Specification -> Either Error WriteContents
+  :: Configuration -> Specification -> Either Error String
 
-writeWring c s =
-  let
-    d = busDelimiter c
-    mode = outputMode c
-  in do
-    (as,is,gs) <- eval d s
-    fml0 <- merge as is gs
-    fml1 <- simplify (c { noWeak = True }) $ adjust fml0
+writeWring c s = do
+  (as,is,gs) <- eval c s
+  fml0 <- merge as is gs
+  fml1 <- simplify (c { noWeak = True }) $ adjust fml0
     
-    return $ WriteContents {
-      mainFile = pretty mode opNames fml1,
-      partitionFile = Just $ partition (fmlInputs fml1) (fmlOutputs fml1)
-      }
+  return $ pretty (outputMode c) opNames fml1
 
   where
     adjust fml = case fml of

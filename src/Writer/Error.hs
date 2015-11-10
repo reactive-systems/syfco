@@ -16,7 +16,8 @@ module Writer.Error
     , errMaxSet
     , errSetCap
     , errNoMatch
-    , errToLower  
+    , errToLower
+    , prError  
     ) where
 
 -----------------------------------------------------------------------------
@@ -24,6 +25,7 @@ module Writer.Error
 import Data.Error
     ( Error
     , runtimeError
+    , prError  
     )  
     
 import Data.Expression

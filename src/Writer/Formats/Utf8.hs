@@ -17,7 +17,6 @@ module Writer.Formats.Utf8
 import Config
 import Simplify
 
-import Data.LTL
 import Data.Error
 import Data.Specification
 
@@ -51,21 +50,14 @@ opNames = OperatorNames
 -- | UTF8 writer.
 
 writeUtf8
-  :: Configuration -> Specification -> Either Error WriteContents
+  :: Configuration -> Specification -> Either Error String
 
-writeUtf8 c s =
-  let
-    d = busDelimiter c
-    mode = outputMode c
-  in do
-    (as,is,gs) <- eval d s
-    fml0 <- merge as is gs
-    fml1 <- simplify c fml0
+writeUtf8 c s = do
+  (as,is,gs) <- eval c s
+  fml0 <- merge as is gs
+  fml1 <- simplify c fml0
     
-    return $ WriteContents {
-      mainFile = pretty mode opNames fml1,
-      partitionFile = Just $ partition (fmlInputs fml1) (fmlOutputs fml1)
-      }
+  return $ pretty (outputMode c) opNames fml1
 
 -----------------------------------------------------------------------------
 

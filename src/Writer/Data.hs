@@ -9,22 +9,9 @@
 -----------------------------------------------------------------------------
 
 module Writer.Data
-    ( WriteContents(..)
-    , WriteMode(..)
+    ( WriteMode(..)
     , OperatorNames(..)
     ) where
-
------------------------------------------------------------------------------
-
--- | The data type @WriteContents@ wraps the result of a writer, namely the
--- main specification content and depending on the writer, some additional
--- content of a partition file.
-
-data WriteContents =
-  WriteContents
-  { mainFile :: String
-  , partitionFile :: Maybe String
-  }
 
 -----------------------------------------------------------------------------
 

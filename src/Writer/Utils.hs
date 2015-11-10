@@ -11,7 +11,6 @@
 module Writer.Utils
     ( pretty
     , merge
-    , partition
     , checkLower  
     ) where
 
@@ -41,7 +40,7 @@ import Data.Specification
 import Writer.Error
     ( Error
     , errToLower
-    )  
+    )
 
 import Writer.Data
     ( WriteMode(..)
@@ -169,18 +168,6 @@ merge as is gs =
     []  -> return fml
     [x] -> return $ Implies x fml
     _   -> return $ Implies (And as) fml
-
------------------------------------------------------------------------------
-
--- | Creates the contents of a standard partioning file from the lists
--- of input and output signals.
-
-partition
-  :: [String] -> [String] -> String
-
-partition is os =
-  ".inputs" ++ concatMap (' ' :) is ++ "\n" ++
-  ".outputs" ++ concatMap (' ' :) os ++ "\n"
 
 -----------------------------------------------------------------------------
 

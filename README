@@ -67,24 +67,20 @@ syfco [OPTIONS]... <file>
                                     to STDOUT, if not set)
   -f, --format                    : Output format. Possible values are
 
-      * utf8 (~) [default]        : Human readable output using UTF8 symbols
-      * wring (~)                 : Wring input format
-      * ltlxba (~)                : LTL2BA / LTL3BA input format
-      * promela (~)               : Promela LTL
+      * utf8 [default]            : Human readable output using UTF8 symbols
+      * wring                     : Wring input format
+      * ltlxba                    : LTL2BA / LTL3BA input format
+      * promela                   : Promela LTL
       * unbeast                   : Unbeast input format
-      * psl (~)                   : PSL Syntax
+      * psl                       : PSL Syntax
       * basic                     : high level format (without global section)
-
-                                    (~) creates an additional partition (.part)
-                                        file, if an output path is set
 
   -m, --mode                      : Output mode. Possible values are
 
       * pretty [default]          : pretty printing (as less parentheses as possible)
       * fully                     : output fully parenthesized formulas
 
-  -np, --no-part                  : Do not create a partitioning (.part) file
-  -po, --part-only                : Only create a partitioning (.part) file
+  -pf, --part-file                : Create a partitioning (.part) file
   -bd, --bus-delimiter            : Delimiter used to print indexed bus signals
                                     (Default: '_')
   -in, --stdin                    : Read the input file from STDIN

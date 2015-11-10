@@ -44,8 +44,7 @@ import Writer.Data
 -- 
 --     * The mode used by the writer
 -- 
---     * A boolean flag specifying whether a partition file should be
---       createad or not
+--     * Optional path to a parition file.
 -- 
 --     * A boolean flag specifying whether only a partition file should be
 --       created or not
@@ -149,8 +148,7 @@ data Configuration =
   , outputFile :: Maybe String
   , outputFormat :: WriteFormat
   , outputMode :: WriteMode
-  , noPartition :: Bool
-  , onlyPartition :: Bool
+  , partFile :: Maybe String
   , busDelimiter :: String
   , fromStdin :: Bool
   , owSemantics :: Maybe String
@@ -197,8 +195,7 @@ defaultCfg =
     outputFile = Nothing,
     outputFormat = UTF8,
     outputMode = Pretty,
-    noPartition = False,
-    onlyPartition = False,
+    partFile = Nothing,
     busDelimiter = "\"_\"",
     fromStdin = False,
     owSemantics = Nothing,
@@ -285,9 +282,10 @@ parseArguments args = do
         Nothing       -> argsError "\"-m\": No mode given"
       "--mode"                   -> case next of
         Nothing -> argsError "\"--mode\": no mode given"
-        _       -> parseArgument a "-m" next        
-      "-np"                      -> return $ None $ a { noPartition = True }
-      "-po"                      -> return $ None $ a { onlyPartition = True }
+        _       -> parseArgument a "-m" next
+      "-pf"                      -> case next of
+        Just x  -> return $ Single $ a { partFile = Just x }
+        Nothing -> argsError "\"-pf\": No partition file"
       "-bd"                      -> case next of
         Just x  -> return $ Single $ a { busDelimiter = x }
         Nothing -> argsError "\"-bd\": No delimiter given"
@@ -339,8 +337,7 @@ parseArguments args = do
       "-i"                       -> simple $ (clean a) { pInfo = True }
       "-v"                       -> simple $ (clean a) { pVersion = True }
       "-h"                       -> simple $ (clean a) { pHelp = True }
-      "--no-part"                -> parseArgument a "-np" next
-      "--part-only"              -> parseArgument a "-po" next
+      "--part-file"              -> parseArgument a "-pf" next
       "--stdin"                  -> parseArgument a "-in" next
       "--weak-simplify"          -> parseArgument a "-s0" next
       "--strong-simplify"        -> parseArgument a "-s1" next
@@ -407,11 +404,6 @@ checkConfiguration cfg
 
       argsError
         "Select either \"-in, --stdin\" or give an input file."
-        
-  | noPartition cfg && onlyPartition cfg =
-    
-      argsError
-        "Select either \"-np, --no-part\" or \"-po, --part-only\"."
         
   | pushGlobally cfg && pullGlobally cfg =
 

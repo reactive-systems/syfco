@@ -1,5 +1,6 @@
 module Writer.Formats.Example -- <-- CHANGE THIS TO THE NAME OF THE FILE 
-       ( writeExample -- <-- CHANGE THIS TO THE NAME OF YOUR WRITER (convention: "write" ++ <name of file>
+       ( writeExample -- <-- CHANGE THIS TO THE NAME OF YOUR WRITER
+                      --     (convention: "write" ++ <name of file>
        ) where
 
 ---
@@ -12,7 +13,8 @@ module Writer.Formats.Example -- <-- CHANGE THIS TO THE NAME OF THE FILE
  -   Writer/Formats.hs:
  -
  -      Add an internal name for your format here and the string which specifies the format on the
- -      command line.
+ -      command line. If your format only supports lower case signal names, you can also enable
+ -      an automatic conversion here.
  -
  -   Writer.hs:
  -
@@ -28,7 +30,6 @@ module Writer.Formats.Example -- <-- CHANGE THIS TO THE NAME OF THE FILE
 import Config
 import Simplify
 
-import Data.LTL
 import Data.Error
 import Data.Specification
 
@@ -64,23 +65,20 @@ opNames = OperatorNames
 
 ---
 
-{- The core of each writer is the writing function, which turns the internal into the desired
- - format. Thereby consider that the internal representation still allows sets and functions
- - which are not resolved yet.
- - The writer gets as input the configuration, which contains all settings passes via the
- - command line (see Config.hs for more info), and the specification that contains the
- - internal representation.
- - The writer returns a WriteContents structure, which contains the content of the main file
- - as a string and an optional parition file (Either 'Just <partition file content>' or 'Nothing')
+{- The core of each writer is the writing function, which turns the internal format into the 
+ - desired format. Thereby consider that the internal representation still allows sets and 
+ - functions which are not resolved yet. The writer gets as input the configuration, which
+ - contains all settings passed via the command line (see Config.hs for more info), and the
+ - specification that contains the internal representation. The writer returns a String,
+ - which contains the respecitve content of the main file.
  -
  - Feel free to adapt this function according to you needs. However, the following functions
  - may be useful to simplify you life:
  -
- -   (as,is,gs) <- eval d s
+ -   (as,is,gs) <- eval c s
  -
- -     The function gets the delimiter d to seperate bus signals (per default stored in
- -     'busDelimiter c') and the specification s and returns three lists of LTL formulas:
- -     the assumptions, the invariants, and the guarantees.
+ -     The function gets the configuration and the specification s and returns three lists of
+ -     LTL formulas: the assumptions, the invariants, and the guarantees.
  -
  -   fml <- merge as is gs
  -
@@ -104,11 +102,6 @@ opNames = OperatorNames
  -     as above, fixes the names of the operators used here. The function uses the standard
  -     operator precedence for pretty printing.
  -
- -   str <- partition is os
- -
- -     Creates the contents of a partition file from the inputs 'is' and outputs 'os' of the
- -     Formula.
- -
  - These constructs mostly should suffice to create a writer for simple output formats.
  - However, surely also more advanced stuff can be done (this is haskell ;-). To get further
  - information into this direction it is recommended to first have a look at the other
@@ -120,21 +113,14 @@ opNames = OperatorNames
  -}
 
 writeExample
-  :: Configuration -> Specification -> Either Error WriteContents
+  :: Configuration -> Specification -> Either Error String
 
-writeExample c s =
-  let
-    d = busDelimiter c
-    mode = outputMode c
-  in do
-    (as,is,gs) <- eval d s
+writeExample c s = do
+    (as,is,gs) <- eval c s
     fml0 <- merge as is gs
     fml1 <- simplify c fml0
-    
-    return $ WriteContents {
-      mainFile = pretty mode opNames fml1,
-      partitionFile = Just $ partition (fmlInputs fml1) (fmlOutputs fml1)
-      }
+
+    return $ pretty (outputMode c) opNames fml1
     
 ---
 

@@ -64,10 +64,9 @@ in the root directory. However, if you encounter any problems, please inform us 
 | Command                        | Description                                                          |
 | ------------------------------ | -------------------------------------------------------------------- |
 | ```-o, --output```             | Path of the output file (results are printed to STDOUT, if not  set) |
-| ```-f, --format```             | Output format. Possible values are: </br> <table><tbody><tr>  <td>```utf8```* </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring```* </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba```* </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea```* </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl```* </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> </br> * creates an additional partition (.part) file, if an output path is set |
+| ```-f, --format```             | Output format. Possible values are: </br> <table><tbody><tr>  <td>```utf8``` </td>  <td>Human readable output using UTF8 symbols (default) </td></tr><tr>  <td>```wring``` </td>  <td>Wring input format</td></tr><tr>  <td>```ltlxba``` </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promea``` </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```psl``` </td>  <td>PSL Syntax</td></tr><tr>  <td>```basic```</td>  <td>high level format (without global section)</td></tr></tbody></table> |
 | ``` -m, --mode```              | Output mode. Possible values are: </br> <table><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
-| ```-np, --no-part```           | Do not create a partitioning (.part) file                            |
-| ```-po, --part-only```         | Only create a partitioning (.part) file                              |
+| ```-pf, --part-file```         | Create a partitioning (```.part```) file                             |
 | ```-bd, --bus-delimiter```     | Delimiter used to print indexed bus signals (default: '_')           |
 | ```-in, --stdin```             | Read the input file from STDIN                                       |
 

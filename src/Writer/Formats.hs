@@ -11,6 +11,7 @@
 module Writer.Formats
     ( WriteFormat(..)
     , parseFormat
+    , needsLower  
     ) where
 
 -----------------------------------------------------------------------------
@@ -30,9 +31,21 @@ data WriteFormat =
   | PROMELA
   | UNBEAST
   | LTLXBA  
-  | SHORT
+  | BASIC
   | PSL
-  deriving (Eq)  
+  deriving (Eq)
+
+-----------------------------------------------------------------------------
+
+instance Show WriteFormat where
+  show f = case f of
+    UTF8    -> "Utf8"
+    WRING   -> "Wring"
+    PROMELA -> "Promela LTL"
+    UNBEAST -> "Unbeast"
+    LTLXBA  -> "LtlXba"
+    BASIC   -> "Basic"
+    PSL     -> "Psl"
 
 -----------------------------------------------------------------------------
 
@@ -48,7 +61,16 @@ parseFormat s = case s of
   "unbeast" -> return UNBEAST 
   "promela" -> return PROMELA
   "psl"     -> return PSL
-  "basic"   -> return SHORT
+  "basic"   -> return BASIC
   x         -> argsError ("Unknown format: " ++ x)
-  
------------------------------------------------------------------------------  
+
+-----------------------------------------------------------------------------
+
+-- | Indicates the formats only support lower case signal names.
+
+needsLower
+  :: WriteFormat -> Bool
+
+needsLower s = s `elem` [LTLXBA, PROMELA]
+
+-----------------------------------------------------------------------------

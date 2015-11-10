@@ -17,8 +17,6 @@ module Writer.Formats.Ltlxba
 import Config
 import Simplify
 
-import Data.LTL
-import Data.Char
 import Data.Error
 import Data.Specification
 
@@ -52,27 +50,14 @@ opNames = OperatorNames
 -- | Ltl2ba / LTL3ba writer.
 
 writeLtlxba
-  :: Configuration -> Specification -> Either Error WriteContents
+  :: Configuration -> Specification -> Either Error String
 
-writeLtlxba c s =
-  let
-    d = busDelimiter c
-    mode = outputMode c
-  in do
-    checkLower "LTLXBA" s
-    (as,is,gs) <- eval d s
-    fml0 <- merge as is gs
-    fml1 <- simplify (c { noWeak = True }) fml0
+writeLtlxba c s = do
+  (as,is,gs) <- eval c s
+  fml0 <- merge as is gs
+  fml1 <- simplify (c { noWeak = True }) fml0
     
-    return WriteContents {
-      mainFile = pretty mode opNames $ applyAtomic lower fml1,
-      partitionFile = Just $ partition (fmlInputs fml1) (fmlOutputs fml1)
-      }
-
-  where
-    lower x = Atomic $ case x of
-      Input str  -> Input $ map toLower str
-      Output str -> Output $ map toLower str
+  return $ pretty (outputMode c) opNames fml1
 
 -----------------------------------------------------------------------------
 

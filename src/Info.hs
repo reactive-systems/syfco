@@ -64,12 +64,12 @@ import Data.Specification
     )
 
 import Writer.Formats
-    ( WriteFormat(..)
+    ( needsLower  
     )
       
 import Writer.Utils
     ( checkLower
-    )  
+    )
 
 import Writer.Eval
     ( eval
@@ -163,24 +163,12 @@ prParameters s =
 prInputs
   :: Configuration -> Specification -> IO ()
 
-prInputs c s =
-  let
-    d = busDelimiter c
-    lvar = case outputFormat c of
-      LTLXBA  -> Right "LTLXBA"
-      PROMELA -> Right "Promela"
-      _       -> Left ()
-    res = case lvar of
-      Right str -> do { checkLower str s; eval d s }
-      _         -> eval d s
-    f = case lvar of
-      Right _ -> map (map toLower)
-      _       -> id
-  in case res of
-    Left err         -> prError err
-    Right (as,is,gs) -> putStrLn $ case f $ fmlInputs $ And $ as ++ is ++ gs of
+prInputs c s = case eval c s of
+  Left err         -> prError err
+  Right (as,is,gs) -> putStrLn $
+    case fmlInputs $ And $ as ++ is ++ gs of
+      (x:xr) -> x ++ concatMap ((:) ',' . (:) ' ') xr        
       []     -> ""
-      (x:xr) -> x ++ concatMap ((:) ',' . (:) ' ') xr
 
 -----------------------------------------------------------------------------
 
@@ -189,24 +177,12 @@ prInputs c s =
 prOutputs
   :: Configuration -> Specification -> IO ()
 
-prOutputs c s =
-  let
-    d = busDelimiter c
-    lvar = case outputFormat c of
-      LTLXBA  -> Right "LTLXBA"
-      PROMELA -> Right "Promela"
-      _       -> Left ()
-    res = case lvar of
-      Right str -> do { checkLower str s; eval d s }
-      _         -> eval d s
-    f = case lvar of
-      Right _ -> map (map toLower)
-      _       -> id
-  in case res of
-    Left err         -> prError err
-    Right (as,is,gs) -> putStrLn $ case f $ fmlOutputs $ And $ as ++ is ++ gs of
+prOutputs c s = case eval c s  of
+  Left err         -> prError err
+  Right (as,is,gs) -> putStrLn $
+    case fmlOutputs $ And $ as ++ is ++ gs of
+      (x:xr) -> x ++ concatMap ((:) ',' . (:) ' ') xr        
       []     -> ""
-      (x:xr) -> x ++ concatMap ((:) ',' . (:) ' ') xr
           
 -----------------------------------------------------------------------------
 
@@ -257,24 +233,20 @@ prHelp = do
     ++ "\n" ++ "                                    to STDOUT, if not set)"
     ++ "\n" ++ "  -f, --format                    : Output format. Possible values are"
     ++ "\n"
-    ++ "\n" ++ "      * utf8 (~) [default]        : Human readable output using UTF8 symbols"
-    ++ "\n" ++ "      * wring (~)                 : Wring input format"
-    ++ "\n" ++ "      * ltlxba (~)                : LTL2BA / LTL3BA input format"
-    ++ "\n" ++ "      * promela (~)               : Promela LTL"
+    ++ "\n" ++ "      * utf8 [default]            : Human readable output using UTF8 symbols"
+    ++ "\n" ++ "      * wring                     : Wring input format"
+    ++ "\n" ++ "      * ltlxba                    : LTL2BA / LTL3BA input format"
+    ++ "\n" ++ "      * promela                   : Promela LTL"
     ++ "\n" ++ "      * unbeast                   : Unbeast input format"    
-    ++ "\n" ++ "      * psl (~)                   : PSL Syntax"
+    ++ "\n" ++ "      * psl                       : PSL Syntax"
     ++ "\n" ++ "      * basic                     : high level format (without global section)"
     ++ "\n" 
-    ++ "\n" ++ "                                    (~) creates an additional partition (.part)"
-    ++ "\n" ++ "                                        file, if an output path is set"
-    ++ "\n"
     ++ "\n" ++ "  -m, --mode                      : Output mode. Possible values are"
     ++ "\n"
     ++ "\n" ++ "      * pretty [default]          : pretty printing (as less parentheses as possible)"
     ++ "\n" ++ "      * fully                     : output fully parenthesized formulas"
     ++ "\n"
-    ++ "\n" ++ "  -np, --no-part                  : Do not create a partitioning (.part) file"
-    ++ "\n" ++ "  -po, --part-only                : Only create a partitioning (.part) file"
+    ++ "\n" ++ "  -pf, --part-file                : Create a partitioning (.part) file"
     ++ "\n" ++ "  -bd, --bus-delimiter            : Delimiter used to print indexed bus signals"
     ++ "\n" ++ "                                    (Default: '_')"
     ++ "\n" ++ "  -in, --stdin                    : Read the input file from STDIN"

@@ -22,17 +22,16 @@ import Data.Error
 import Data.Specification
 
 import Writer.Eval
-import Writer.Data
 
 -----------------------------------------------------------------------------
 
 -- | Unbeast format writer.
 
 writeUnbeast
-  :: Configuration -> Specification -> Either Error WriteContents
+  :: Configuration -> Specification -> Either Error String
 
 writeUnbeast c s = do
-  (as,is,gs) <- eval d s
+  (as,is,gs) <- eval c s
   as' <- mapM (simplify (c { noRelease = True }) . noImpl) as
   vs' <- mapM (simplify (c { noRelease = True }) . noImpl) $ case (is,gs) of
     ([],[])   -> []
@@ -45,10 +44,7 @@ writeUnbeast c s = do
     (_,[x])   -> [Globally $ And is, x]
     (_,_)     -> (Globally $ And is) : gs
     
-  return WriteContents {
-    mainFile = main as' vs',
-    partitionFile = Nothing
-    }
+  return $ main as' vs'
 
   where
     main as vs =
@@ -114,8 +110,6 @@ writeUnbeast c s = do
         else rmLeadingSpace (' ':a) b xr             
       (x:xr)    -> rmLeadingSpace (x:a) False xr            
         
-    d = busDelimiter c    
-
     printSignal sig =
       "\n    <Bit>" ++ sig ++ "</Bit>"
 
