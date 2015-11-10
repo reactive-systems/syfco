@@ -7,7 +7,7 @@ license-file:        LICENSE
 author:              Felix Klein <klein@react.uni-saarland.de>
 maintainer:          Felix Klein <klein@react.uni-saarland.de>
 stability:           alpha
-category:            SynthComp
+category:            SyntComp
 homepage:            https://github.com/reactive-systems/syfco
 bug-reports:         https://github.com/reactive-systems/syfco/issues
 build-type:          Simple
