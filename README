@@ -138,7 +138,9 @@ syfco [OPTIONS]... <file>
   -a, --print-tags                : Output the target of the input file
   -p, --print-parameters          : Output the parameters of the input file
   -i, --print-info                : Output all data of the info section
-
+  -ins, --print-input-signals     : Output the input signals of the specification
+  -outs, --print-output-signals   : Output the output signals of the specification
+  
   -v, --version                   : Output version information
   -h, --help                      : Display this help
 
@@ -156,8 +158,8 @@ directory.
 
 ## Editor Support
 
-If you use Emacs, you can try our emacs mode (tlsf-mode.el), which can
-be found in /misc.
+If you use Emacs, you should try our emacs mode (tlsf-mode.el), which can
+be found in the /misc directory.
 
 ## Adding output formats
 

@@ -122,8 +122,17 @@ import Writer.Data
 --     * A boolean flag specifying whether just the target of the given
 --       input files should be printed or not
 -- 
---     * A boolean flag specifying whether just the tag list  of the 
+--     * A boolean flag specifying whether just the tag list of the 
 --       given input files should be printed or not
+-- 
+--     * A boolean flag specifying whether just the parameter list of the 
+--       given specification should be printed or not
+-- 
+--     * A boolean flag specifying whether just the input signals of the 
+--       given specification should be printed or not
+-- 
+--     * A boolean flag specifying whether just the output signals of the 
+--       given specification should be printed or not
 -- 
 --     * A boolean flag specifying whether just the complete input section 
 --        of the given input files should be printed or not
@@ -168,6 +177,8 @@ data Configuration =
   , pTarget :: Bool
   , pTags :: Bool    
   , pParameters :: Bool
+  , pInputs :: Bool
+  , pOutputs :: Bool    
   , pInfo :: Bool
   , pVersion :: Bool  
   , pHelp :: Bool
@@ -214,6 +225,8 @@ defaultCfg =
     pTarget = False,
     pTags = False,
     pParameters = False,
+    pInputs = False,
+    pOutputs = False,
     pInfo = False,
     pVersion = False,
     pHelp = False
@@ -321,6 +334,8 @@ parseArguments args = do
       "-g"                       -> simple $ (clean a) { pTarget = True }
       "-a"                       -> simple $ (clean a) { pTags = True }      
       "-p"                       -> simple $ (clean a) { pParameters = True }
+      "-ins"                     -> simple $ (clean a) { pInputs = True }
+      "-outs"                    -> simple $ (clean a) { pOutputs = True }      
       "-i"                       -> simple $ (clean a) { pInfo = True }
       "-v"                       -> simple $ (clean a) { pVersion = True }
       "-h"                       -> simple $ (clean a) { pHelp = True }
@@ -348,6 +363,8 @@ parseArguments args = do
       "--print-target"           -> parseArgument a "-g" next
       "--print-tags"             -> parseArgument a "-a" next      
       "--print-parameters"       -> parseArgument a "-p" next
+      "--print-input-signals"    -> parseArgument a "-p" next
+      "--print-output-signals"   -> parseArgument a "-p" next      
       "--print-info"             -> parseArgument a "-i" next
       "--version"                -> parseArgument a "-v" next
       "--help"                   -> parseArgument a "-h" next      

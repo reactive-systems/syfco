@@ -16,6 +16,8 @@ module Info
     , prTags
     , prInfo           
     , prParameters
+    , prInputs
+    , prOutputs  
     , prVersion
     , prHelp         
     ) where
@@ -30,6 +32,24 @@ import Data.Types
     ( Semantics(..)
     , Target(..)  
     )
+
+import Config
+    ( Configuration(..)
+    )  
+
+import Data.LTL
+    ( Formula(..)
+    , fmlInputs
+    , fmlOutputs  
+    )  
+
+import Data.Char
+    ( toLower
+    )
+    
+import Data.Error
+    ( prError
+    )  
     
 import Data.Binding
     ( BindExpr(..)
@@ -41,6 +61,18 @@ import Data.SymbolTable
     
 import Data.Specification
     ( Specification(..)
+    )
+
+import Writer.Formats
+    ( WriteFormat(..)
+    )
+      
+import Writer.Utils
+    ( checkLower
+    )  
+
+import Writer.Eval
+    ( eval
     )  
 
 import Control.Monad
@@ -118,12 +150,64 @@ prParameters
 prParameters s =
   let
     xs = map bIdent $ parameters s
-    ys = map (\x -> idName $ symboltable s ! x) xs
+    ys = map (idName . (symboltable s !)) xs
   in
     putStrLn $
     if null ys then ""
     else head ys ++ concatMap ((:) ',' . (:) ' ') (tail ys)
- 
+
+-----------------------------------------------------------------------------
+
+-- | Prints the input signals of the given specification.
+
+prInputs
+  :: Configuration -> Specification -> IO ()
+
+prInputs c s =
+  let
+    d = busDelimiter c
+    lvar = case outputFormat c of
+      LTLXBA  -> Right "LTLXBA"
+      PROMELA -> Right "Promela"
+      _       -> Left ()
+    res = case lvar of
+      Right str -> do { checkLower str s; eval d s }
+      _         -> eval d s
+    f = case lvar of
+      Right _ -> map (map toLower)
+      _       -> id
+  in case res of
+    Left err         -> prError err
+    Right (as,is,gs) -> putStrLn $ case f $ fmlInputs $ And $ as ++ is ++ gs of
+      []     -> ""
+      (x:xr) -> x ++ concatMap ((:) ',' . (:) ' ') xr
+
+-----------------------------------------------------------------------------
+
+-- | Prints the output signals of the given specification.
+
+prOutputs
+  :: Configuration -> Specification -> IO ()
+
+prOutputs c s =
+  let
+    d = busDelimiter c
+    lvar = case outputFormat c of
+      LTLXBA  -> Right "LTLXBA"
+      PROMELA -> Right "Promela"
+      _       -> Left ()
+    res = case lvar of
+      Right str -> do { checkLower str s; eval d s }
+      _         -> eval d s
+    f = case lvar of
+      Right _ -> map (map toLower)
+      _       -> id
+  in case res of
+    Left err         -> prError err
+    Right (as,is,gs) -> putStrLn $ case f $ fmlOutputs $ And $ as ++ is ++ gs of
+      []     -> ""
+      (x:xr) -> x ++ concatMap ((:) ',' . (:) ' ') xr
+          
 -----------------------------------------------------------------------------
 
 -- | Prints the complete INFO section of the given specification.  
@@ -243,7 +327,9 @@ prHelp = do
     ++ "\n" ++ "  -g, --print-target              : Output the target of the input file"
     ++ "\n" ++ "  -a, --print-tags                : Output the target of the input file"    
     ++ "\n" ++ "  -p, --print-parameters          : Output the parameters of the input file"
-    ++ "\n" ++ "  -i, --print-info                : Output all data of the info section"
+    ++ "\n" ++ "  -i, --print-info                : Output all data of the info section"    
+    ++ "\n" ++ "  -ins, --print-input-signals     : Output the input signals of the specification"
+    ++ "\n" ++ "  -outs, --print-output-signals   : Output the output signals of the specification"
     ++ "\n"
     ++ "\n" ++ "  -v, --version                   : Output version information"
     ++ "\n" ++ "  -h, --help                      : Display this help"

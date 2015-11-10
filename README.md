@@ -100,18 +100,20 @@ in the root directory. However, if you encounter any problems, please inform us 
 
 ### Information about Specifications:
 
-| Command                       | Description                              |
-| ----------------------------- | ---------------------------------------- |
-| ```-c, --check```             | Check the input file                     |
-| ```-t, --print-title```       | Output the title of the input file       |
-| ```-d, --print-description``` | Output the description of the input file |
-| ```-s, --print-semantics```   | Output the semantics of the input file   |
-| ```-g, --print-target```      | Output the target of the input file      |
-| ```-a, --print-tags```        | Output the target of the input file      |
-| ```-p, --print-parameters```  | Output the parameters of the input file  |
-| ```-i, --print-info```        | Output all data of the info section      |
-| ```-v, --version```           | Output version information               |
-| ```-h, --help```              | Display help                             |
+| Command                         | Description                                    |
+| ------------------------------- | ---------------------------------------------- |
+| ```-c, --check```               | Check the input file                           |
+| ```-t, --print-title```         | Output the title of the input file             |
+| ```-d, --print-description```   | Output the description of the input file       |
+| ```-s, --print-semantics```     | Output the semantics of the input file         |
+| ```-g, --print-target```        | Output the target of the input file            |
+| ```-a, --print-tags```          | Output the target of the input file            |
+| ```-p, --print-parameters```    | Output the parameters of the input file        |
+| ```-i, --print-info```          | Output all data of the info section            |
+| ```-ins, --print-parameters```  | Output the input signals of the specification  |
+| ```-outs, --print-parameters``` | Output the output signals of the specification |
+| ```-v, --version```             | Output version information                     |
+| ```-h, --help```                | Display help                                   |
 
 #### Sample usage:
 
@@ -129,8 +131,8 @@ A number of synthesis benchmarks in TLSF can be found in the
 
 ## Editor Support
 
-If you use [Emacs](https://www.gnu.org/software/emacs/), you can try our emacs mode (```tlsf-mode.el```),
-which can be found in ```/misc```.
+If you use [Emacs](https://www.gnu.org/software/emacs/), you should try our emacs mode (```tlsf-mode.el```),
+which can be found in the ```/misc``` directory.
 
 ## Adding output formats
 

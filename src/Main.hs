@@ -21,6 +21,8 @@ import Info
     , prTarget
     , prTags
     , prParameters
+    , prInputs
+    , prOutputs
     , prInfo
     , prVersion
     , prHelp
@@ -105,6 +107,8 @@ readContent c (content,file) =
       | pTarget c     -> prTarget s
       | pTags c       -> prTags s
       | pParameters c -> prParameters s
+      | pInputs c     -> prInputs c s
+      | pOutputs c    -> prOutputs c s
       | pInfo c       -> prInfo s
       | otherwise     -> writeOutput c s
 
