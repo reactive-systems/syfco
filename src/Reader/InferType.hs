@@ -62,6 +62,10 @@ import Control.Monad.State
     , put
     , liftM  
     , when  
+    )
+
+import Control.Exception
+    ( assert
     )  
 
 import qualified Data.IntMap.Strict as IM
@@ -168,7 +172,7 @@ updateType (i,e) = do
             tCount = n + 1,
             tTypes = IM.insert j (TSet $ TPoly n) $ tTypes tt
             }
-        _ -> error "internal error (ERR_01)"
+        _ -> assert False undefined
 
   where
     generalize t = case t of

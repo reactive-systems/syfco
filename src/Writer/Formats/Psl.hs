@@ -24,6 +24,8 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
+import Control.Exception
+
 -----------------------------------------------------------------------------
 
 opNames
@@ -41,8 +43,8 @@ opNames = OperatorNames
   , opFinally = "eventually!"
   , opGlobally = "always" 
   , opUntil = "until!"
-  , opRelease = error "PSL does not support the release operator"
-  , opWeak = error "PSL does not support the weak until operator"
+  , opRelease = assert False undefined
+  , opWeak = assert False undefined
   }
 
 -----------------------------------------------------------------------------

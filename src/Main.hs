@@ -69,6 +69,9 @@ import Control.Monad
     ( when
     )
 
+import Control.Exception
+    ( assert
+    )  
 
 -----------------------------------------------------------------------------
 
@@ -100,8 +103,12 @@ readContents c = do
 readContent
   :: Configuration -> (String,Maybe String) -> IO ()
 
-readContent c (content,file) = 
-  case readSpecification content (owSemantics c) (owTarget c) (owParameter c) of
+readContent c (content,file) =
+  let
+    m = owSemantics c
+    t = owTarget c
+    p = owParameter c
+  in case readSpecification content m t p of
     Left err -> prError err
     Right s  
       | check c       -> case file of
@@ -134,7 +141,7 @@ readInput c = case inputFile c of
       return (r,Just f)
     else case argsError $ "File does not exist: " ++ f of
       Left err -> prError err
-      _        -> error "Internal Error") xs
+      _        -> assert False undefined) xs
 
 -----------------------------------------------------------------------------
 

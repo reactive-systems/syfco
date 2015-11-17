@@ -22,6 +22,7 @@ import Data.Error
 import Data.Specification
 
 import Writer.Eval
+import Control.Exception
 
 -----------------------------------------------------------------------------
 
@@ -128,8 +129,8 @@ writeUnbeast c s = do
       Equiv x y   -> "<Iff>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</Iff>\n"
       Until x y   -> "<U>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</U>\n"
       Weak x y    -> "<WU>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</WU>\n"
-      Implies _ _ -> error "Unbeast does not support the implication operator"      
-      Release _ _ -> error "Unbeast does not support the release operator"
+      Implies _ _ -> assert False undefined 
+      Release _ _ -> assert False undefined 
 
     noImpl fml = case fml of
       Implies x y -> Or [Not x, y]

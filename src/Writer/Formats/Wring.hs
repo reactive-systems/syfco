@@ -25,6 +25,8 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
+import Control.Exception
+
 -----------------------------------------------------------------------------
 
 opNames
@@ -43,7 +45,7 @@ opNames = OperatorNames
   , opGlobally = "G" 
   , opUntil = "U" 
   , opRelease = "R" 
-  , opWeak = error "Wring does not support the weak until operator"
+  , opWeak = assert False undefined
   }
 
 -----------------------------------------------------------------------------

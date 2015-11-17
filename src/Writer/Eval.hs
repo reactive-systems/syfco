@@ -80,6 +80,11 @@ import Control.Monad.State
     , get
     , put
     )
+
+import Control.Exception
+    ( assert
+    )  
+
     
 import Data.Array.IArray
     ( (!)
@@ -196,7 +201,7 @@ componentSignal i = do
     c = case idType $ tLookup st ! i of
       TSignal STInput  -> Input
       TSignal STOutput -> Output
-      _                -> error "internal error (ERR 02)"
+      _                -> assert False undefined
     n = show i ++ " " ++ idName (tLookup st ! i)
   put $ st {
     tValues = IM.insert i (VLtl $ Atomic $ c n) $ tValues st
@@ -257,7 +262,7 @@ evalExpr e = case expr e of
   BaseId x        -> idValue x
   BaseFml xs x    -> fmlValue xs (srcPos e) x
   Colon {}        -> evalColon e  
-  _               -> error "internal error (ERR_03)"
+  _               -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -343,7 +348,7 @@ evalLtl e = case expr e of
     return $ VLtl $ Atomic $ case a of
       Input r  -> Input (show y ++ " " ++ r ++ delimiter st ++ show b)
       Output r -> Output (show y ++ " " ++ r ++ delimiter st ++ show b)
-  _                -> error "internal error (ERR_04)"
+  _                -> assert False undefined
     
   where
     liftMLtl f m = do
@@ -372,7 +377,7 @@ idValue i = do
   st <- get
   case IM.lookup i $ tValues st of
     Just x  -> return x
-    Nothing -> error "internal error (ERR_05)"
+    Nothing -> assert False undefined
     
 ---
 
@@ -413,7 +418,7 @@ evalNum e = case expr e of
     VSet s <- evalExpr $ idBindings $ tLookup st ! i 
     case  S.toList s of
       [VNumber z] -> return $ VNumber z
-      _           -> error "internal error (ERR_14)"
+      _           -> assert False undefined
   NumRPlus xs x -> 
     let f = VNumber . sum . map (\(VNumber v) -> v)
     in evalConditional evalNum f xs x
@@ -426,7 +431,7 @@ evalNum e = case expr e of
   BaseFml _ _   -> do
     VNumber x <- evalExpr e
     return $ VNumber x
-  _             -> error "internal error (ERR_06)"
+  _             -> assert False undefined
 
   where
     liftM2Num f m n = do
@@ -468,7 +473,7 @@ evalBool e = case expr e of
   Pattern x y   -> do
     VLtl a <- evalLtl x
     checkPattern a y
-  _             -> error "internal error (ERR_07)"
+  _             -> assert False undefined
 
   where
     liftM2Num f m n = do
@@ -495,10 +500,10 @@ checkPattern f e = case (f,expr e) of
   (Release x y, LtlRelease z v) -> binary x y z v
   (And xs, BlnAnd z v)          -> case xs of
     [x,y] -> binary x y z v
-    _     -> error "internal error (ERR_08)"
+    _     -> assert False undefined
   (Or xs, BlnOr z v)            -> case xs of
     [x,y] -> binary x y z v
-    _     -> error "internal error (ERR_09)"
+    _     -> assert False undefined
   (_, BaseId i)                     -> do
     st <- get
     put st {
@@ -548,7 +553,7 @@ evalSet e = case expr e of
   BaseFml _ _    -> do
     VSet x <- evalExpr e
     return $ VSet x
-  _ -> error "internal error (ERR_10)"
+  _ -> assert False undefined
 
   where
     liftM2Set f x y = do
@@ -571,24 +576,24 @@ evalConditional fun f xs x =
       i = case expr $ head xs of
         BlnElem e _ -> case expr e of
           BaseId r -> r
-          _ -> error "internal error (ERR_15)"
+          _ -> assert False undefined
         BlnLE e _   -> case expr e of
           BlnLE _ m -> case expr m of
             BaseId r -> r
-            _ -> error "internal error (ERR_16)"
+            _ -> assert False undefined
           BlnLEQ _ m -> case expr m of
             BaseId r -> r
-            _ -> error "internal error (ERR_17)"
-          _ -> error "internal error (ERR_18)"
+            _ -> assert False undefined
+          _ -> assert False undefined
         BlnLEQ e _  -> case expr e of
           BlnLE _ m -> case expr m of
             BaseId r -> r
-            _ -> error "internal error (ERR_19)"
+            _ -> assert False undefined
           BlnLEQ _ m -> case expr m of
             BaseId r -> r
-            _ -> error "internal error (ERR_20)"
-          _ -> error "internal error (ERR_21)"
-        _ -> error "internal error (ERR_22)"
+            _ -> assert False undefined
+          _ -> assert False undefined
+        _ -> assert False undefined
       s = idBindings $ tLookup st ! i
     VSet vs <- evalSet s
     rs <- mapM (bindExec i (tail xs) x) $ S.toList vs
@@ -615,7 +620,7 @@ evalRange e = case expr e of
     VNumber a <- evalNum x
     VNumber b <- evalNum y
     return (a,b)
-  _ -> error "internal error (ERR_11)"
+  _ -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -633,7 +638,7 @@ evalColon e = case expr e of
     else do
       put st
       return VEmpty
-  _ -> error "internal error (ERR_12)"
+  _ -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -662,7 +667,7 @@ vltl
 
 vltl x = case x of
   VLtl y -> y
-  _      -> error "internal error (ERR_13)"
+  _      -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -676,7 +681,7 @@ prVal v = case v of
     []     -> "{}"
     (y:yr) -> "{ " ++ prVal y ++
              concatMap ((:) ',' . (:) ' ' . prVal) yr ++ " }"
-  VEmpty -> error "internal error"
+  VEmpty -> assert False undefined
 
 -----------------------------------------------------------------------------
 
