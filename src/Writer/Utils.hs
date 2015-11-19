@@ -59,40 +59,40 @@ import Data.Array.IArray
 pretty
   :: WriteMode -> OperatorNames -> Formula -> String
 
-pretty mode ops = pr
+pretty mode ops = reverse . pr []
 
   where
-    parens x = "(" ++ x ++ ")"
+    parens c a x = ')' : c ('(':a) x 
 
-    prUO p f = case f of
-      And _       -> parens $ p f
-      Or _        -> parens $ p f
-      Implies _ _ -> parens $ p f
-      Equiv _ _   -> parens $ p f
-      Until _ _   -> parens $ p f
-      Release _ _ -> parens $ p f
-      _           -> p f
+    prUO p a f = case f of
+      And _       -> parens p a f
+      Or _        -> parens p a f
+      Implies _ _ -> parens p a f
+      Equiv _ _   -> parens p a f
+      Until _ _   -> parens p a f
+      Release _ _ -> parens p a f
+      _           -> p a f
 
-    prAnd p f = case f of
-      Or _        -> parens $ p f
-      Implies _ _ -> parens $ p f
-      Equiv _ _   -> parens $ p f
-      Until _ _   -> parens $ p f
-      Release _ _ -> parens $ p f
-      _           -> p f      
+    prAnd p a f = case f of
+      Or _        -> parens p a f
+      Implies _ _ -> parens p a f
+      Equiv _ _   -> parens p a f
+      Until _ _   -> parens p a f
+      Release _ _ -> parens p a f
+      _           -> p a f     
 
-    prOr p f = case f of
-      Implies _ _ -> parens $ p f
-      Equiv _ _   -> parens $ p f
-      Until _ _   -> parens $ p f
-      Release _ _ -> parens $ p f
-      _           -> p f      
+    prOr p a f = case f of
+      Implies _ _ -> parens p a f
+      Equiv _ _   -> parens p a f
+      Until _ _   -> parens p a f
+      Release _ _ -> parens p a f
+      _           -> p a f      
 
-    pr' = parens . pr
+    pr' = parens pr
     
     prUO' = case mode of
       Pretty -> prUO pr
-      _      -> pr'      
+      _      -> pr'
 
     prAnd' = case mode of
       Pretty -> prAnd pr      
@@ -102,32 +102,28 @@ pretty mode ops = pr
       Pretty -> prOr pr      
       _      -> pr'      
 
-    pr f = case f of
-      TTrue                   -> ptrue
-      FFalse                  -> pfalse
-      Not (Atomic (Input x))  -> pnot ++ prUO' (Atomic (Input x))
-      Not (Atomic (Output x)) -> pnot ++ prUO' (Atomic (Output x))      
-      Atomic (Input x)        -> x
-      Atomic (Output x)       -> x      
-      Not x                   -> pnot ++ prUO' x 
-      And []                  -> pr TTrue
-      And [x]                 -> pr x
-      And (x:xr)              -> prAnd' x ++
-                                concatMap (((" " ++ pand ++ " ") ++)
-                                           . prAnd') xr 
-      Or []                   -> pr FFalse
-      Or [x]                  -> pr x  
-      Or (x:xr)               -> prOr' x ++
-                                concatMap (((" " ++ por ++ " ") ++)
-                                           . prOr') xr
-      Implies x y             -> prOr' x ++ " " ++ pimplies ++ " " ++ prOr' y
-      Equiv x y               -> prOr' x ++ " " ++ pequiv ++ " " ++ prOr' y
-      Next x                  -> pnext ++ " " ++ prUO' x    
-      Globally x              -> pglobally ++ " " ++ prUO' x
-      Finally x               -> pfinally ++ " " ++ prUO' x
-      Until x y               -> prOr' x ++ " " ++ puntil ++ " " ++ prOr' y
-      Release x y             -> prOr' x ++ " " ++ prelease ++ " " ++ prOr' y
-      Weak x y                -> prOr' x ++ " " ++ pweak ++ " " ++ prOr' y
+    pr a f = case f of
+      TTrue                   -> revappend a ptrue
+      FFalse                  -> revappend a pfalse
+      Not (Atomic (Input x))  -> prUO' (revappend a pnot) (Atomic (Input x))
+      Not (Atomic (Output x)) -> prUO' (revappend a pnot) (Atomic (Output x))      
+      Atomic (Input x)        -> revappend a x
+      Atomic (Output x)       -> revappend a x      
+      Not x                   -> prUO' (revappend a pnot) x
+      And []                  -> pr a TTrue
+      And [x]                 -> pr a x
+      And (x:xr)              -> foldl (\b y -> prAnd' (' ' : revappend (' ' : b) pand) y) (prAnd' a x) xr
+      Or []                   -> pr a FFalse
+      Or [x]                  -> pr a x  
+      Or (x:xr)               -> foldl (\b y -> prOr' (' ' : revappend (' ' : b) por) y) (prOr' a x) xr
+      Implies x y             -> prOr' (' ':(revappend (' ':(prOr' a x)) pimplies)) y 
+      Equiv x y               -> prOr' (' ':(revappend (' ':(prOr' a x)) pequiv)) y 
+      Next x                  -> prUO' (' ':(revappend a pnext)) x    
+      Globally x              -> prUO' (' ':(revappend a pglobally)) x
+      Finally x               -> prUO' (' ':(revappend a pfinally)) x
+      Until x y               -> prOr' (' ':(revappend (' ':(prOr' a x)) puntil)) y
+      Release x y             -> prOr' (' ':(revappend (' ':(prOr' a x)) prelease)) y 
+      Weak x y                -> prOr' (' ':(revappend (' ':(prOr' a x)) pweak)) y 
 
     ptrue = opTrue ops
     pfalse = opFalse ops
@@ -142,6 +138,10 @@ pretty mode ops = pr
     puntil = opUntil ops
     prelease = opRelease ops
     pweak = opWeak ops
+
+    revappend a xs = case xs of
+      []     -> a
+      (x:xr) -> revappend (x:a) xr
 
 -----------------------------------------------------------------------------
 
