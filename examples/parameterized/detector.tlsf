@@ -7,7 +7,7 @@ INFO {
 
 GLOBAL {
   PARAMETERS {
-    n = 2;
+    n = 1;
   }
 }
 
@@ -18,11 +18,11 @@ MAIN {
   } 
 
   OUTPUTS {
-    g; // grant signals
+    g; // grant signal
   }
 
   GUARANTEES {
-    &&[0 <= i < n] G F r[i] -> G F g;
+    &&[0 <= i < n] G F r[i] <-> G F g;
   }
   
 }
