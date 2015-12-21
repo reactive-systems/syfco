@@ -78,7 +78,7 @@ writeUnbeast c s = do
                concatMap (\x -> "<LTL>" ++ printFormula 4 x ++ "</LTL>") as ++
                "  </Assumptions>")
       ++ "\n" ++ "  <Specification>"
-      ++ concatMap (printFormula 4) vs
+      ++ concatMap (\x -> "<LTL>" ++ printFormula 4 x ++ "</LTL>") vs
       ++ "  </Specification>"
       ++ "\n" ++ "</SynthesisProblem>"
       ++ "\n"
