@@ -75,7 +75,7 @@ writeUnbeast c s = do
       ++ "\n" ++ "  </GlobalOutputs>"
       ++ (if null as then "" 
           else "\n" ++ "  <Assumptions>" ++
-               concatMap (printFormula 4) as ++
+               concatMap (\x -> "<LTL>" ++ printFormula 4 x ++ "</LTL>") as ++
                "  </Assumptions>")
       ++ "\n" ++ "  <Specification>"
       ++ concatMap (printFormula 4) vs
