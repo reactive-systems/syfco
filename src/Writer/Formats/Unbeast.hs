@@ -75,10 +75,10 @@ writeUnbeast c s = do
       ++ "\n" ++ "  </GlobalOutputs>"
       ++ (if null as then "" 
           else "\n" ++ "  <Assumptions>" ++
-               concatMap (printFormula 4) as ++
+               concatMap (\x -> "\n    <LTL>\n" ++ printFormula 6 x ++ "    </LTL>\n") as ++
                "  </Assumptions>")
       ++ "\n" ++ "  <Specification>"
-      ++ concatMap (printFormula 4) vs
+      ++ concatMap (\x -> "\n    <LTL>\n" ++ printFormula 6 x ++ "    </LTL>\n") vs
       ++ "  </Specification>"
       ++ "\n" ++ "</SynthesisProblem>"
       ++ "\n"
