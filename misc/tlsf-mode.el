@@ -33,7 +33,8 @@
     "EQIUV" "IMPLIES" "true" "false" "MIN" "MAX"
     "ELEM" "SIZE" "SIZEOF" "MUL" "DIV" "MOD"
     "PLUS" "MINUS" "SETMINUS" "CAP" "CUP" "EQ"
-    "NEQ" "LE" "LEQ" "GE" "GEQ")
+    "NEQ" "LE" "LEQ" "GE" "GEQ" "SUM" "PROD"
+    "FORALL" "EXISTS")
   "Advanced LTL Format builtins")
 
 (defvar tlsf-kw
@@ -44,10 +45,10 @@
   "Advanced LTL Format keywords")
 
 (defvar tlsf-connectives-regexp
-  "([+])\\|([*])\\|(/)\\|(<)\\|(>)\\|\!\\|&&\\|||\\|->\\|<->\\|==\\|<=\\|>=\\|/=\\|<\\|>\\|[+]\\|-\\|[*]\\|/\\|%\\||\\|~\\|\\.\\.")
+  "([+])\\|([*])\\|(/)\\|(<)\\|(>)\\|\!\\|&&\\|||\\|->\\|<->\\|==\\|<=\\|>=\\|/=\\|!=\\|<\\|>\\|[+]\\|-\\|[*]\\|/\\|%\\||\\|~\\|\\.\\.")
 
 (defvar tlsf-indent-keywords
-  "^[ \t]*\\(INFO\\|GLOBAL\\|MAIN\\|PARAMETERS\\|DEFINITIONS\\|OUTPUTS\\|INPUTS\\|ASSUMPTIONS\\|INVARIANTS\\|GUARANTEES\\)")
+  "^[ \t]*\\(INFO\\|GLOBAL\\|MAIN\\|PARAMETERS\\|DEFINITIONS\\|OUTPUTS\\|INPUTS\\|ASSUMPTIONS\\|INVARIANTS\\|GUARANTEES\\|SEMANTICS\\|TARGETS\\|TAGS\\)")
 
 (defvar tlsf-function-regexp "^\\s-*\\(\\w+\\)\\s-*\\((.*)\\)?\\s-*=[^=]")
 (defvar tlsf-args-regexp "\\(\\w+\\)[,\\|)]")
@@ -113,12 +114,12 @@
      ("SETMINUS" . ?∕)
    ;  ("(<)" . ?⊆)
    ;  ("(>)" . ?⊇)
-     ("!" . ?¬)
-     ("NOT" . ?¬)     
      ("&&" . ?∧)
-     ("AND" . ?∧)     
+     ("AND" . ?∧)
+     ("FORALL" . ?∧)     
      ("||" . ?∨)
      ("OR" . ?∨)
+     ("EXISTS" . ?∨)
      ("->" . ?→)
      ("IMPLIES" . ?→)     
      ("<-" . ?∈)
@@ -127,6 +128,7 @@
      ("<->" . ?↔)
      ("EQUIV" . ?↔)     
      ("/=" . ?≢)
+     ("!=" . ?≢)     
      ("NEQ" . ?≢)     
      ("<=" . ?≤)
      ("LEQ" . ?≤)     
@@ -135,7 +137,9 @@
      ("LE" . ?<)
      ("GE" . ?>)               
      ("==" . ?≡)
-     ("EQ" . ?≡)          
+     ("EQ" . ?≡)
+     ("!" . ?¬)
+     ("NOT" . ?¬)          
      ("~" . ?∼)
      ("{}" . ?∅)
      ("G" . ?□)
