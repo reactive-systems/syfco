@@ -109,6 +109,7 @@ exprParser = (~~) >> buildExpressionParser table term
       , [ Infix  (binOp "=="       BlnEQ)      AssocLeft
         , Infix  (binOp "EQ"       BlnEQ)      AssocLeft
         , Infix  (binOp "/="       BlnNEQ)     AssocLeft
+        , Infix  (binOp "!="       BlnNEQ)     AssocLeft
         , Infix  (binOp "NEQ"      BlnNEQ)     AssocLeft
         , Infix  (binOp ">"        BlnGE)      AssocLeft
         , Infix  (binOp "GE"       BlnGE)      AssocLeft          
@@ -208,8 +209,10 @@ exprParser = (~~) >> buildExpressionParser table term
       <|> parOp "F" exprParser LtlRFinally
       <|> parOp "&&" manyExprParser BlnRAnd
       <|> parOp "AND" manyExprParser BlnRAnd
+      <|> parOp "FORALL" manyExprParser BlnRAnd
       <|> parOp "||" manyExprParser BlnROr
-      <|> parOp "OR" manyExprParser BlnROr      
+      <|> parOp "OR" manyExprParser BlnROr
+      <|> parOp "EXISTS" manyExprParser BlnROr            
 
     parentheses = do
       notFollowedBy $ ch '(' >> oneOf "+-*/"
