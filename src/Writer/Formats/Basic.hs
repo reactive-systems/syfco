@@ -29,23 +29,23 @@ import Writer.Utils
 
 -----------------------------------------------------------------------------
 
-opNames
-  :: OperatorNames
+opConfig
+  :: OperatorConfig
 
-opNames = OperatorNames
-  { opTrue = "true" 
-  , opFalse = "false"
-  , opNot = "!" 
-  , opAnd = "&&" 
-  , opOr = "||" 
-  , opImplies = "->" 
-  , opEquiv = "<->"
-  , opNext = "X" 
-  , opFinally = "F"
-  , opGlobally = "G" 
-  , opUntil = "U" 
-  , opRelease = "R" 
-  , opWeak = "W"
+opConfig = OperatorConfig
+  { tTrue     = "true"
+  , fFalse    = "false"
+  , opNot      = UnaOp "!"   1
+  , opAnd      = BinOp "&&"  2 AssocLeft
+  , opOr       = BinOp "||"  3 AssocLeft
+  , opImplies  = BinOp "->"  4 AssocRight
+  , opEquiv    = BinOp "<->" 4 AssocRight
+  , opNext     = UnaOp "X"   1 
+  , opFinally  = UnaOp "F"   1 
+  , opGlobally = UnaOp "G"   1 
+  , opUntil    = BinOp "U"   6 AssocRight
+  , opRelease  = BinOp "R"   7 AssocLeft
+  , opWeak     = BinOp "W"   5 AssocRight
   }
 
 -----------------------------------------------------------------------------
@@ -88,15 +88,15 @@ writeBasic c s = do
     ++ "\n" ++ "  }"
     ++ (if not $ any checkTrue as' then "" 
         else "\n" ++ "  ASSUMPTIONS {" ++
-             concatMap (pretty mode opNames) (filter checkTrue as') ++
+             concatMap (printFormula opConfig mode) (filter checkTrue as') ++
              "\n" ++ "  }")
     ++ (if not $ any checkTrue is' then "" 
         else "\n" ++ "  INVARIANTS {" ++
-             concatMap (pretty mode opNames) (filter checkTrue is') ++
+             concatMap (printFormula opConfig mode) (filter checkTrue is') ++
              "\n" ++ "  }")
     ++ (if not $ any checkTrue gs' then "" 
         else "\n" ++ "  GUARANTEES {" ++
-             concatMap (pretty mode opNames) (filter checkTrue gs') ++
+             concatMap (printFormula opConfig mode) (filter checkTrue gs') ++
              "\n" ++ "  }")
     ++ "\n" ++ "}"
     ++ "\n"

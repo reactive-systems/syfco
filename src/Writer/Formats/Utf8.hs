@@ -26,23 +26,23 @@ import Writer.Utils
 
 -----------------------------------------------------------------------------
 
-opNames
-  :: OperatorNames
+opConfig
+  :: OperatorConfig
 
-opNames = OperatorNames
-  { opTrue = "⊤" 
-  , opFalse = "⊥"
-  , opNot = "¬" 
-  , opAnd = "∧" 
-  , opOr = "∨" 
-  , opImplies = "→" 
-  , opEquiv = "↔" 
-  , opNext = "◯" 
-  , opFinally = "◇"
-  , opGlobally = "□" 
-  , opUntil = "U" 
-  , opRelease = "R" 
-  , opWeak = "W"
+opConfig = OperatorConfig
+  { tTrue      = "⊤"
+  , fFalse     = "⊥"
+  , opNot      = UnaOp "¬"   1
+  , opAnd      = BinOp "∧"   2 AssocLeft
+  , opOr       = BinOp "∨"   3 AssocLeft
+  , opImplies  = BinOp "→"   4 AssocRight
+  , opEquiv    = BinOp "↔"   4 AssocRight
+  , opNext     = UnaOp "◯"   1 
+  , opFinally  = UnaOp "◇"   1 
+  , opGlobally = UnaOp "□"   1 
+  , opUntil    = BinOp "U"   6 AssocRight
+  , opRelease  = BinOp "R"   7 AssocLeft
+  , opWeak     = BinOp "W"   5 AssocRight
   }
 
 -----------------------------------------------------------------------------
@@ -57,7 +57,7 @@ writeUtf8 c s = do
   fml0 <- merge as is gs
   fml1 <- simplify c fml0
     
-  return $ pretty (outputMode c) opNames fml1
+  return $ printFormula opConfig (outputMode c) fml1
 
 -----------------------------------------------------------------------------
 

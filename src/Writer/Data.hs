@@ -10,7 +10,10 @@
 
 module Writer.Data
     ( WriteMode(..)
-    , OperatorNames(..)
+    , OperatorConfig(..)
+    , UnaryOperator(..)
+    , BinaryOperator(..)  
+    , Assoc(..)  
     ) where
 
 -----------------------------------------------------------------------------
@@ -29,25 +32,63 @@ data WriteMode =
 
 -----------------------------------------------------------------------------
 
--- | A simple expression printer can be set up using the function 'pretty'
--- from 'Writer.Pretty'. The bundle the specific operator names, the data
--- structure @OperatorNames@ is used.
+-- | Associativity type to distinguis left associative operators from
+-- right associative operators
 
-data OperatorNames =
-  OperatorNames
-  { opTrue :: String
-  , opFalse :: String
-  , opNot :: String
-  , opAnd :: String
-  , opOr :: String
-  , opImplies :: String
-  , opEquiv :: String
-  , opNext :: String
-  , opFinally :: String
-  , opGlobally :: String
-  , opUntil :: String
-  , opRelease :: String
-  , opWeak :: String
+data Assoc = AssocLeft | AssocRight
+
+-----------------------------------------------------------------------------
+
+-- | A unary operator is set up by providing a name and its precedence.
+
+data UnaryOperator = UnaOp
+  { uopName :: String
+  , uopPrecedence :: Int
+  }
+
+-----------------------------------------------------------------------------
+
+-- | A binary operator is set up by a name, its precedencs and its
+-- associativity. 
+
+data BinaryOperator = BinOp
+  { bopName :: String
+  , bopPrecedence :: Int
+  , bopAssoc :: Assoc
+  }
+
+-----------------------------------------------------------------------------  
+
+-- | A simple expression printer can be set up using the function
+-- 'printFormula' from 'Writer.Pretty'. The bundle the specific
+-- operator names, their precedence and their associativity, the data
+-- structure @OperatorNames@ is used.
+-- 
+-- Thereby, constants as True and False are given by Strings and unary
+-- operators are given by their name their precedence. For binary
+-- operators, additionally the associativity has to be defined.
+-- 
+-- The precedence is given by an Integer, where a lower value means
+-- higher precedence. If the same value is used for multiple
+-- operators, their precedence is treated equally.
+-- 
+-- The associativity is either 'AssocLeft' or 'AssocRight'.
+
+data OperatorConfig =
+  OperatorConfig
+  { tTrue :: String
+  , fFalse :: String
+  , opNot :: UnaryOperator
+  , opAnd :: BinaryOperator
+  , opOr :: BinaryOperator
+  , opImplies :: BinaryOperator
+  , opEquiv :: BinaryOperator
+  , opNext :: UnaryOperator
+  , opFinally :: UnaryOperator
+  , opGlobally :: UnaryOperator
+  , opUntil :: BinaryOperator
+  , opRelease :: BinaryOperator
+  , opWeak :: BinaryOperator
   }
 
 -----------------------------------------------------------------------------

@@ -9,7 +9,7 @@
 -----------------------------------------------------------------------------
 
 module Writer.Utils
-    ( pretty
+    ( printFormula
     , merge
     , checkLower  
     ) where
@@ -44,7 +44,10 @@ import Writer.Error
 
 import Writer.Data
     ( WriteMode(..)
-    , OperatorNames(..)  
+    , OperatorConfig(..)        
+    , UnaryOperator(..)
+    , BinaryOperator(..)      
+    , Assoc(..)  
     )
     
 import Data.Array.IArray
@@ -53,91 +56,128 @@ import Data.Array.IArray
 
 -----------------------------------------------------------------------------
 
--- | Gernealized pretty printer that prints an expression using standard
--- semantics and the operations passed via @OperatorNames@.
+-- | Gernealized printer that supports pretty printing and printing
+-- fully parenthesized formulas for arbitrary operator configurations,
+-- passed via @OperatorNames@.
 
-pretty
-  :: WriteMode -> OperatorNames -> Formula -> String
+printFormula
+  :: OperatorConfig -> WriteMode ->  Formula -> String
 
-pretty mode ops = reverse . pr []
+printFormula opc mode formula = reverse $ case mode of
+  Pretty -> pr [] formula
+  Fully  -> parens pr [] formula
 
   where
     parens c a x = ')' : c ('(':a) x 
 
-    prUO p a f = case f of
-      And _       -> parens p a f
-      Or _        -> parens p a f
-      Implies _ _ -> parens p a f
-      Equiv _ _   -> parens p a f
-      Until _ _   -> parens p a f
-      Release _ _ -> parens p a f
-      _           -> p a f
-
-    prAnd p a f = case f of
-      Or _        -> parens p a f
-      Implies _ _ -> parens p a f
-      Equiv _ _   -> parens p a f
-      Until _ _   -> parens p a f
-      Release _ _ -> parens p a f
-      _           -> p a f     
-
-    prOr p a f = case f of
-      Implies _ _ -> parens p a f
-      Equiv _ _   -> parens p a f
-      Until _ _   -> parens p a f
-      Release _ _ -> parens p a f
-      _           -> p a f      
-
-    pr' = parens pr
-    
-    prUO' = case mode of
-      Pretty -> prUO pr
-      _      -> pr'
-
-    prAnd' = case mode of
-      Pretty -> prAnd pr      
-      _      -> pr'      
-
-    prOr' = case mode of
-      Pretty -> prOr pr      
-      _      -> pr'      
+    pr' a y r x = case mode of
+      Fully  -> parens pr a x
+      Pretty -> case compare (precedence' y) (precedence' x) of
+        LT -> parens pr a x        
+        GT -> pr a x
+        EQ -> case (assoc' y, r) of
+          (AssocRight, False) -> parens pr a x
+          (AssocRight, True)  -> pr a x
+          (_, False)          -> pr a x
+          (_, True)           -> parens pr a x
 
     pr a f = case f of
-      TTrue                   -> revappend a ptrue
-      FFalse                  -> revappend a pfalse
-      Not (Atomic (Input x))  -> prUO' (revappend a pnot) (Atomic (Input x))
-      Not (Atomic (Output x)) -> prUO' (revappend a pnot) (Atomic (Output x))      
+      TTrue                   -> revappend a ttrue
+      FFalse                  -> revappend a ffalse
       Atomic (Input x)        -> revappend a x
       Atomic (Output x)       -> revappend a x      
-      Not x                   -> prUO' (revappend a pnot) x
+      Not x                   -> pr' (unOp opnot a) f False x
       And []                  -> pr a TTrue
       And [x]                 -> pr a x
-      And (x:xr)              -> foldl (\b y -> prAnd' (' ' : revappend (' ' : b) pand) y) (prAnd' a x) xr
+      And [x,y]               -> pr' (binOp opand $ pr' a f False x) f True y
+      And (x:y:xr)            -> case assoc' f of
+        AssocRight -> pr' (binOp opand $ pr' a f False x) f True $ And (y:xr)
+        _          -> pr a $ And $ And [x,y] : xr
       Or []                   -> pr a FFalse
-      Or [x]                  -> pr a x  
-      Or (x:xr)               -> foldl (\b y -> prOr' (' ' : revappend (' ' : b) por) y) (prOr' a x) xr
-      Implies x y             -> prOr' (' ':(revappend (' ':(prOr' a x)) pimplies)) y 
-      Equiv x y               -> prOr' (' ':(revappend (' ':(prOr' a x)) pequiv)) y 
-      Next x                  -> prUO' (' ':(revappend a pnext)) x    
-      Globally x              -> prUO' (' ':(revappend a pglobally)) x
-      Finally x               -> prUO' (' ':(revappend a pfinally)) x
-      Until x y               -> prOr' (' ':(revappend (' ':(prOr' a x)) puntil)) y
-      Release x y             -> prOr' (' ':(revappend (' ':(prOr' a x)) prelease)) y 
-      Weak x y                -> prOr' (' ':(revappend (' ':(prOr' a x)) pweak)) y 
+      Or [x]                  -> pr a x
+      Or [x,y]                -> pr' (binOp opor $ pr' a f False x) f True y
+      Or (x:y:xr)             -> case assoc' f of
+        AssocRight -> pr' (binOp opor $ pr' a f False x) f True $ Or (y:xr)
+        _          -> pr a $ Or $ Or [x,y] : xr
+      Implies x y             -> pr' (binOp opimplies $ pr' a f False x) f True y
+      Equiv x y               -> pr' (binOp opequiv $ pr' a f False x) f True y
+      Next x                  -> pr' (unOp opnext a) f True x    
+      Globally x              -> pr' (unOp opglobally a) f True x    
+      Finally x               -> pr' (unOp opfinally a) f True x    
+      Until x y               -> pr' (binOp opuntil $ pr' a f False x) f True y
+      Release x y             -> pr' (binOp oprelease $ pr' a f False x) f True y
+      Weak x y                -> pr' (binOp opweak $ pr' a f False x) f True y
 
-    ptrue = opTrue ops
-    pfalse = opFalse ops
-    pnot = opNot ops
-    pand = opAnd ops
-    por = opOr ops
-    pimplies = opImplies ops
-    pequiv = opEquiv ops
-    pnext = opNext ops
-    pfinally = opFinally ops
-    pglobally = opGlobally ops
-    puntil = opUntil ops
-    prelease = opRelease ops
-    pweak = opWeak ops
+    precedence' f = case f of
+      TTrue       -> 0
+      FFalse      -> 0
+      Atomic {}   -> 0
+      Not {}      -> dp + uopPrecedence opnot
+      And {}      -> dp + bopPrecedence opand
+      Or {}       -> dp + bopPrecedence opor
+      Implies {}  -> dp + bopPrecedence opimplies
+      Equiv {}    -> dp + bopPrecedence opequiv
+      Next {}     -> dp + uopPrecedence opnext
+      Globally {} -> dp + uopPrecedence opglobally
+      Finally {}  -> dp + uopPrecedence opfinally
+      Until {}    -> dp + bopPrecedence opuntil
+      Release {}  -> dp + bopPrecedence oprelease
+      Weak {}     -> dp + bopPrecedence opweak
+
+    assoc' f = case f of
+      TTrue       -> AssocLeft
+      FFalse      -> AssocLeft
+      Atomic {}   -> AssocLeft
+      Not {}      -> AssocLeft
+      And {}      -> bopAssoc opand
+      Or {}       -> bopAssoc opor
+      Implies {}  -> bopAssoc opimplies
+      Equiv {}    -> bopAssoc opequiv
+      Next {}     -> AssocLeft
+      Globally {} -> AssocLeft
+      Finally {}  -> AssocLeft
+      Until {}    -> bopAssoc opuntil
+      Release {}  -> bopAssoc oprelease
+      Weak {}     -> bopAssoc opweak
+
+
+    binOp op a = ' ' : revappend (' ' : a) (bopName op)
+
+    unOp op a = ' ' : revappend a (uopName op)
+
+    dp =
+      let
+        xs = map (\f -> f opc)
+          [ uopPrecedence . opNot 
+          , bopPrecedence . opAnd
+          , bopPrecedence . opOr
+          , bopPrecedence . opImplies
+          , bopPrecedence . opEquiv
+          , uopPrecedence . opNext
+          , uopPrecedence . opFinally
+          , uopPrecedence . opGlobally
+          , bopPrecedence . opUntil
+          , bopPrecedence . opRelease
+          , bopPrecedence . opWeak
+          ]
+        m = foldl min 1 xs
+      in if m > 0
+         then 0
+         else 1 - m
+
+    ttrue = tTrue opc
+    ffalse = fFalse opc
+    opnot = opNot opc
+    opand = opAnd opc
+    opor = opOr opc
+    opimplies = opImplies opc
+    opequiv = opEquiv opc
+    opnext = opNext opc
+    opfinally = opFinally opc
+    opglobally = opGlobally opc
+    opuntil = opUntil opc
+    oprelease = opRelease opc
+    opweak = opWeak opc
 
     revappend a xs = case xs of
       []     -> a

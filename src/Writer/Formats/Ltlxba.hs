@@ -28,23 +28,23 @@ import Control.Exception
 
 -----------------------------------------------------------------------------
 
-opNames
-  :: OperatorNames
+opConfig
+  :: OperatorConfig
 
-opNames = OperatorNames
-  { opTrue = "true" 
-  , opFalse = "false"
-  , opNot = "!"
-  , opAnd = "&&" 
-  , opOr = "||" 
-  , opImplies = "->" 
-  , opEquiv = "<->" 
-  , opNext = "X" 
-  , opFinally = "F"
-  , opGlobally = "G" 
-  , opUntil = "U" 
-  , opRelease = "R"
-  , opWeak = assert False undefined
+opConfig = OperatorConfig
+  { tTrue      = "true"
+  , fFalse     = "false"
+  , opNot      = UnaOp "!"   1
+  , opAnd      = BinOp "&&"  4 AssocLeft
+  , opOr       = BinOp "||"  4 AssocLeft
+  , opImplies  = BinOp "->"  4 AssocLeft
+  , opEquiv    = BinOp "<->" 4 AssocLeft
+  , opNext     = UnaOp "X"   1 
+  , opFinally  = UnaOp "F"   1 
+  , opGlobally = UnaOp "G"   1 
+  , opUntil    = BinOp "U"   2 AssocLeft
+  , opRelease  = BinOp "R"   3 AssocLeft
+  , opWeak     = assert False undefined
   }
 
 -----------------------------------------------------------------------------
@@ -59,7 +59,7 @@ writeLtlxba c s = do
   fml0 <- merge as is gs
   fml1 <- simplify (c { noWeak = True }) fml0
     
-  return $ pretty (outputMode c) opNames fml1
+  return $ printFormula opConfig (outputMode c) fml1
 
 -----------------------------------------------------------------------------
 

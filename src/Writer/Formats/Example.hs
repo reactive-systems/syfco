@@ -40,27 +40,31 @@ import Writer.Utils
 ---
 
 {- The easies way to create a new format is to take this file as it is and just change the names
- - of the operators below. Your writer then provieds the LTL expression using your operator names
- - and a partition file. Furthermore, it already supports pretty printing.
+ - of the operators below, their precedence and their associativity. Thereby, for the precedence
+ - a lower value means higher precedence, where two operators with the same precedence value
+ - are threated equally. The associativity is either: AssocLeft or AssocRight.
+ -
+ - The writer then provieds the LTL expression using your operator names and also already supports
+ - pretty printing.
  -}
 
-opNames
-  :: OperatorNames
+opConfig
+  :: OperatorConfig
 
-opNames = OperatorNames
-  { opTrue = "<fancy true symbol>" 
-  , opFalse = "<fancy false symbol>"
-  , opNot = "<fancy not symbol>" 
-  , opAnd = "<fancy and symbol>" 
-  , opOr = "<fancy or symbol>" 
-  , opImplies = "<fancy implication symbol>" 
-  , opEquiv = "<fancy equivalence symbol>"
-  , opNext = "<fancy next symbol>"
-  , opFinally = "<fancy finally symbol>"
-  , opGlobally = "<fancy globally symbol>" 
-  , opUntil = "<fancy until symbol>" 
-  , opRelease = "<fancy release symbol>" 
-  , opWeak = "<fancy weak until symbol>"
+opConfig = OperatorConfig
+  { tTrue      = "<fancy true symbol>" 
+  , fFalse     = "<fancy false symbol>"
+  , opNot      = UnaOp "<fancy not symbol>"         1
+  , opAnd      = BinOp "<fancy and symbol>"         6 AssocLeft
+  , opOr       = BinOp "<fancy or symbol>"          7 AssocLeft
+  , opImplies  = BinOp "<fancy implication symbol>" 8 AssocRight
+  , opEquiv    = BinOp "<fancy equivalence symbol>" 8 AssocLeft
+  , opNext     = UnaOp "<fancy next symbol>"        2 
+  , opFinally  = UnaOp "<fancy finally symbol>"     3 
+  , opGlobally = UnaOp "<fancy globally symbol>"    4 
+  , opUntil    = BinOp "<fancy until symbol>"       5 AssocRight
+  , opRelease  = BinOp "<fancy release symbol>"     9 AssocLeft
+  , opWeak     = BinOp "<fancy weak until symbol>"  8 AssocRight
   }
 
 ---
@@ -93,12 +97,12 @@ opNames = OperatorNames
  -     the command line. It is recommended to call this functions to support these
  -     simplifiactions in you format.
  -
- -   str <- pretty mode opNames fml
+ -   str <- printformula opConfig mode fml
  -
- -     A simple pretty printer to move from the internal representation to the desired
- -     string representation. Thereby mode selects whether pretty printing or fully
- -     parenthesized printing should be used. It is recommended to use the passed value
- -     stored in 'outputMode c' here. Finally, the opNames structure, which may be define
+ -     A simple printer (supporting pretty printing) to move from the internal representation 
+ -     to the desired string representation. Thereby mode selects whether pretty printing or 
+ -     fully parenthesized printing should be used. It is recommended to use the passed value
+ -     stored in 'outputMode c' here. Finally, the opConfig structure, which may be define
  -     as above, fixes the names of the operators used here. The function uses the standard
  -     operator precedence for pretty printing.
  -
@@ -120,7 +124,7 @@ writeExample c s = do
     fml0 <- merge as is gs
     fml1 <- simplify c fml0
 
-    return $ pretty (outputMode c) opNames fml1
+    return $ printFormula opConfig (outputMode c) fml1
     
 ---
 
