@@ -10,15 +10,24 @@
 
 module Writer.Utils
     ( printFormula
+    , checkLower
     , merge
-    , checkLower  
+    , adjust  
     ) where
 
 -----------------------------------------------------------------------------
 
+import Data.Maybe
+    ( catMaybes
+    )  
+
 import Data.Char
     ( toLower
     )
+
+import Config
+    ( Configuration(..)
+    )    
 
 import Data.LTL
     ( Atomic(..)
@@ -47,7 +56,8 @@ import Writer.Data
     , OperatorConfig(..)        
     , UnaryOperator(..)
     , BinaryOperator(..)      
-    , Assoc(..)  
+    , Assoc(..)
+    , Unsupported(..)  
     )
     
 import Data.Array.IArray
@@ -145,20 +155,30 @@ printFormula opc mode formula = reverse $ case mode of
 
     unOp op a = ' ' : revappend a (uopName op)
 
+    uopPrecedence' x =
+      if unsupported x
+      then Nothing
+      else Just $ uopPrecedence x
+
+    bopPrecedence' x =
+      if unsupported x
+      then Nothing
+      else Just $ bopPrecedence x           
+
     dp =
       let
-        xs = map (\f -> f opc)
-          [ uopPrecedence . opNot 
-          , bopPrecedence . opAnd
-          , bopPrecedence . opOr
-          , bopPrecedence . opImplies
-          , bopPrecedence . opEquiv
-          , uopPrecedence . opNext
-          , uopPrecedence . opFinally
-          , uopPrecedence . opGlobally
-          , bopPrecedence . opUntil
-          , bopPrecedence . opRelease
-          , bopPrecedence . opWeak
+        xs = catMaybes $ map (\f -> f opc) 
+          [ uopPrecedence' . opNot 
+          , bopPrecedence' . opAnd
+          , bopPrecedence' . opOr
+          , bopPrecedence' . opImplies
+          , bopPrecedence' . opEquiv
+          , uopPrecedence' . opNext
+          , uopPrecedence' . opFinally
+          , uopPrecedence' . opGlobally
+          , bopPrecedence' . opUntil
+          , bopPrecedence' . opRelease
+          , bopPrecedence' . opWeak
           ]
         m = foldl min 1 xs
       in if m > 0
@@ -235,5 +255,20 @@ checkLower fmt s =
         if b == d 
         then errToLower fmt a c $ idPos $ symboltable s ! i
         else checkDouble ((x,c,d) : xr)
+
+-----------------------------------------------------------------------------
+
+-- | Adjust the configuration according to unsupported operators.
+
+adjust
+  :: Configuration -> OperatorConfig -> Configuration
+
+adjust c oc =
+  c {
+    noRelease = noRelease c || unsupported (opRelease oc),
+    noWeak = noWeak c || unsupported (opWeak oc),
+    noGlobally = noGlobally c || unsupported (opGlobally oc),
+    noFinally = noFinally c || unsupported (opFinally oc)
+    }
 
 -----------------------------------------------------------------------------

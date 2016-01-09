@@ -235,6 +235,8 @@ prHelp = do
     ++ "\n"
     ++ "\n" ++ "      * utf8 [default]            : Human readable output using UTF8 symbols"
     ++ "\n" ++ "      * wring                     : Wring input format"
+    ++ "\n" ++ "      * lily                      : Lily input format"
+    ++ "\n" ++ "      * acacia                    : Acacia / Acacia+ input format"    
     ++ "\n" ++ "      * ltlxba                    : LTL2BA / LTL3BA input format"
     ++ "\n" ++ "      * promela                   : Promela LTL"
     ++ "\n" ++ "      * unbeast                   : Unbeast input format"    

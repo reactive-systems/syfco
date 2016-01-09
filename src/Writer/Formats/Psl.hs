@@ -8,9 +8,7 @@
 -- 
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Psl
-    ( writePsl
-    ) where
+module Writer.Formats.Psl where
 
 -----------------------------------------------------------------------------
 
@@ -24,9 +22,9 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
-import Control.Exception
-
 -----------------------------------------------------------------------------
+
+-- | PSL operator configuration.
 
 opConfig
   :: OperatorConfig
@@ -34,31 +32,30 @@ opConfig
 opConfig = OperatorConfig
   { tTrue      = "true"
   , fFalse     = "false"
-  , opNot      = UnaOp "!"           1
-  , opAnd      = BinOp "&&"          2 AssocLeft
-  , opOr       = BinOp "||"          3 AssocLeft
-  , opImplies  = BinOp "->"          6 AssocRight
-  , opEquiv    = BinOp "<->"         6 AssocRight
-  , opNext     = UnaOp "next!"       4 
-  , opFinally  = UnaOp "eventually!" 4 
-  , opGlobally = UnaOp "always"      7      
-  , opUntil    = BinOp "until!"      5 AssocRight
-  , opRelease  = assert False undefined                                  
-  , opWeak     = assert False undefined                 
-
+  , opNot      = UnaryOp  "!"           1
+  , opAnd      = BinaryOp "&&"          2 AssocLeft
+  , opOr       = BinaryOp "||"          3 AssocLeft
+  , opImplies  = BinaryOp "->"          6 AssocRight
+  , opEquiv    = BinaryOp "<->"         6 AssocRight
+  , opNext     = UnaryOp  "next!"       4 
+  , opFinally  = UnaryOp  "eventually!" 4 
+  , opGlobally = UnaryOp  "always"      7      
+  , opUntil    = BinaryOp "until!"      5 AssocRight
+  , opRelease  = BinaryOpUnsupported
+  , opWeak     = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
 
 -- | PSL format writer.
 
-writePsl
+writeFormat
   :: Configuration -> Specification -> Either Error String
 
-writePsl c s = do
+writeFormat c s = do
   (as,is,gs) <- eval c s
   fml0 <- merge as is gs
-  fml1 <- simplify (c { noWeak = True, noRelease = True }) fml0
+  fml1 <- simplify (adjust c opConfig) fml0
   
   return $ printFormula opConfig (outputMode c) fml1
 

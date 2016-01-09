@@ -50,41 +50,25 @@ import Writer.Eval
 import Writer.Formats
     ( WriteFormat(..)
     , needsLower
-    ) 
-
-import Writer.Formats.Utf8
-    ( writeUtf8
     )
     
-import Writer.Formats.Wring
-    ( writeWring
-    )
-    
-import Writer.Formats.Promela
-    ( writePromela
-    )
-    
-import Writer.Formats.Ltlxba
-    ( writeLtlxba
-    )
-    
-import Writer.Formats.Unbeast
-    ( writeUnbeast
-    )
-    
-import Writer.Formats.Basic
-    ( writeBasic
-    )
-    
-import Writer.Formats.Psl
-    ( writePsl
-    )
-
 import Control.Monad
     ( when
     )
-    
------------------------------------------------------------------------------        
+
+-----------------------------------------------------------------------------    
+
+import qualified Writer.Formats.Utf8 as Utf8
+import qualified Writer.Formats.Wring as Wring
+import qualified Writer.Formats.Promela as Promela
+import qualified Writer.Formats.Acacia as Acacia
+import qualified Writer.Formats.Lily as Lily
+import qualified Writer.Formats.Ltlxba as Ltlxba
+import qualified Writer.Formats.Unbeast as Unbeast
+import qualified Writer.Formats.Basic as Basic
+import qualified Writer.Formats.Psl as Psl
+
+-----------------------------------------------------------------------------
 
 -- | Creates the contents of a standard partioning file from the lists
 -- of input and output signals.
@@ -112,13 +96,15 @@ writeSpecification c s = do
     checkLower (show $ outputFormat c) s
   
   case outputFormat c of
-    UTF8    -> writeUtf8 c s
-    BASIC   -> writeBasic c s
-    WRING   -> writeWring c s 
-    LTLXBA  -> writeLtlxba c s 
-    PROMELA -> writePromela c s
-    UNBEAST -> writeUnbeast c s
-    PSL     -> writePsl c s  
+    UTF8    -> Utf8.writeFormat c s 
+    BASIC   -> Basic.writeFormat c s 
+    WRING   -> Wring.writeFormat c s 
+    LTLXBA  -> Ltlxba.writeFormat c s
+    LILY    -> Lily.writeFormat c s     
+    ACACIA  -> Acacia.writeFormat c s 
+    PROMELA -> Promela.writeFormat c s 
+    UNBEAST -> Unbeast.writeFormat c s 
+    PSL     -> Psl.writeFormat c s 
   
 -----------------------------------------------------------------------------
 

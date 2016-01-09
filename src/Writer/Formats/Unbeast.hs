@@ -8,9 +8,7 @@
 -- 
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Unbeast
-    ( writeUnbeast
-    ) where
+module Writer.Formats.Unbeast where
 
 -----------------------------------------------------------------------------
 
@@ -28,10 +26,10 @@ import Control.Exception
 
 -- | Unbeast format writer.
 
-writeUnbeast
+writeFormat
   :: Configuration -> Specification -> Either Error String
 
-writeUnbeast c s = do
+writeFormat c s = do
   (as,is,gs) <- eval c s
   as' <- mapM (simplify (c { noRelease = True }) . noImpl) as
   vs' <- mapM (simplify (c { noRelease = True }) . noImpl) $ case (is,gs) of
@@ -49,7 +47,7 @@ writeUnbeast c s = do
 
   where
     main as vs =
-      "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>" 
+                 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>" 
       ++ "\n" ++ "<!DOCTYPE SynthesisProblem SYSTEM \"" ++ specfile ++ "\">"
       ++ "\n"
       ++ "\n" ++ "<!--"
@@ -129,8 +127,7 @@ writeUnbeast c s = do
       Equiv x y   -> "<Iff>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</Iff>\n"
       Until x y   -> "<U>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</U>\n"
       Weak x y    -> "<WU>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</WU>\n"
-      Implies _ _ -> assert False undefined 
-      Release _ _ -> assert False undefined 
+      _           -> assert False undefined 
 
     noImpl fml = case fml of
       Implies x y -> Or [Not x, y]

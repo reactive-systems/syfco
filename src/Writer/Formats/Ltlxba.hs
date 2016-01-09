@@ -8,9 +8,7 @@
 -- 
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Ltlxba
-    ( writeLtlxba
-    ) where
+module Writer.Formats.Ltlxba where
 
 -----------------------------------------------------------------------------
 
@@ -24,9 +22,9 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
-import Control.Exception
-
 -----------------------------------------------------------------------------
+
+-- | Ltl2ba / LTL3ba operator configuration.
 
 opConfig
   :: OperatorConfig
@@ -34,30 +32,30 @@ opConfig
 opConfig = OperatorConfig
   { tTrue      = "true"
   , fFalse     = "false"
-  , opNot      = UnaOp "!"   1
-  , opAnd      = BinOp "&&"  4 AssocLeft
-  , opOr       = BinOp "||"  4 AssocLeft
-  , opImplies  = BinOp "->"  4 AssocLeft
-  , opEquiv    = BinOp "<->" 4 AssocLeft
-  , opNext     = UnaOp "X"   1 
-  , opFinally  = UnaOp "F"   1 
-  , opGlobally = UnaOp "G"   1 
-  , opUntil    = BinOp "U"   2 AssocLeft
-  , opRelease  = BinOp "R"   3 AssocLeft
-  , opWeak     = assert False undefined
+  , opNot      = UnaryOp  "!"   1
+  , opAnd      = BinaryOp "&&"  4 AssocLeft
+  , opOr       = BinaryOp "||"  4 AssocLeft
+  , opImplies  = BinaryOp "->"  4 AssocLeft
+  , opEquiv    = BinaryOp "<->" 4 AssocLeft
+  , opNext     = UnaryOp  "X"   1 
+  , opFinally  = UnaryOp  "F"   1 
+  , opGlobally = UnaryOp  "G"   1 
+  , opUntil    = BinaryOp "U"   2 AssocLeft
+  , opRelease  = BinaryOp "R"   3 AssocLeft
+  , opWeak     = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
 
 -- | Ltl2ba / LTL3ba writer.
 
-writeLtlxba
+writeFormat
   :: Configuration -> Specification -> Either Error String
 
-writeLtlxba c s = do
+writeFormat c s = do
   (as,is,gs) <- eval c s
   fml0 <- merge as is gs
-  fml1 <- simplify (c { noWeak = True }) fml0
+  fml1 <- simplify (adjust c opConfig) fml0
     
   return $ printFormula opConfig (outputMode c) fml1
 

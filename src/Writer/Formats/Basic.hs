@@ -9,9 +9,7 @@
 -- 
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Basic
-    ( writeBasic
-    ) where
+module Writer.Formats.Basic where
 
 -----------------------------------------------------------------------------
 
@@ -29,37 +27,39 @@ import Writer.Utils
 
 -----------------------------------------------------------------------------
 
+-- | Basic Format operator configuration.
+
 opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
   { tTrue     = "true"
   , fFalse    = "false"
-  , opNot      = UnaOp "!"   1
-  , opAnd      = BinOp "&&"  2 AssocLeft
-  , opOr       = BinOp "||"  3 AssocLeft
-  , opImplies  = BinOp "->"  4 AssocRight
-  , opEquiv    = BinOp "<->" 4 AssocRight
-  , opNext     = UnaOp "X"   1 
-  , opFinally  = UnaOp "F"   1 
-  , opGlobally = UnaOp "G"   1 
-  , opUntil    = BinOp "U"   6 AssocRight
-  , opRelease  = BinOp "R"   7 AssocLeft
-  , opWeak     = BinOp "W"   5 AssocRight
+  , opNot      = UnaryOp "!"   1
+  , opAnd      = BinaryOp "&&"  2 AssocLeft
+  , opOr       = BinaryOp "||"  3 AssocLeft
+  , opImplies  = BinaryOp "->"  4 AssocRight
+  , opEquiv    = BinaryOp "<->" 4 AssocRight
+  , opNext     = UnaryOp  "X"   1 
+  , opFinally  = UnaryOp  "F"   1 
+  , opGlobally = UnaryOp  "G"   1 
+  , opUntil    = BinaryOp "U"   6 AssocRight
+  , opRelease  = BinaryOp "R"   7 AssocLeft
+  , opWeak     = BinaryOp "W"   5 AssocRight
   }
 
 -----------------------------------------------------------------------------
 
 -- | Basic TLSF writer.
 
-writeBasic
+writeFormat
   :: Configuration -> Specification -> Either Error String
 
-writeBasic c s = do
+writeFormat c s = do
   (as,is,gs) <- eval c s
-  as' <- mapM (simplify c) as
-  is' <- mapM (simplify c) is
-  gs' <- mapM (simplify c) gs  
+  as' <- mapM (simplify (adjust c opConfig)) as
+  is' <- mapM (simplify (adjust c opConfig)) is
+  gs' <- mapM (simplify (adjust c opConfig)) gs  
   return $
     "INFO {"
     ++ "\n" ++ "  TITLE:       \"" ++ title s ++ "\""
@@ -88,15 +88,15 @@ writeBasic c s = do
     ++ "\n" ++ "  }"
     ++ (if not $ any checkTrue as' then "" 
         else "\n" ++ "  ASSUMPTIONS {" ++
-             concatMap (printFormula opConfig mode) (filter checkTrue as') ++
+             concatMap pr (filter checkTrue as') ++
              "\n" ++ "  }")
     ++ (if not $ any checkTrue is' then "" 
         else "\n" ++ "  INVARIANTS {" ++
-             concatMap (printFormula opConfig mode) (filter checkTrue is') ++
+             concatMap pr (filter checkTrue is') ++
              "\n" ++ "  }")
     ++ (if not $ any checkTrue gs' then "" 
         else "\n" ++ "  GUARANTEES {" ++
-             concatMap (printFormula opConfig mode) (filter checkTrue gs') ++
+             concatMap pr (filter checkTrue gs') ++
              "\n" ++ "  }")
     ++ "\n" ++ "}"
     ++ "\n"
@@ -110,5 +110,7 @@ writeBasic c s = do
 
     printSignal sig = 
       "\n    " ++ sig ++ ";"
+
+    pr = (++ ";") . ("\n    " ++) . printFormula opConfig mode
 
 -----------------------------------------------------------------------------

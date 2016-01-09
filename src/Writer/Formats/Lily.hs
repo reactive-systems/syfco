@@ -1,14 +1,14 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Writer.Formats.Wring
+-- Module      :  Writer.Formats.Acacia
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Transforms a specification to a wring format.
+-- Transforms a specification to the Ltl2ba / Ltl3ba format.
 -- 
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Wring where
+module Writer.Formats.Lily where
 
 -----------------------------------------------------------------------------
 
@@ -25,15 +25,15 @@ import Writer.Utils
 
 -----------------------------------------------------------------------------
 
--- | Wring operator configuration.
+-- | Lily operator configuration.
 
 opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue      = "TRUE"
-  , fFalse     = "FALSE"
-  , opNot      = UnaryOp  "!"   1
+  { tTrue      = "true"
+  , fFalse     = "false"
+  , opNot      = UnaryOp "!"    3
   , opAnd      = BinaryOp "*"   2 AssocLeft
   , opOr       = BinaryOp "+"   2 AssocLeft
   , opImplies  = BinaryOp "->"  2 AssocLeft
@@ -48,17 +48,31 @@ opConfig = OperatorConfig
 
 -----------------------------------------------------------------------------
 
--- | Wring format writer.
+-- | Acacia / Acacia+ writer.
 
 writeFormat
   :: Configuration -> Specification -> Either Error String
 
 writeFormat c s = do
-  (as,is,gs) <- eval c s
-  fml0 <- merge as is gs
-  fml1 <- simplify (adjust c opConfig) $ adjustAtomic fml0
+  (as1,is1,gs1) <- eval c s
+  as2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) as1
+  is2 <- mapM (simplify (adjust c opConfig) . Globally . adjustAtomic) is1
+  gs2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) gs1
     
-  return $ printFormula opConfig (outputMode c) fml1
+  let
+    as3 = map (printFormula opConfig (outputMode c)) as2
+    is3 = map (printFormula opConfig (outputMode c)) is2
+    gs3 = map (printFormula opConfig (outputMode c)) gs2
+  
+    as4 = map (\x -> "assume " ++ x ++ ";") as3
+    is4 = map (\x -> x ++ ";") is3
+    gs4 = map (\x -> x ++ ";") gs3
+
+    xs = case as4 ++ is4 ++ gs4 of
+      [] -> []
+      ys -> map (++ "\n") (init ys) ++ [last ys]
+
+  return $ concat xs
 
   where
     adjustAtomic fml = case fml of
@@ -68,4 +82,7 @@ writeFormat c s = do
       Atomic (Input x)        -> Atomic (Input (x ++ "=1"))
       _                       -> applySub adjustAtomic fml
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
+
+
+

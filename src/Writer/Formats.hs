@@ -11,7 +11,7 @@
 module Writer.Formats
     ( WriteFormat(..)
     , parseFormat
-    , needsLower  
+    , needsLower
     ) where
 
 -----------------------------------------------------------------------------
@@ -30,7 +30,9 @@ data WriteFormat =
   | WRING  
   | PROMELA
   | UNBEAST
-  | LTLXBA  
+  | LTLXBA
+  | LILY  
+  | ACACIA    
   | BASIC
   | PSL
   deriving (Eq)
@@ -44,6 +46,8 @@ instance Show WriteFormat where
     PROMELA -> "Promela LTL"
     UNBEAST -> "Unbeast"
     LTLXBA  -> "LtlXba"
+    LILY    -> "Lily"
+    ACACIA  -> "Acacia"
     BASIC   -> "Basic"
     PSL     -> "Psl"
 
@@ -60,6 +64,8 @@ parseFormat s = case s of
   "ltlxba"  -> return LTLXBA
   "unbeast" -> return UNBEAST 
   "promela" -> return PROMELA
+  "acacia"  -> return ACACIA
+  "lily"    -> return LILY
   "psl"     -> return PSL
   "basic"   -> return BASIC
   x         -> argsError ("Unknown format: " ++ x)
@@ -71,6 +77,7 @@ parseFormat s = case s of
 needsLower
   :: WriteFormat -> Bool
 
-needsLower s = s `elem` [LTLXBA, PROMELA]
+needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, LILY]
 
 -----------------------------------------------------------------------------
+

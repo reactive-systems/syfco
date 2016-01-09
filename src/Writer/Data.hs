@@ -12,7 +12,8 @@ module Writer.Data
     ( WriteMode(..)
     , OperatorConfig(..)
     , UnaryOperator(..)
-    , BinaryOperator(..)  
+    , BinaryOperator(..)
+    , Unsupported(..)  
     , Assoc(..)  
     ) where
 
@@ -35,27 +36,36 @@ data WriteMode =
 -- | Associativity type to distinguis left associative operators from
 -- right associative operators
 
-data Assoc = AssocLeft | AssocRight
+data Assoc =
+    AssocLeft
+  | AssocRight
+  deriving (Eq)  
 
 -----------------------------------------------------------------------------
 
--- | A unary operator is set up by providing a name and its precedence.
+-- | A unary operator can be set up by providing a name and its precedence.
 
-data UnaryOperator = UnaOp
-  { uopName :: String
-  , uopPrecedence :: Int
-  }
+data UnaryOperator =
+  UnaryOp
+    { uopName :: String
+    , uopPrecedence :: Int
+    }
+  | UnaryOpUnsupported    
+  deriving (Eq)
 
 -----------------------------------------------------------------------------
 
--- | A binary operator is set up by a name, its precedencs and its
+-- | A binary operator can be set up by a name, its precedencs and its
 -- associativity. 
 
-data BinaryOperator = BinOp
-  { bopName :: String
-  , bopPrecedence :: Int
-  , bopAssoc :: Assoc
-  }
+data BinaryOperator =
+  BinaryOp
+    { bopName :: String
+    , bopPrecedence :: Int
+    , bopAssoc :: Assoc
+    }
+  | BinaryOpUnsupported
+  deriving (Eq)
 
 -----------------------------------------------------------------------------  
 
@@ -73,6 +83,9 @@ data BinaryOperator = BinOp
 -- operators, their precedence is treated equally.
 -- 
 -- The associativity is either 'AssocLeft' or 'AssocRight'.
+-- 
+-- Unsupported Operators can be disabled using 'UnaryOpUnsupported' or
+-- 'BinaryOpUnsupported', respectively.
 
 data OperatorConfig =
   OperatorConfig
@@ -89,6 +102,19 @@ data OperatorConfig =
   , opUntil :: BinaryOperator
   , opRelease :: BinaryOperator
   , opWeak :: BinaryOperator
-  }
+  } deriving (Eq)
 
 -----------------------------------------------------------------------------
+
+-- | Unification class to check whether an operator is unsupported or not.
+
+class Unsupported a where
+  unsupported :: a -> Bool
+
+instance Unsupported UnaryOperator where
+  unsupported = (== UnaryOpUnsupported)
+
+instance Unsupported BinaryOperator where
+  unsupported = (== BinaryOpUnsupported)
+
+-----------------------------------------------------------------------------  

@@ -69,6 +69,8 @@ syfco [OPTIONS]... <file>
 
       * utf8 [default]            : Human readable output using UTF8 symbols
       * wring                     : Wring input format
+      * lily                      : Lily input format
+      * acacia                    : Acacia / Acacia+ input format
       * ltlxba                    : LTL2BA / LTL3BA input format
       * promela                   : Promela LTL
       * unbeast                   : Unbeast input format

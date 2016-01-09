@@ -8,9 +8,7 @@
 -- 
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Promela
-    ( writePromela
-    ) where
+module Writer.Formats.Promela where
 
 -----------------------------------------------------------------------------
 
@@ -24,9 +22,9 @@ import Writer.Eval
 import Writer.Data
 import Writer.Utils
 
-import Control.Exception
-
 -----------------------------------------------------------------------------
+
+-- | Promela operator configuration.
 
 opConfig
   :: OperatorConfig
@@ -34,30 +32,30 @@ opConfig
 opConfig = OperatorConfig
   { tTrue      = "true"
   , fFalse     = "false"
-  , opNot      = UnaOp "!"   1
-  , opAnd      = BinOp "&&"  3 AssocLeft
-  , opOr       = BinOp "||"  3 AssocLeft
-  , opImplies  = BinOp "->"  3 AssocLeft
-  , opEquiv    = BinOp "<->" 3 AssocLeft
-  , opNext     = UnaOp "X"   1 
-  , opFinally  = UnaOp "<>"  1 
-  , opGlobally = UnaOp "[]"  1  
-  , opUntil    = BinOp "U"   2 AssocLeft 
-  , opRelease  = BinOp "V"   2 AssocLeft 
-  , opWeak     = assert False undefined
+  , opNot      = UnaryOp  "!"   1
+  , opAnd      = BinaryOp "&&"  3 AssocLeft
+  , opOr       = BinaryOp "||"  3 AssocLeft
+  , opImplies  = BinaryOp "->"  3 AssocLeft
+  , opEquiv    = BinaryOp "<->" 3 AssocLeft
+  , opNext     = UnaryOp  "X"   1 
+  , opFinally  = UnaryOp  "<>"  1 
+  , opGlobally = UnaryOp  "[]"  1  
+  , opUntil    = BinaryOp "U"   2 AssocLeft 
+  , opRelease  = BinaryOp "V"   2 AssocLeft 
+  , opWeak     = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
 
 -- | Promela LTL writer.
 
-writePromela
+writeFormat
   :: Configuration -> Specification -> Either Error String
 
-writePromela c s = do
+writeFormat c s = do
   (as,is,gs) <- eval c s
   fml0 <- merge as is gs
-  fml1 <- simplify (c { noWeak = True }) fml0
+  fml1 <- simplify (adjust c opConfig) fml0
     
   return $ printFormula opConfig (outputMode c) fml1  
 

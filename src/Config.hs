@@ -476,7 +476,31 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "Wring format, since it does not support " ++ 
         "the weak until operator.\n" ++
-        "Remove at least one of these constaints."        
+        "Remove at least one of these constaints."
+
+  | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
+    outputFormat cfg == LILY =
+
+      argsError $
+        "The given combination of transformations " ++
+        "(negation normal form, no release operators, and " ++
+        "no globally operators)" ++
+        "is impossible to satisfy when outputting to the " ++
+        "Lily format, since it does not support " ++ 
+        "the weak until operator.\n" ++
+        "Remove at least one of these constaints."                        
+
+  | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
+    outputFormat cfg == ACACIA =
+
+      argsError $
+        "The given combination of transformations " ++
+        "(negation normal form, no release operators, and " ++
+        "no globally operators)" ++
+        "is impossible to satisfy when outputting to the " ++
+        "Acacia/Aciacia+ format, since it does not support " ++ 
+        "the weak until operator.\n" ++
+        "Remove at least one of these constaints."                
 
   | negNormalForm cfg && noGlobally cfg && outputFormat cfg == PSL =
 
