@@ -62,10 +62,10 @@ writeFormat c s = do
 
   where
     adjustAtomic fml = case fml of
-      Not (Atomic (Output x)) -> Atomic (Output (x ++ "=0"))
-      Not (Atomic (Input x))  -> Atomic (Input (x ++ "=0"))
-      Atomic (Output x)       -> Atomic (Output (x ++ "=1"))            
-      Atomic (Input x)        -> Atomic (Input (x ++ "=1"))
-      _                       -> applySub adjustAtomic fml
+      Not (Atomic (Output x)) -> Atomic (Output ("(" ++ x ++ "=0)"))
+      Not (Atomic (Input x))  -> Atomic (Input ("(" ++ x ++ "=0)"))
+      Atomic (Output x)       -> Atomic (Output ("(" ++ x ++ "=1)"))            
+      Atomic (Input x)        -> Atomic (Input ("(" ++ x ++ "=1)"))
+      _                       -> applySub adjustAtomic fml    
 
 -----------------------------------------------------------------------------    
