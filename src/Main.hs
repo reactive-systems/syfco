@@ -103,27 +103,22 @@ readContents c = do
 readContent
   :: Configuration -> (String,Maybe String) -> IO ()
 
-readContent c (content,file) =
-  let
-    m = owSemantics c
-    t = owTarget c
-    p = owParameter c
-  in case readSpecification content m t p of
-    Left err -> prError err
-    Right s  
-      | check c       -> case file of
-        Nothing -> putStrLn "valid"
-        Just f  -> putStrLn $ "valid " ++ f
-      | pTitle c      -> prTitle s
-      | pDesc c       -> prDescription s
-      | pSemantics c  -> prSemantics s
-      | pTarget c     -> prTarget s
-      | pTags c       -> prTags s
-      | pParameters c -> prParameters s
-      | pInputs c     -> prInputs c s
-      | pOutputs c    -> prOutputs c s
-      | pInfo c       -> prInfo s
-      | otherwise     -> writeOutput c s
+readContent c (content,file) = case readSpecification content of
+  Left err -> prError err
+  Right s  
+    | check c       -> case file of
+      Nothing -> putStrLn "valid"
+      Just f  -> putStrLn $ "valid " ++ f
+    | pTitle c      -> prTitle s
+    | pDesc c       -> prDescription s
+    | pSemantics c  -> prSemantics s
+    | pTarget c     -> prTarget s
+    | pTags c       -> prTags s
+    | pParameters c -> prParameters s
+    | pInputs c     -> prInputs c s
+    | pOutputs c    -> prOutputs c s
+    | pInfo c       -> prInfo s
+    | otherwise     -> writeOutput c s
 
 -----------------------------------------------------------------------------
 

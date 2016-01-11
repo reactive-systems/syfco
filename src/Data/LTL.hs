@@ -185,7 +185,7 @@ fmlInputs
 fmlInputs fml = map (\(Input x) -> x) $ filter isInput $ fmlSignals fml
   where
     isInput (Input _)  = True
-    isInput (Output _) =False
+    isInput (Output _) = False
 
 -----------------------------------------------------------------------------
 

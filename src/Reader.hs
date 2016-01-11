@@ -67,11 +67,10 @@ import qualified Reader.Data as RD
 -- data structure.
 
 readSpecification
-  :: String -> (Maybe String) -> (Maybe String) ->
-     ([String]) -> Either Error Specification
+  :: String -> Either Error Specification
 
-readSpecification str m t ps = do
-  s0 <- parse str m t ps
+readSpecification str = do
+  s0 <- parse str 
   s1 <- abstract s0
   s2 <- replaceSugar s1
   s3 <- specBindings s2

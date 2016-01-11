@@ -23,14 +23,24 @@ import Config
     ( Configuration(..)
     )
 
+import Data.List
+    ( find
+    )  
+
 import Data.Char
     ( toLower
-    )  
+    )
+
+import Data.Types
+    ( Semantics(..)
+    )      
 
 import Data.LTL
     ( Atomic(..)
     , Formula(..)
-    , applyAtomic  
+    , applyAtomic
+    , subFormulas  
+    , applySub       
     )
     
 import Data.Types
@@ -45,7 +55,7 @@ import Data.Binding
 import Data.Expression
     ( Expr(..)
     , Expr'(..)
-    , ExprPos  
+    , ExprPos
     )
     
 import Data.Specification
@@ -59,6 +69,7 @@ import Data.SymbolTable
 
 import Writer.Error
     ( Error
+    , argsError  
     , errBounds
     , errMinSet
     , errMaxSet
@@ -72,6 +83,7 @@ import Writer.Formats
 
 import Control.Monad.State
     ( StateT(..)
+    , foldM
     , execStateT
     , evalStateT
     , liftM2        
@@ -95,6 +107,10 @@ import qualified Data.Graph as G
 import qualified Data.IntMap as IM
 
 import qualified Data.Set as S
+
+import qualified Data.Array.IArray as A
+
+import Debug.Trace
 
 -----------------------------------------------------------------------------
 
@@ -138,30 +154,40 @@ data ST = ST
 -- accesses are printed using the delimiter string given by @d@.
 
 eval
-  :: Configuration -> Specification -> Either Error ([Formula],[Formula],[Formula])
+  :: Configuration -> Specification
+     -> Either Error ([Formula],[Formula],[Formula])
 
 eval c s = do
+  s' <- foldM overwriteParameter s $ owParameter c
   let
-    xs = filter isunary $ map bIdent $ parameters s ++ definitions s
-    ys = concatMap (\i -> map (\j -> (i,j)) $ filter isunary $
-                         idDeps $ symboltable s ! i) xs
+    s'' = s' {
+      target = case (owTarget c) of
+         Nothing -> target s'
+         Just t  -> t
+      }
+    xs = filter (isunary s'') $
+         map bIdent $ parameters s'' ++ definitions s''
+    ys = concatMap (\i -> map (\j -> (i,j)) $ filter (isunary s'') $
+                         idDeps $ symboltable s'' ! i) xs
     minkey = foldl min (head xs) xs
     maxkey = foldl max (head xs) xs
     zs = if null xs then []
          else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
-    ss = map bIdent $ inputs s ++ outputs s
+    ss = map bIdent $ inputs s'' ++ outputs s''
 
   stt <- execStateT (mapM_ staticBinding zs) $
-        ST (symboltable s) IM.empty $ busDelimiter c
+        ST (symboltable s'') IM.empty $ busDelimiter c
   sti <- execStateT (mapM_ componentSignal ss) stt
-  as <- evalStateT (mapM evalLtl $ assumptions s) sti
-  is <- evalStateT (mapM evalLtl $ invariants s) sti
-  gs <- evalStateT (mapM evalLtl $ guarantees s) sti
-  
-  return (map plainltl as, map plainltl is, map plainltl gs)
+
+  as <- evalStateT (mapM evalLtl $ assumptions s'') sti
+  is <- evalStateT (mapM evalLtl $ invariants s'') sti
+  gs <- evalStateT (mapM evalLtl $ guarantees s'') sti
+
+  return $ overwrite s'' 
+    (map plainltl as, map plainltl is, map plainltl gs)
 
   where
-    isunary x = null $ idArgs $ symboltable s ! x
+    isunary y x = null $ idArgs $ symboltable y ! x
 
     plainltl = applyAtomic revert . vltl
 
@@ -174,8 +200,59 @@ eval c s = do
       if needsLower (outputFormat c) 
       then map toLower x
       else x
-                
------------------------------------------------------------------------------
+
+    overwrite sp (as,is,gs) =
+      let
+        og = all outputsGuarded (as ++ is ++ gs)
+        ig = all inputsGuarded (as ++ is ++ gs)        
+      in (map (adjustOW og ig sp) as,
+          map (adjustOW og ig sp) is,
+          map (adjustOW og ig sp) gs)
+
+    adjustOW og ig sp e = case owSemantics c of
+      Nothing -> e
+      Just m -> case (semantics sp, m) of
+        (SemanticsMealy, SemanticsMealy) -> e
+        (SemanticsMoore, SemanticsMoore) -> e                                        
+        (SemanticsStrictMealy, SemanticsStrictMealy) -> e
+        (SemanticsStrictMoore, SemanticsStrictMoore) -> e          
+        (SemanticsMealy, SemanticsMoore) ->
+          if ig then unGuardInputs sp e else guardOutputs sp e
+        (SemanticsStrictMealy, SemanticsStrictMoore) ->
+          if ig then unGuardInputs sp e else guardOutputs sp e          
+        (SemanticsMoore, SemanticsMealy) -> 
+          if og then unGuardOutputs sp e else guardInputs sp e
+        (SemanticsStrictMoore, SemanticsStrictMealy) ->
+          if og then unGuardOutputs sp e else guardInputs sp e
+        _ -> error "TODO no converions between strict, non-strict yet"
+
+    outputsGuarded e = case e of
+      Next (Atomic (Output _)) -> True
+      Atomic (Output _) -> False
+      _ -> all outputsGuarded $ subFormulas e
+
+    inputsGuarded e = case e of
+      Next (Atomic (Input _)) -> True
+      Atomic (Input _) -> False
+      _ -> all inputsGuarded $ subFormulas e      
+
+    guardOutputs sp e = case e of
+      Atomic (Output x) -> Next $ Atomic $ Output x
+      _        -> applySub (guardOutputs sp) e
+
+    guardInputs sp e = case  e of
+      Atomic (Input x) -> Next $ Atomic $ Input x
+      _        -> applySub (guardInputs sp) e      
+
+    unGuardOutputs sp e  = case e of
+      Next (Atomic (Output x)) -> Atomic $ Output x
+      _                        -> applySub (unGuardOutputs sp) e
+
+    unGuardInputs sp e  = case e of
+      Next (Atomic (Input x)) -> Atomic $ Input x
+      _                       -> applySub (unGuardInputs sp) e      
+
+-----------------------------------------------------------------------------      
 
 staticBinding
   :: Int -> StateT ST (Either Error) ()
@@ -759,3 +836,39 @@ asciiLTL fml = case fml of
     pweak = "W"
 
 -----------------------------------------------------------------------------
+
+-- | Overwrites a given parameter by the given new value.
+
+overwriteParameter
+  :: Specification -> (String, Int) -> Either Error Specification
+
+overwriteParameter s (n,v) =
+  case find ((n ==) . idName . (symboltable s !) . bIdent) $ parameters s of
+  Nothing -> argsError $ "Specification has no parameter: " ++ n 
+  Just b  -> do
+    let b' = b {
+          bVal = if null $ bVal b
+                 then []
+                 else [ Expr (BaseCon v) $ srcPos $ head $ bVal b ]
+          }
+    return s {
+      parameters = map (replace b') $ parameters s,
+      symboltable = updSymTable b' $ symboltable s
+      }
+
+  where
+    replace b' b =
+      if bIdent b == bIdent b'
+      then b' else b
+
+    updSymTable y t =
+      A.amap (\x -> if idName x /= idName (t ! (bIdent y)) then x else x {
+                 idBindings =
+                    if null $ bVal y 
+                    then Expr (SetExplicit []) $ bPos y
+                    else Expr (SetExplicit [head $ bVal y]) $ bPos y
+                 }) t
+      
+
+-----------------------------------------------------------------------------                   
+

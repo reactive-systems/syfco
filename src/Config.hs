@@ -16,19 +16,56 @@ module Config
 
 -----------------------------------------------------------------------------
 
+import Data.Types
+    ( Semantics
+    , Target  
+    )  
+
 import Data.Error
     ( Error
     , argsError
+    , parseError  
     )
     
 import Writer.Formats
     ( WriteFormat(..)
     , parseFormat  
+    )
+    
+import Text.Parsec.String
+    ( Parser
+    )    
+
+import Text.Parsec
+    ( char
+    , many1
+    , digit  
+    , eof  
+    )
+
+import Control.Monad
+    ( void
     )  
 
 import Writer.Data
     ( WriteMode(..)
     )
+
+import Reader.Parser.Info
+    ( targetParser
+    , semanticsParser
+    )
+
+import Reader.Parser.Data
+    ( globalDef
+    )
+
+import Text.Parsec.Token
+    ( makeTokenParser
+    , identifier        
+    )  
+
+import qualified Text.Parsec as P    
 
 -----------------------------------------------------------------------------
 
@@ -151,9 +188,9 @@ data Configuration =
   , partFile :: Maybe String
   , busDelimiter :: String
   , fromStdin :: Bool
-  , owSemantics :: Maybe String
-  , owTarget :: Maybe String
-  , owParameter :: [String]
+  , owSemantics :: Maybe Semantics
+  , owTarget :: Maybe Target
+  , owParameter :: [(String,Int)]
   , simplifyWeak :: Bool
   , simplifyStrong :: Bool
   , negNormalForm :: Bool
@@ -291,22 +328,28 @@ parseArguments args = do
         Nothing -> argsError "\"-bd\": No delimiter given"
       "--bus-delimiter"          -> case next of
         Nothing -> argsError "\"--bus-delimiter\": No delimiter given"
-        _       ->parseArgument a "-bd" next        
+        _       -> parseArgument a "-bd" next        
       "-in"                      -> return $ None $ a { fromStdin = True }
       "-os"                      -> case next of
-        Just x  -> return $ Single $ a { owSemantics = Just x }
+        Just x  -> case P.parse semanticsParser "Overwrite Semantics Error" x of 
+          Left err -> parseError err
+          Right y  -> return $ Single $ a { owSemantics = Just y }
         Nothing -> argsError "\"-os\": No semantics given"
       "--overwrite-semantics"    -> case next of
         Nothing -> argsError "\"--overwrite-semantics\": No semantics given"
         _       -> parseArgument a "-os" next        
       "-ot"                      -> case next of
-        Just x  -> return $ Single $ a { owTarget = Just x }
+        Just x  -> case P.parse targetParser "Overwrite Target Error" x of 
+          Left err -> parseError err
+          Right y  -> return $ Single $ a { owTarget = Just y }
         Nothing -> argsError "\"-ot\": No target given"
       "--overwrite-target"       -> case next of
         Nothing -> argsError "\"--overwrite-target\": No target given"
         _       -> parseArgument a "-ot" next        
       "-op"                      -> case next of
-        Just x  -> return $ Single $ a { owParameter = x : owParameter a }
+        Just x  -> case P.parse parameterParser "Overwrite Parameter Error" x of
+          Left err -> parseError err
+          Right y  -> return $ Single $ a { owParameter = y : owParameter a }
         Nothing -> argsError "\"-op\": No parameter given"
       "--overwrite-parameter"    -> case next of
         Nothing -> argsError "\"--overwrite-parameter\": No parameter given"
@@ -539,5 +582,17 @@ checkConfiguration cfg
       length str < 2 ||
       head str /= '"' ||
       last str /= '"'
+
+-----------------------------------------------------------------------------
+
+parameterParser
+  :: Parser (String, Int)
+
+parameterParser = do
+  name <- identifier $ makeTokenParser globalDef
+  void $ char '='
+  x <- many1 digit
+  eof
+  return (name, read x)
 
 -----------------------------------------------------------------------------

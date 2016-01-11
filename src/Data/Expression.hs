@@ -15,6 +15,7 @@ module Data.Expression
     , ExprPos(..)
     , SrcPos(..)
     , subExpressions
+    , applySub  
     , prExpr
     ) where
 
@@ -188,7 +189,72 @@ subExpressions e = case expr e of
   BlnROr xs x      -> x:xs
   BlnRAnd xs x     -> x:xs
 
----
+-----------------------------------------------------------------------------
+
+-- | Applies function 'f' to the fist level sup-expressions of 'e'.
+  
+
+applySub
+  :: (Expr a -> Expr a) -> Expr a -> Expr a
+
+applySub f e =
+  let
+    e' = case expr e of
+      BaseWild         -> BaseWild
+      BaseTrue         -> BaseTrue
+      BaseFalse        -> BaseFalse
+      BaseCon i        -> BaseCon i
+      BaseOtherwise    -> BaseOtherwise
+      BaseId i         -> BaseId i
+      NumSMin x        -> NumSMin $ f x
+      NumSMax x        -> NumSMax $ f x
+      NumSSize x       -> NumSSize $ f x
+      NumSizeOf x      -> NumSizeOf $ f x
+      BlnNot x         -> BlnNot $ f x
+      LtlNext x        -> LtlNext $ f x
+      LtlGlobally x    -> LtlGlobally $ f x
+      LtlFinally x     -> LtlFinally  $ f x
+      BaseBus x i      -> BaseBus (f x) i          
+      NumPlus x y      -> NumPlus (f x) (f y)
+      NumMinus x y     -> NumMinus (f x) (f y)
+      NumMul x y       -> NumMul (f x) (f y)
+      NumDiv x y       -> NumDiv (f x) (f y)
+      NumMod x y       -> NumMod (f x) (f y)
+      SetCup x y       -> SetCup (f x) (f y)
+      SetCap x y       -> SetCap (f x) (f y)
+      SetMinus x y     -> SetMinus (f x) (f y)
+      BlnEQ x y        -> BlnEQ (f x) (f y)
+      BlnNEQ x y       -> BlnNEQ (f x) (f y)
+      BlnGE x y        -> BlnGE (f x) (f y)
+      BlnGEQ x y       -> BlnGEQ (f x) (f y)
+      BlnLE x y        -> BlnLE (f x) (f y)
+      BlnLEQ x y       -> BlnLEQ (f x) (f y)
+      BlnElem x y      -> BlnElem (f x) (f y)
+      BlnOr x y        -> BlnOr (f x) (f y)
+      BlnAnd x y       -> BlnAnd (f x) (f y)
+      BlnImpl x y      -> BlnImpl (f x) (f y)
+      BlnEquiv x y     -> BlnEquiv (f x) (f y)
+      LtlRNext x y     -> LtlRNext (f x) (f y)
+      LtlRGlobally x y -> LtlRGlobally (f x) (f y)
+      LtlRFinally x y  -> LtlRFinally (f x) (f y)
+      LtlUntil x y     -> LtlUntil (f x) (f y)
+      LtlWeak x y      -> LtlWeak (f x) (f y)
+      LtlRelease x y   -> LtlRelease (f x) (f y)
+      Colon x y        -> Colon (f x) (f y)
+      Pattern x y      -> Pattern (f x) (f y)
+      SetRange x y z   -> SetRange (f x) (f y) (f z)
+      SetExplicit xs   -> SetExplicit $ map f xs
+      BaseFml xs i     -> BaseFml (map f xs) i
+      NumRPlus xs x    -> NumRPlus (map f xs) (f x)
+      NumRMul xs x     -> NumRMul (map f xs) (f x)
+      SetRCup xs x     -> SetRCup (map f xs) (f x)
+      SetRCap xs x     -> SetRCap (map f xs) (f x)
+      BlnROr xs x      -> BlnROr (map f xs) (f x)
+      BlnRAnd xs x     -> BlnRAnd (map f xs) (f x)
+  in
+    Expr e' $ srcPos e
+
+-----------------------------------------------------------------------------
 
 -- | Some debugging function to give a more readable version of the expression.
 -- In constrast to @show@, this function drops all position information in the

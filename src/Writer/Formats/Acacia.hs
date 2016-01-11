@@ -17,6 +17,7 @@ import Simplify
 
 import Data.LTL
 import Data.Error
+import Data.Types
 import Data.Specification
 
 import Writer.Eval
@@ -54,7 +55,7 @@ writeFormat
   :: Configuration -> Specification -> Either Error String
 
 writeFormat c s = do
-  (as1,is1,gs1) <- eval c s
+  (as1,is1,gs1) <- eval (c { owSemantics = Just SemanticsMoore }) s
   as2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) as1
   is2 <- mapM (simplify (adjust c opConfig) . Globally . adjustAtomic) is1
   gs2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) gs1
