@@ -115,8 +115,8 @@ writeFormat c s = do
     printFormula n f = replicate n ' ' ++ printFormula' (n + 2) f
     
     printFormula' n f = case f of
-      TTrue       -> "<True>\n"
-      FFalse      -> "<False>\n"
+      TTrue       -> "<True></True>\n"
+      FFalse      -> "<False></False>\n"
       Atomic x    -> "<Var>" ++ show x ++ "</Var>\n"
       Not x       -> "<Not>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</Not>\n"
       Next x      -> "<X>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</X>\n"
@@ -134,5 +134,3 @@ writeFormat c s = do
       _           -> applySub noImpl fml
 
 -----------------------------------------------------------------------------
-
-

@@ -71,6 +71,13 @@ import Control.Monad
 
 import Control.Exception
     ( assert
+    )
+
+import GHC.IO.Encoding
+    ( setLocaleEncoding
+    , setFileSystemEncoding
+    , setForeignEncoding
+    , utf8
     )  
 
 -----------------------------------------------------------------------------
@@ -81,6 +88,9 @@ main
   :: IO ()
 
 main = do
+  setLocaleEncoding utf8
+  setFileSystemEncoding utf8
+  setForeignEncoding utf8
   args <- getArgs
   case parseArguments args of
     Left err -> prError err

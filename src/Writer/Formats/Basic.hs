@@ -111,8 +111,6 @@ writeFormat c s = do
     ++ "\n"
 
   where
-    mode = outputMode c
-    
     checkTrue f = case f of
       TTrue -> False
       _     -> True
@@ -120,6 +118,6 @@ writeFormat c s = do
     printSignal sig = 
       "\n    " ++ sig ++ ";"
 
-    pr = (++ ";") . ("\n    " ++) . printFormula opConfig mode
+    pr = (++ ";") . ("\n    " ++) . printFormula opConfig Fully
 
 -----------------------------------------------------------------------------

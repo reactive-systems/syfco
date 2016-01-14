@@ -49,11 +49,15 @@ Prerequisites:
  
 * [parsec](https://hackage.haskell.org/package/parsec-3.1.0) (recommended version: >= 3.1)
 
-Building the tool should be simple using
+Building the tool should be simple using [cabal](https://www.haskell.org/cabal/)
+
+<code>cabal install</code>
+
+or, if you work in a UNIX environment, simply by using
 
 <code>make</code>
 
-in the root directory. However, if you encounter any problems, please inform us via [the project bug tracker](https://github.com/reactive-systems/syfco/issues).
+However, if you encounter any problems, please inform us via [the project bug tracker](https://github.com/reactive-systems/syfco/issues).
 
 ## Usage
 

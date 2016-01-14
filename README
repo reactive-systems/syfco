@@ -48,13 +48,17 @@ Prerequisites:
  
 * parsec (recommended version: >= 3.1)
 
-Building the tool should be simple using
+Building the tool should be simple using cabal
+
+  cabal install
+
+or, if you work in a UNIX environment, simply by using
 
   make
 
-in the root directory. However, if you encounter any problems, please
-inform us via the project bug
-tracker (https://github.com/reactive-systems/syfco/issues).
+However, if you encounter any problems, pleaseinform us via the
+project bug tracker
+(https://github.com/reactive-systems/syfco/issues).
 
 ## Usage
 
