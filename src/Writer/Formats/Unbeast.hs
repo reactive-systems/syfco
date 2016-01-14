@@ -31,8 +31,8 @@ writeFormat
 
 writeFormat c s = do
   (as,is,gs) <- eval c s
-  as' <- mapM (simplify (c { noRelease = True }) . noImpl) as
-  vs' <- mapM (simplify (c { noRelease = True }) . noImpl) $ case (is,gs) of
+  as' <- mapM (simplify' (c { noRelease = True })) as
+  vs' <- mapM (simplify' (c { noRelease = True })) $ case (is, gs) of
     ([],[])   -> []
     ([],[x])  -> [x]
     ([],_)    -> gs
@@ -42,11 +42,11 @@ writeFormat c s = do
     (_,[])    -> [Globally $ And is]
     (_,[x])   -> [Globally $ And is, x]
     (_,_)     -> (Globally $ And is) : gs
-    
+
   return $ main as' vs'
 
   where
-    main as vs =
+    main as vs = 
                  "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>" 
       ++ "\n" ++ "<!DOCTYPE SynthesisProblem SYSTEM \"" ++ specfile ++ "\">"
       ++ "\n"
@@ -127,10 +127,14 @@ writeFormat c s = do
       Equiv x y   -> "<Iff>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</Iff>\n"
       Until x y   -> "<U>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</U>\n"
       Weak x y    -> "<WU>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</WU>\n"
-      _           -> assert False undefined 
+      _           -> assert False undefined
 
     noImpl fml = case fml of
-      Implies x y -> Or [Not x, y]
+      Implies x y -> Or [Not $ noImpl x, noImpl y]
       _           -> applySub noImpl fml
+
+    simplify' cc f = do
+      f' <- simplify cc $ noImpl f
+      if f' == f then return f else simplify' cc f'
 
 -----------------------------------------------------------------------------
