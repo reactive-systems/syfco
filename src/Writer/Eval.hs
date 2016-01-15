@@ -184,7 +184,7 @@ eval c s = do
   is <- evalStateT (mapM evalLtl $ invariants s'') sti
   gs <- evalStateT (mapM evalLtl $ guarantees s'') sti
 
-  return $ overwrite s'' 
+  return $ splitConjuncts $ overwrite s'' 
     (map plainltl as, map plainltl is, map plainltl gs)
 
   where
@@ -251,7 +251,14 @@ eval c s = do
 
     unGuardInputs sp e  = case e of
       Next (Atomic (Input x)) -> Atomic $ Input x
-      _                       -> applySub (unGuardInputs sp) e      
+      _                       -> applySub (unGuardInputs sp) e
+
+    splitConjuncts (xs,ys,zs) =
+      (concatMap splitC xs, concatMap splitC ys, concatMap splitC zs)
+
+    splitC fml = case fml of
+      And xs -> concatMap splitC xs
+      _      -> [fml]  
 
 -----------------------------------------------------------------------------      
 
