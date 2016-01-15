@@ -31,31 +31,36 @@ writeFormat
 
 writeFormat c s = do
   (as,is,gs) <- eval c s
-  as' <- mapM (simplify' (c { noRelease = True })) as
-  vs' <- mapM (simplify' (c { noRelease = True })) $ case (is, gs) of
-    ([],[])   -> []
-    ([],[x])  -> [x]
-    ([],_)    -> gs
-    ([x],[])  -> [Globally x]
-    ([x],[y]) -> [Globally x,y]
-    ([x],_)   -> Globally x : gs
-    (_,[])    -> [Globally $ And is]
-    (_,[x])   -> [Globally $ And is, x]
-    (_,_)     -> (Globally $ And is) : gs
+  as' <- mapM (simplify' (c { noRelease = True, noWeak = True })) as
+  vs' <- mapM (simplify' (c { noRelease = True, noWeak = True })) $
+         case (is, gs) of
+           ([],[])   -> []
+           ([],[x])  -> [x]
+           ([],_)    -> gs
+           ([x],[])  -> [Globally x]
+           ([x],[y]) -> [Globally x,y]
+           ([x],_)   -> Globally x : gs
+           (_,[])    -> [Globally $ And is]
+           (_,[x])   -> [Globally $ And is, x]
+           (_,_)     -> (Globally $ And is) : gs
 
   return $ main as' vs'
 
   where
     main as vs = 
                  "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>" 
-      ++ "\n" ++ "<!DOCTYPE SynthesisProblem SYSTEM \"" ++ specfile ++ "\">"
+      ++ "\n" ++ "<!DOCTYPE SynthesisProblem SYSTEM \""
+              ++ specfile ++ "\">"
       ++ "\n"
       ++ "\n" ++ "<!--"
-      ++ "\n" ++ "This specification was automatically created from a TLSF specification,"
+      ++ "\n" ++ "This specification was automatically created "
+              ++ "from a TLSF specification,"
       ++ "\n" ++ "using the SyFCo tool."
       ++ "\n"
-      ++ "\n" ++ "Please consider that default values for the .dtd file and the LTL compiler"
-      ++ "\n" ++ "have been used. To change them, you can use the 'updatePathsInXML.py' script,"
+      ++ "\n" ++ "Please consider that default values for the .dtd file "
+              ++ "and the LTL compiler"
+      ++ "\n" ++ "have been used. To change them, you can use the "
+              ++ "'updatePathsInXML.py' script,"
       ++ "\n" ++ "that is shipped with the Unbeast tool."
       ++ "\n" ++ "-->"
       ++ "\n"
@@ -64,7 +69,8 @@ writeFormat c s = do
       ++ "\n" ++ "  <Description>" 
       ++ "\n" ++ fixedIndent (description s)
       ++ "\n" ++ "  </Description>"
-      ++ "\n" ++ "  <PathToLTLCompiler>" ++ compiler ++ "</PathToLTLCompiler>"
+      ++ "\n" ++ "  <PathToLTLCompiler>" ++ compiler
+              ++ "</PathToLTLCompiler>"
       ++ "\n" ++ "  <GlobalInputs>"
       ++ concatMap printSignal (fmlInputs $ Implies (And as) (And vs))
       ++ "\n" ++ "  </GlobalInputs>"  
@@ -73,10 +79,12 @@ writeFormat c s = do
       ++ "\n" ++ "  </GlobalOutputs>"
       ++ (if null as then "" 
           else "\n" ++ "  <Assumptions>" ++
-               concatMap (\x -> "\n    <LTL>\n" ++ printFormula 6 x ++ "    </LTL>\n") as ++
+               concatMap (\x -> "\n    <LTL>\n" ++ printFormula 6 x
+                               ++ "    </LTL>\n") as ++
                "  </Assumptions>")
       ++ "\n" ++ "  <Specification>"
-      ++ concatMap (\x -> "\n    <LTL>\n" ++ printFormula 6 x ++ "    </LTL>\n") vs
+      ++ concatMap (\x -> "\n    <LTL>\n" ++ printFormula 6 x
+                         ++ "    </LTL>\n") vs
       ++ "  </Specification>"
       ++ "\n" ++ "</SynthesisProblem>"
       ++ "\n"
@@ -126,7 +134,6 @@ writeFormat c s = do
       And xs      -> "<And>\n" ++ concatMap (printFormula n) xs ++ replicate (n - 2) ' ' ++ "</And>\n"
       Equiv x y   -> "<Iff>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</Iff>\n"
       Until x y   -> "<U>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</U>\n"
-      Weak x y    -> "<WU>\n" ++ printFormula n x ++ printFormula n y ++ replicate (n - 2) ' ' ++ "</WU>\n"
       _           -> assert False undefined
 
     noImpl fml = case fml of
