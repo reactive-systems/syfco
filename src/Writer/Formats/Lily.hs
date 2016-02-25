@@ -65,8 +65,8 @@ writeFormat c s = do
     gs3 = map (printFormula opConfig (outputMode c)) gs2
   
     as4 = map (\x -> "assume " ++ x ++ ";") as3
-    is4 = map (\x -> x ++ ";") is3
-    gs4 = map (\x -> x ++ ";") gs3
+    is4 = map (++ ";") is3
+    gs4 = map (++ ";") gs3
 
     xs = case as4 ++ is4 ++ gs4 of
       [] -> []

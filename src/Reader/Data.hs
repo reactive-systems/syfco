@@ -128,8 +128,8 @@ data Specification =
   Specification
   { title :: String
   , description :: String
-  , semantics :: Semantics
-  , target :: Target
+  , semantics :: (Semantics, ExprPos)
+  , target :: (Target, ExprPos)
   , tags :: [String]
   , parameters :: [Binding]
   , definitions :: [Binding]    

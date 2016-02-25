@@ -222,7 +222,7 @@ exprParser = (~~) >> buildExpressionParser table term
       s <- getPos
       void $ reserved tokenparser x
       return $ Expr c $ ExprPos s $
-        SrcPos (srcLine s) (srcLine s + length x)
+        SrcPos (srcLine s) (srcColumn s + length x)
 
     setExplicit = do
       s <- getPos; ch '{'; (~~)
@@ -285,31 +285,30 @@ exprParser = (~~) >> buildExpressionParser table term
                       ExprPos s $ srcEnd $ srcPos e
 
     unOp6 c1 c2 c3 c4 c5 c6 c = try $ do
-      ch c1; ch c2; ch c3; ch c4; ch c5; ch c6
-      lookAhead $ (ch ' ' <|> ch '(' <|> ch '\t' <|> ch '\n')
-      (~~)
+      ch4 c1 c2 c3 c4
+      ch2 c5 c6
+      lookahead
       return c
       
     unOp4 c1 c2 c3 c4 c = try $ do
-      ch c1; ch c2; ch c3; ch c4; 
-      lookAhead $ (ch ' ' <|> ch '(' <|> ch '\t' <|> ch '\n')
-      (~~)
+      ch4 c1 c2 c3 c4
+      lookahead
       return c
 
     unOp' x c = do
-      ch x; (~~)
+      ch x
+      (~~)
       return c      
 
     unOp1 x c = try $ do
-      ch x; 
-      lookAhead $ (ch ' ' <|> ch '(' <|> ch '\t' <|> ch '\n')
-      (~~)      
+      ch x
+      lookahead
       return c
 
     unOp3 c1 c2 c3 c = try $ do
-      ch c1; ch c2; ch c3;
-      lookAhead $ (ch ' ' <|> ch '(' <|> ch '\t' <|> ch '\n')
-      (~~)      
+      ch2 c1 c2
+      ch c3
+      lookahead
       return c        
 
     parOp x p c = do
@@ -351,8 +350,14 @@ exprParser = (~~) >> buildExpressionParser table term
 
     (~~) = whiteSpace tokenparser
     
+    lookahead = do
+      lookAhead (ch ' ' <|> ch '(' <|> ch '\t' <|> ch '\n')
+      (~~)
+    
     ch = void . char
-
+    ch2 c1 c2 = do { ch c1; ch c2 }
+    ch4 c1 c2 c3 c4 = do { ch2 c1 c2; ch2 c3 c4 }
+    
 -----------------------------------------------------------------------------    
 
 

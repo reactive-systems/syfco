@@ -20,13 +20,14 @@ import Data.Types
     , Semantics
     )
     
+import Data.Expression
+    ( Expr
+    , ExprPos(..)  
+    )      
+    
 import Data.Binding
     ( BindExpr
     )
-    
-import Data.Expression
-    ( Expr
-    )   
 
 import Text.Parsec
     ( (<|>)
@@ -82,8 +83,8 @@ data Specification =
   Specification
   { title :: String
   , description :: String
-  , semantics :: Semantics
-  , target :: Target
+  , semantics :: (Semantics, ExprPos)
+  , target :: (Target, ExprPos)
   , tags :: [String]  
   , parameters :: [BindExpr String]
   , definitions :: [BindExpr String]    

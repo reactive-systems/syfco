@@ -106,7 +106,7 @@ opConfig = OperatorConfig
  -
  -     This function applies all simplifications to the formula fml, 
  -     that are enabled via the command line. It is recommended to call 
- -     this functions to support these simplifiactions in you format.p
+ -     this functions to support these simplifiactions in you format.
  -     If you have unsupported operators you have to adjust the
  -     configuration such that they can be removed by 'simplify'.
  -

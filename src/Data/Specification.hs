@@ -15,6 +15,11 @@ module Data.Specification
 
 -----------------------------------------------------------------------------
 
+import Data.Expression
+    ( Expr
+    , ExprPos
+    )
+
 import Data.Types
     ( Semantics
     , Target
@@ -28,10 +33,6 @@ import Data.SymbolTable
     ( SymbolTable
     )
 
-import Data.Expression
-    ( Expr
-    )
-
 -----------------------------------------------------------------------------
 
 -- | We use the type @Expression@ as a shortcut for expressions, where
@@ -42,6 +43,8 @@ type Expression = Expr Int
 -----------------------------------------------------------------------------
 
 -- | The internal representation of a specification. It includes:
+-- 
+--     * The source specification file 
 -- 
 --     * The title of the specification
 -- 
@@ -76,10 +79,13 @@ type Expression = Expr Int
 
 data Specification =
   Specification
-  { title :: String
+  { source :: String
+  , title :: String
   , description :: String
   , semantics :: Semantics
+  , semanticsP :: ExprPos 
   , target :: Target
+  , targetP :: ExprPos 
   , tags :: [String]
   , parameters :: [Binding]
   , definitions :: [Binding]    

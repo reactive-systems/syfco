@@ -66,6 +66,7 @@ import qualified Writer.Formats.Lily as Lily
 import qualified Writer.Formats.Ltlxba as Ltlxba
 import qualified Writer.Formats.Unbeast as Unbeast
 import qualified Writer.Formats.Basic as Basic
+import qualified Writer.Formats.Full as Full
 import qualified Writer.Formats.Psl as Psl
 
 -----------------------------------------------------------------------------
@@ -97,7 +98,8 @@ writeSpecification c s = do
   
   case outputFormat c of
     UTF8    -> Utf8.writeFormat c s 
-    BASIC   -> Basic.writeFormat c s 
+    BASIC   -> Basic.writeFormat c s
+    FULL    -> Full.writeFormat c s    
     WRING   -> Wring.writeFormat c s 
     LTLXBA  -> Ltlxba.writeFormat c s
     LILY    -> Lily.writeFormat c s     

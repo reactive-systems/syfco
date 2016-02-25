@@ -19,14 +19,20 @@ module Reader.Parser.Info
 import Data.Types
     ( Semantics(..)
     , Target(..)
-    )  
+    )
+
+import Data.Expression
+    ( SrcPos(..)
+    , ExprPos(..)  
+    )      
 
 import Reader.Parser.Data
     ( globalDef
     )
     
 import Reader.Parser.Utils
-    ( stringParser
+    ( getPos
+    , stringParser
     , identifier
     )  
 
@@ -74,7 +80,7 @@ import Text.Parsec.Token
 --     * the tag list of the specification
 
 infoParser
-  :: Parser (String, String, Semantics, Target, [String])
+  :: Parser (String, String, (Semantics, ExprPos), (Target, ExprPos), [String])
 
 infoParser = (~~) >> do
   keyword "INFO"
@@ -145,29 +151,42 @@ infoParser = (~~) >> do
 -- | Parses the target description.
 
 targetParser
-  :: Parser Target
+  :: Parser (Target, ExprPos)
 
 targetParser = 
-      do { keyword "Mealy"; return TargetMealy }
-  <|> do { keyword "Moore"; return TargetMoore }
+      do { p1 <- getPos;
+           keyword "Mealy";
+           let p2 = SrcPos (srcLine p1) (srcColumn p1 + length "Mealy")
+           in return (TargetMealy, ExprPos p1 p2)
+         }
+  <|> do { p1 <- getPos; 
+           keyword "Moore";
+           let p2 = SrcPos (srcLine p1) (srcColumn p1 + length "Moore")
+           in return (TargetMoore, ExprPos p1 p2) }
 
 -----------------------------------------------------------------------------      
 
 -- | Parses the semantics description.
 
 semanticsParser
-  :: Parser Semantics
+  :: Parser (Semantics, ExprPos)
 
 semanticsParser = do
+  p1 <- getPos
   x <- semanticKeyword
-  z <- do { void $ char ','; semanticKeyword } <|> (return "none")
+  (z,p2) <- do { void $ char ',';
+                p <- getPos;
+                k <- semanticKeyword;
+                return (k, SrcPos (srcLine p) (srcColumn p + length k))
+              }
+           <|> return ("none", SrcPos (srcLine p1) (srcColumn p1 + length x))
   case (x,z) of
-    ("mealy","none")  -> return SemanticsMealy
-    ("moore","none")  -> return SemanticsMoore
-    ("mealy","strict") -> return SemanticsStrictMealy
-    ("strict","mealy") -> return SemanticsStrictMealy
-    ("moore","strict") -> return SemanticsStrictMoore
-    ("strict","moore") -> return SemanticsStrictMoore
+    ("mealy","none")  -> return (SemanticsMealy, ExprPos p1 p2)
+    ("moore","none")  -> return (SemanticsMoore, ExprPos p1 p2)
+    ("mealy","strict") -> return (SemanticsStrictMealy, ExprPos p1 p2)
+    ("strict","mealy") -> return (SemanticsStrictMealy, ExprPos p1 p2)
+    ("moore","strict") -> return (SemanticsStrictMoore, ExprPos p1 p2)
+    ("strict","moore") -> return (SemanticsStrictMoore, ExprPos p1 p2)
     ("mealy","moore")  -> unexpected "Moore"
     ("moore","moore")  -> unexpected "Mealy"
     ("moore","mealy")  -> unexpected "Mealy"

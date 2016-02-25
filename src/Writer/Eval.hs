@@ -19,6 +19,10 @@ module Writer.Eval
 import Utils
     ( iter
     )
+
+import Data.Maybe
+    ( fromMaybe
+    )
     
 import Config
     ( Configuration(..)
@@ -32,10 +36,6 @@ import Data.Char
     ( toLower
     )
 
-import Data.Types
-    ( Semantics(..)
-    )      
-
 import Data.LTL
     ( Atomic(..)
     , Formula(..)
@@ -46,6 +46,7 @@ import Data.LTL
     
 import Data.Types
     ( IdType(..)
+    , Semantics(..)
     , SignalType(..)
     )
     
@@ -111,8 +112,6 @@ import qualified Data.Set as S
 
 import qualified Data.Array.IArray as A
 
-import Debug.Trace
-
 -----------------------------------------------------------------------------
 
 data Value =
@@ -162,9 +161,7 @@ eval c s = do
   s' <- foldM overwriteParameter s $ owParameter c
   let
     s'' = s' {
-      target = case (owTarget c) of
-         Nothing -> target s'
-         Just t  -> t
+      target = fromMaybe (target s') $ owTarget c
       }
     xs = filter (isunary s'') $
          map bIdent $ parameters s'' ++ definitions s''
@@ -870,7 +867,7 @@ overwriteParameter s (n,v) =
       then b' else b
 
     updSymTable y t =
-      A.amap (\x -> if idName x /= idName (t ! (bIdent y)) then x else x {
+      A.amap (\x -> if idName x /= idName (t ! bIdent y) then x else x {
                  idBindings =
                     if null $ bVal y 
                     then Expr (SetExplicit []) $ bPos y

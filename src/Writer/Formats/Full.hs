@@ -49,7 +49,7 @@ replaces xs str =
       (i, v, (s,e,z):yr, xr)
         | i < v     -> (i+1, v, (s,e,z):yr, xr)
         | i < s     -> (i+1, v, (s,e,z):yr, x:xr)
-        | otherwise -> (i+1, e, yr, (reverse z) ++ xr)
+        | otherwise -> (i+1, e, yr, reverse z ++ xr)
 
     indexer s =
       let
@@ -63,7 +63,7 @@ replaces xs str =
         a = A.array (1,length ls) $ reverse zs
       in
        -- return a mapping that maps a position to the index
-       \pos -> a ! (srcLine pos) + srcColumn pos                       
+       \pos -> a ! srcLine pos + srcColumn pos                       
       
 -----------------------------------------------------------------------------
 
@@ -83,7 +83,7 @@ writeFormat c s = do
         Just p  -> return (p, show v)
 
     findParam str =
-      let f x = str == (idName $ (symboltable s) ! (bIdent x))
+      let f x = str == idName (symboltable s ! bIdent x)
       in case filter f $ parameters s of
         []  -> Nothing
         x:_ -> return $ srcPos $ head $ bVal x

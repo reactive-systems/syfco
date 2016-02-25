@@ -76,10 +76,13 @@ readSpecification str = do
   s3 <- specBindings s2
   s4 <- inferTypes s3
   return Specification
-    { title       = RD.title s4
+    { source      = str
+    , title       = RD.title s4
     , description = RD.description s4
-    , semantics   = RD.semantics s4
-    , target      = RD.target s4
+    , semantics   = fst $ RD.semantics s4
+    , semanticsP  = snd $ RD.semantics s4
+    , target      = fst $ RD.target s4
+    , targetP     = snd $ RD.target s4                    
     , tags        = RD.tags s4
     , parameters  = RD.parameters s4
     , definitions = RD.definitions s4

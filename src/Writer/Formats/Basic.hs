@@ -16,6 +16,7 @@ module Writer.Formats.Basic where
 import Config
 import Simplify
 
+import Data.Maybe
 import Data.LTL
 import Data.Types
 import Data.Error
@@ -57,12 +58,8 @@ writeFormat
 
 writeFormat c s = do
   let s' = s {
-      target = case (owTarget c) of
-         Nothing -> target s
-         Just t  -> t,      
-      semantics = case (owSemantics c) of
-         Nothing -> semantics s
-         Just m  -> m
+      target = fromMaybe (target s) $ owTarget c,
+      semantics = fromMaybe (semantics s) $ owSemantics c
       }
 
   (as,is,gs) <- eval c s
@@ -73,14 +70,16 @@ writeFormat c s = do
     "INFO {"
     ++ "\n" ++ "  TITLE:       \"" ++ title s' ++ "\""
     ++ "\n" ++ "  DESCRIPTION: \"" ++ description s' ++ "\""
-    ++ "\n" ++ "  SEMANTICS:   " ++ (case semantics s' of
-                                        SemanticsMealy       -> "Mealy"
-                                        SemanticsMoore       -> "Moore"
-                                        SemanticsStrictMealy -> "Strict,Mealy"
-                                        SemanticsStrictMoore -> "Strict,Moore")    
-    ++ "\n" ++ "  TARGET:      " ++ (case target s' of
-                                        TargetMealy -> "Mealy"
-                                        TargetMoore -> "Moore")
+    ++ "\n" ++ "  SEMANTICS:   " ++ 
+      (case semantics s' of
+         SemanticsMealy       -> "Mealy"
+         SemanticsMoore       -> "Moore"
+         SemanticsStrictMealy -> "Strict,Mealy"
+         SemanticsStrictMoore -> "Strict,Moore")    
+    ++ "\n" ++ "  TARGET:      " ++ 
+      (case target s' of
+         TargetMealy -> "Mealy"
+         TargetMoore -> "Moore")
     ++ (if null $ tags s' then "" 
         else "\n  TAGS:        " ++ head (tags s') ++
              concatMap ((:) ' ' . (:) ',') (tail $ tags s'))

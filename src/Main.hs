@@ -116,9 +116,13 @@ readContent
 readContent c (content,file) = case readSpecification content of
   Left err -> prError err
   Right s  
-    | check c       -> case file of
-      Nothing -> putStrLn "valid"
-      Just f  -> putStrLn $ "valid " ++ f
+    | check c       ->
+        case writeSpecification c s of
+          Left err -> prError err
+          Right _  -> 
+            case file of
+              Nothing -> putStrLn "valid"
+              Just f  -> putStrLn $ "valid " ++ f
     | pTitle c      -> prTitle s
     | pDesc c       -> prDescription s
     | pSemantics c  -> prSemantics s

@@ -53,7 +53,7 @@ replaceSugar s = do
 replaceBinding
   :: Binding -> Either Error Binding
 
-replaceBinding b = do
+replaceBinding b = 
   case bVal b of
     []  -> return b
     [_] -> return b
@@ -96,7 +96,7 @@ replaceExpr xs =
       Colon _ y -> Expr (Colon (f (srcPos e)) y) $ srcPos e
       _         -> e
 
-    orlist p ys = foldl (fldor p) (Expr BaseFalse p) ys
+    orlist p = foldl (fldor p) (Expr BaseFalse p) 
 
     fldor p e1 e2 = Expr (BlnOr e1 e2) p
 

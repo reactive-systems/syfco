@@ -100,7 +100,7 @@ stToCSV lt = do
       putStrLn ";"
 
     commasepxs xs = case xs of
-      (x:xr) -> show x ++ (concatMap ((:) ',') $ map show xr)
+      (x:xr) -> show x ++ concatMap ((:) ',') (map show xr)
       []     -> ""
 
     prExprPos pos =

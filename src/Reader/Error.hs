@@ -120,11 +120,10 @@ errCircularDep xs pos =
   let
     m = foldl max (length $ fst $ head xs) $ map (length . fst) xs
     msg = "detected circular dependencies between:" ++
-            (concatMap
-             (\(x,y) -> "\n  " ++ x
-                        ++ (replicate (m - length x) ' ') ++
-                        " (defined at " ++ prErrPos y ++ ")") xs) ++
-            if (length xs > 1) then "" else " depends on itself"
+          concatMap (\(x,y) -> "\n  " ++ x ++ 
+                              replicate (m - length x) ' ' ++
+                              " (defined at " ++ prErrPos y ++ ")") xs ++
+            if length xs > 1 then "" else " depends on itself"
   in depError pos msg
 
 -----------------------------------------------------------------------------

@@ -16,6 +16,10 @@ module Config
 
 -----------------------------------------------------------------------------
 
+import Data.Maybe
+    ( isJust
+    )  
+
 import Data.Types
     ( Semantics
     , Target  
@@ -230,7 +234,7 @@ defaultCfg =
   Configuration {
     inputFile = [],
     outputFile = Nothing,
-    outputFormat = UTF8,
+    outputFormat = FULL,
     outputMode = Pretty,
     partFile = Nothing,
     busDelimiter = "\"_\"",
@@ -333,7 +337,7 @@ parseArguments args = do
       "-os"                      -> case next of
         Just x  -> case P.parse semanticsParser "Overwrite Semantics Error" x of 
           Left err -> parseError err
-          Right y  -> return $ Single $ a { owSemantics = Just y }
+          Right (y,_) -> return $ Single $ a { owSemantics = Just y }
         Nothing -> argsError "\"-os\": No semantics given"
       "--overwrite-semantics"    -> case next of
         Nothing -> argsError "\"--overwrite-semantics\": No semantics given"
@@ -341,7 +345,7 @@ parseArguments args = do
       "-ot"                      -> case next of
         Just x  -> case P.parse targetParser "Overwrite Target Error" x of 
           Left err -> parseError err
-          Right y  -> return $ Single $ a { owTarget = Just y }
+          Right (y,_) -> return $ Single $ a { owTarget = Just y }
         Nothing -> argsError "\"-ot\": No target given"
       "--overwrite-target"       -> case next of
         Nothing -> argsError "\"--overwrite-target\": No target given"
@@ -573,7 +577,20 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "UNBEAST format, since it does not support " ++ 
         "the release operator.\n" ++
-        "Remove at least one of these constaints."        
+        "Remove at least one of these constaints."
+
+  | outputFormat cfg == FULL &&
+    (isJust (owSemantics cfg) || isJust (owTarget cfg) ||
+     simplifyWeak cfg || simplifyStrong cfg || negNormalForm cfg ||
+     pushGlobally cfg || pushFinally cfg || pushNext cfg ||
+     pullGlobally cfg || pullFinally cfg || pullNext cfg ||
+     noWeak cfg || noRelease cfg || noFinally cfg || noGlobally cfg ||
+     noDerived cfg) =
+
+      argsError $
+        "Applying adaptions is only possible, when transforming to " ++
+        "low level backends.\n Returning full TLSF only " ++
+        "allows to change parameters."
         
   | otherwise = return ()
 

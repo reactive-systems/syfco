@@ -18,7 +18,7 @@ module Writer.Utils
 -----------------------------------------------------------------------------
 
 import Data.Maybe
-    ( catMaybes
+    ( mapMaybe
     )  
 
 import Data.Char
@@ -167,7 +167,7 @@ printFormula opc mode formula = reverse $ case mode of
 
     dp =
       let
-        xs = catMaybes $ map (\f -> f opc) 
+        xs = mapMaybe (\f -> f opc) 
           [ uopPrecedence' . opNot 
           , bopPrecedence' . opAnd
           , bopPrecedence' . opOr

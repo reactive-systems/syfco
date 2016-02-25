@@ -272,9 +272,9 @@ prExpr e = case expr e of
   BaseId x         -> "(ID " ++ show x ++ ")"
   BaseBus x y      -> "(BUS " ++ show y ++ "[" ++ prExpr x ++ "])"
   BaseFml xs y     -> "(FUN " ++ show y ++ "(" ++
-                      (if null xs then "" else (prExpr $ head xs) ++
-                                               (concatMap (((:) ',') . prExpr)
-                                                $ tail xs)) ++ ")"
+                      (if null xs then ""
+                       else prExpr (head xs) ++
+                            concatMap ((:) ',' . prExpr) (tail xs)) ++ ")"
   NumSMin x        -> "(MIN " ++ prExpr x ++ ")"
   NumSMax x        -> "(MAX " ++ prExpr x ++ ")"
   NumSSize x       -> "(SIZE " ++ prExpr x ++ ")"
@@ -311,12 +311,12 @@ prExpr e = case expr e of
   Colon x y        -> prExpr x ++ " : " ++ prExpr y 
   Pattern x y      -> prExpr x ++ " ~ " ++ prExpr y 
   SetRange x y z   -> "(SR " ++ prExpr x ++ " " ++ prExpr y ++ " " ++ prExpr z ++ ")"
-  SetExplicit xs   -> "(SET " ++ concatMap (((flip (++)) " ") . prExpr) xs ++ ")"
-  NumRPlus xs x    -> "(PLUS[" ++ concatMap (((flip (++)) " ") . prExpr) xs ++ "] " ++ prExpr x ++ ")"
-  NumRMul xs x     -> "(MUL[" ++ concatMap (((flip (++)) " ") . prExpr) xs ++ "] " ++ prExpr x ++ ")"
-  SetRCup xs x     -> "(CUP[" ++ concatMap (((flip (++)) " ") . prExpr) xs ++ "] " ++ prExpr x ++ ")"
-  SetRCap xs x     -> "(CAP[" ++ concatMap (((flip (++)) " ") . prExpr) xs ++ "] " ++ prExpr x ++ ")"
-  BlnROr xs x      -> "(OR[" ++ concatMap (((flip (++)) " ") . prExpr) xs ++ "] " ++ prExpr x ++ ")"
-  BlnRAnd xs x     -> "(AND[" ++ concatMap (((flip (++)) " ") . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  SetExplicit xs   -> "(SET " ++ concatMap (flip (++) " " . prExpr) xs ++ ")"
+  NumRPlus xs x    -> "(PLUS[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  NumRMul xs x     -> "(MUL[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  SetRCup xs x     -> "(CUP[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  SetRCap xs x     -> "(CAP[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  BlnROr xs x      -> "(OR[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  BlnRAnd xs x     -> "(AND[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
 
 ---

@@ -43,10 +43,6 @@ import Data.LTL
     , fmlOutputs  
     )  
 
-import Data.Char
-    ( toLower
-    )
-    
 import Data.Error
     ( prError
     )  
@@ -61,14 +57,6 @@ import Data.SymbolTable
     
 import Data.Specification
     ( Specification(..)
-    )
-
-import Writer.Formats
-    ( needsLower  
-    )
-      
-import Writer.Utils
-    ( checkLower
     )
 
 import Writer.Eval
@@ -233,7 +221,9 @@ prHelp = do
     ++ "\n" ++ "                                    to STDOUT, if not set)"
     ++ "\n" ++ "  -f, --format                    : Output format. Possible values are"
     ++ "\n"
-    ++ "\n" ++ "      * utf8 [default]            : Human readable output using UTF8 symbols"
+    ++ "\n" ++ "      * full [default]            : Input file with applied transformations"
+    ++ "\n" ++ "      * basic                     : High level format (without global section)"    
+    ++ "\n" ++ "      * utf8                      : Human readable output using UTF8 symbols"
     ++ "\n" ++ "      * wring                     : Wring input format"
     ++ "\n" ++ "      * lily                      : Lily input format"
     ++ "\n" ++ "      * acacia                    : Acacia / Acacia+ input format"    
@@ -241,7 +231,6 @@ prHelp = do
     ++ "\n" ++ "      * promela                   : Promela LTL"
     ++ "\n" ++ "      * unbeast                   : Unbeast input format"    
     ++ "\n" ++ "      * psl                       : PSL Syntax"
-    ++ "\n" ++ "      * basic                     : high level format (without global section)"
     ++ "\n" 
     ++ "\n" ++ "  -m, --mode                      : Output mode. Possible values are"
     ++ "\n"

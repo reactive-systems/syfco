@@ -80,7 +80,7 @@ data ST = ST
 abstract
   :: PD.Specification -> Either Error Specification
 
-abstract spec = do
+abstract spec = 
   evalStateT (abstractSpec spec)
     ST { count = 0
        , tIndex = SM.empty
