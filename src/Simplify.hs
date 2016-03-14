@@ -28,7 +28,7 @@ import Data.Error
 
 import Data.Either
     ( partitionEithers
-    )  
+    )
 
 -----------------------------------------------------------------------------
 
@@ -190,11 +190,15 @@ simplify c f =
       Globally (And xs)
         | hg                               -> simplify' $ And $ map Globally xs
         | ng || nd                          -> simplify' $ Release FFalse $ And xs
-        | otherwise                        -> Globally $ simplify' $ And xs
+        | otherwise                        -> case simplify' $ And xs of
+          And ys -> Globally $ And ys
+          z      -> simplify' $ Globally z
       Finally (Or xs)
         | hf                               -> simplify' $ Or $ map Finally xs
         | nf || nd                          -> simplify' $ Until TTrue $ Or xs
-        | otherwise                        -> Finally $ simplify' $ Or xs
+        | otherwise                        -> case simplify' $ Or xs of
+          Or ys -> Finally $ Or ys
+          z     -> simplify' $ Finally z
       And []
         | sw || ss                          -> TTrue
         | otherwise                        -> And [] 
@@ -251,11 +255,11 @@ simplify c f =
         | otherwise                        -> Or [simplify' x]
       Or xs
         | not (sw || ss || lf || ln)            -> Or $ map simplify' xs
-        | otherwise                        ->
+        | otherwise                        -> 
           let
             cs | sw || ss   = filter (FFalse /=) $ warpOr $ map simplify' xs
                | otherwise = xs
-          in
+          in 
             if (sw || ss) && (TTrue `elem` cs) then TTrue
             else case cs of
                []          | sw || ss   -> FFalse
@@ -268,7 +272,7 @@ simplify c f =
                            | otherwise -> Or [Finally x]
                [x]         | sw || ss   -> x
                            | otherwise -> Or [x]
-               _                          ->
+               _                          -> 
                  let
                    (ns, ys) | ln || ss   = partitionEithers $ map splitNext cs
                             | otherwise = ([], cs)
@@ -325,7 +329,7 @@ simplify c f =
       _          -> Right fml
 
     splitFinally fml = case fml of
-      Globally x -> Left x
+      Finally x -> Left x
       _          -> Right fml      
 
     nnf = negNormalForm c
