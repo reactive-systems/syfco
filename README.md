@@ -82,7 +82,7 @@ However, if you encounter any problems, please inform us via [the project bug tr
 | ```-ot, --overwrite-target```    | Overwrite the target of the file    | 
 | ```-op, --overwrite-parameter``` | Overwrite a parameter of the file   |
 
-### Formula Transformations (disabled by default):
+#### Formula Transformations (disabled by default):
 
 | Command                              | Description           |
 | ------------------------------------ | --------------------- |
@@ -101,13 +101,13 @@ However, if you encounter any problems, please inform us via [the project bug tr
 | ```-ng, --no-globally```             | Replace global operators </br> ```G a => false R a```
 | ```-nd, --no-derived```              | Same as: ```-nw -nf -ng``` |
 
-### Check Secification Type (and exit):
+#### Check Secification Type (and exit):
 
 | Command                         | Description                                    |
 | ------------------------------- | ---------------------------------------------- |
 | ```-gr1```                      | Check whether the input is in GR(1)            |
 
-### Extract Information (and exit):
+#### Extract Information (and exit):
 
 | Command                         | Description                                    |
 | ------------------------------- | ---------------------------------------------- |
