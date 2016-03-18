@@ -15,7 +15,7 @@ module Reader.Bindings
 -----------------------------------------------------------------------------
 
 import Utils
-    ( strictsort
+    ( strictSort
     , imLookup
     )
     
@@ -214,7 +214,7 @@ addBinding (i,x) = do
 deps
   :: Expr Int -> [Int]
 
-deps = strictsort . deps' []
+deps = strictSort . deps' []
   where
     deps' a e = case expr e of
       BaseFml xs x  -> foldl conditional (x:a) xs 

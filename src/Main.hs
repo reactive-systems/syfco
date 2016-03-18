@@ -78,6 +78,10 @@ import GHC.IO.Encoding
     , setFileSystemEncoding
     , setForeignEncoding
     , utf8
+    )
+
+import Detection
+    ( detectGR1
     )  
 
 -----------------------------------------------------------------------------
@@ -122,7 +126,20 @@ readContent c (content,file) = case readSpecification content of
           Right _  -> 
             case file of
               Nothing -> putStrLn "valid"
-              Just f  -> putStrLn $ "valid " ++ f
+              Just f  -> putStrLn $ "valid: " ++ f
+    | cGR1 c       ->
+        case detectGR1 c s of
+          Left v -> case v of
+            Left err -> prError err
+            Right rf -> do
+              case file of
+                Nothing -> putStrLn "NOT in GR(1)"
+                Just f  -> putStrLn $ "NOT in GR(1): " ++ f
+              putStrLn "------------------"
+              putStrLn rf
+          Right _    -> case file of
+            Nothing -> putStrLn "IN GR(1)"
+            Just f  -> putStrLn $ "IN GR(1): " ++ f
     | pTitle c      -> prTitle s
     | pDesc c       -> prDescription s
     | pSemantics c  -> prSemantics s

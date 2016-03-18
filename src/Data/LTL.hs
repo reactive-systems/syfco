@@ -17,6 +17,14 @@ module Data.LTL
     , fmlSignals
     , fmlInputs
     , fmlOutputs
+    , isBooleanFormula
+    , isBooleanNextFormula
+    , simplePrint      
+    , fNot        
+    , fAnd
+    , fOr
+    , fGlobally
+    , fFinally
     ) where
 
 -----------------------------------------------------------------------------
@@ -223,8 +231,142 @@ subFormulas fml = case fml of
   Weak x y    -> [x,y]
   And xs      -> xs
   Or xs       -> xs
-  
+
+-----------------------------------------------------------------------------
+
+-- | Checks whether a given formula is free of temporal operators.
+
+isBooleanFormula
+  :: Formula -> Bool
+
+isBooleanFormula fml = case fml of
+  TTrue     -> True
+  FFalse    -> True
+  Atomic {} -> True
+  Not x     -> isBooleanFormula x
+  And xs    -> all isBooleanFormula xs
+  Or xs     -> all isBooleanFormula xs
+  _         -> False
+
 -----------------------------------------------------------------------------  
 
+-- | Checks whether a given formula contains 'next' as the only temporal
+-- operator.
 
+isBooleanNextFormula
+  :: Formula -> Bool
+
+isBooleanNextFormula fml = case fml of
+  TTrue     -> True
+  FFalse    -> True
+  Atomic {} -> True
+  Not x     -> isBooleanNextFormula x
+  And xs    -> all isBooleanNextFormula xs
+  Or xs     -> all isBooleanNextFormula xs
+  Next x    -> isBooleanFormula x
+  _         -> False  
   
+-----------------------------------------------------------------------------
+
+-- | Smart 'And' constructur.
+
+fAnd
+  :: [Formula] -> Formula
+
+fAnd xs = case xs of
+  []  -> TTrue
+  [x] -> x
+  _   -> And xs
+
+-----------------------------------------------------------------------------
+
+-- | Smart 'Or' constructur.  
+
+fOr
+  :: [Formula] -> Formula
+
+fOr xs = case xs of
+  []  -> FFalse
+  [x] -> x
+  _   -> Or xs
+
+-----------------------------------------------------------------------------
+
+-- | Smart 'Not' constructur.
+
+fNot
+  :: Formula -> Formula
+
+fNot fml = case fml of
+  TTrue           -> FFalse
+  FFalse          -> TTrue
+  Atomic x        -> Not $ Atomic x
+  Not x           -> x
+  Next x          -> Next $ fNot x
+  Globally x      -> Finally $ fNot x
+  Finally x       -> Globally $ fNot x
+  Implies x y     -> And [x, fNot y]
+  Equiv (Not x) y -> Equiv x y
+  Equiv x (Not y) -> Equiv x y
+  Equiv x y       -> Equiv (fNot x) y
+  Until x y       -> Release (fNot x) (fNot y)
+  Release x y     -> Until (fNot x) (fNot y)
+  Weak x y        -> Until (fNot y) (And [fNot x, fNot y])
+  And xs          -> Or $ map fNot xs
+  Or xs           -> And $ map fNot xs
+
+-----------------------------------------------------------------------------
+
+-- | Smart 'Globally' constructur.
+
+fGlobally
+  :: Formula -> Formula
+
+fGlobally fml = case fml of
+  Globally FFalse -> FFalse
+  Globally TTrue  -> TTrue
+  Globally _      -> fml
+  _               -> Globally fml
+
+-----------------------------------------------------------------------------
+
+-- | Smart 'Globally' constructur.
+
+fFinally
+  :: Formula -> Formula
+
+fFinally fml = case fml of
+  Finally FFalse -> FFalse
+  Finally TTrue  -> TTrue  
+  Finally _      -> fml
+  _              -> Finally fml
+
+-----------------------------------------------------------------------------    
+
+-- | Simple printing.  
+
+simplePrint
+  :: Formula -> String
+
+simplePrint fml = case fml of
+  TTrue           -> "true"
+  FFalse          -> "false"
+  Atomic x        -> show x
+  Not x           -> '!' : simplePrint x
+  Next x          -> 'X' : ' ' : simplePrint x
+  Globally x      -> 'G' : ' ' : simplePrint x
+  Finally x       -> 'F' : ' ' : simplePrint x
+  Implies x y     -> "(" ++ simplePrint x ++ " -> " ++ simplePrint y ++ ")"
+  Equiv x y       -> "(" ++ simplePrint x ++ " <-> " ++ simplePrint y ++ ")"
+  Until x y       -> "(" ++ simplePrint x ++ " U " ++ simplePrint y ++ ")"
+  Release x y     -> "(" ++ simplePrint x ++ " R " ++ simplePrint y ++ ")"
+  Weak x y        -> "(" ++ simplePrint x ++ " W " ++ simplePrint y ++ ")"
+  And []          -> simplePrint TTrue
+  And [x]         -> simplePrint x
+  And (x:xr)      -> "(" ++ simplePrint x ++
+                     concatMap ((" && " ++) . simplePrint) xr ++ ")"
+  Or []           -> simplePrint FFalse
+  Or (x:xr)       -> "(" ++ simplePrint x ++
+                     concatMap ((" || " ++) . simplePrint) xr ++ ")"
+
+-----------------------------------------------------------------------------

@@ -20,6 +20,11 @@ default: ${MAIN.hs}
 	@ghc -idir1:src ${GHCFLAGS} ${MAIN} -odir ${BLDDIR} -hidir ${BLDDIR} -o ${NAME}
 	@strip ${NAME}
 
+debug: ${MAIN.hs}
+	@mkdir -p ${BLDDIR}
+	@ghc -idir1:src ${GHCFLAGS} -O0 ${MAIN} -odir ${BLDDIR} -hidir ${BLDDIR} -o ${NAME}
+	@strip ${NAME}
+
 run: default
 	@./${NAME}
 

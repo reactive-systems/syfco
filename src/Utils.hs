@@ -9,7 +9,8 @@
 -----------------------------------------------------------------------------
 
 module Utils
-    ( strictsort
+    ( strictSort
+    , bucketSort  
     , iter
     , imLookup
     ) where
@@ -26,33 +27,62 @@ import Data.Maybe
     ( fromJust
     )
 
+import Data.Set
+    ( elems
+    , fromList
+    )
+
+import Data.Ix
+    ( Ix
+    )    
+
+import qualified Data.Array.ST as A
+import Control.Monad.ST
+
 -----------------------------------------------------------------------------
 
 -- | Strict version of 'sort'.
 
-strictsort
+strictSort
   :: Ord a => [a] -> [a]
-     
-strictsort vs = case vs of
-  []  -> []
-  [x] -> [x]
-  _   -> let (ys,zs) = split [] [] vs
-        in  strictmerge [] (strictsort ys) (strictsort zs)
+
+strictSort  = elems . fromList
+
+-----------------------------------------------------------------------------
+
+-- | Strict version of 'sort' for indexable types using array buckets.
+
+bucketSort
+  :: Num i => Ix i => [i] -> [i]
+
+bucketSort xs = case xs of
+  []     -> []
+  (x:xr) -> 
+    let bounds = foldl (\(a,b) y -> (min a y, max b y)) (x,x) xr
+    in runST (bucketSortST bounds xs)
 
   where
-    strictmerge a xs ys = case (xs,ys) of
-      (_,[])      -> rappend a xs
-      ([],_)      -> rappend a ys
-      (x:xr,y:yr) -> case compare x y of
-        LT -> strictmerge (x:a) xr (y:yr)
-        EQ -> strictmerge (x:a) xr yr
-        GT -> strictmerge (y:a) (x:xr) yr
-        
-    rappend xs ys = foldl (flip (:)) ys xs
+    bucketSortST (l,u) ys = 
+      let
+        newArray :: Ix j => (j, j) -> Int -> ST s (A.STArray s j Int)
+        newArray = A.newArray 
+      in do
+        a <- newArray (l,u) 0 
+        mapM_ (incIdx a) ys               
+        getPositive l a [] u
 
-    split a b xs = case xs of
-      (x:xr) -> split b (x:a) xr      
-      []     -> (a,b)
+    incIdx a i = do 
+      v <- A.readArray a i
+      A.writeArray a i (v+1)    
+
+    getPositive l a b i
+      | i < l     = return b
+      | otherwise = do
+        v <- A.readArray a i
+        if v > 0 then
+          getPositive l a (i:b) (i-1)
+        else
+          getPositive l a b (i-1)
 
 -----------------------------------------------------------------------------
 

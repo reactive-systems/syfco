@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool<br/>(Version 0.1.0.0)
+# Synthesis Format Conversion Tool<br/>(Version 0.1.0.2)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF (Temporal Logic Synthesis Format).
@@ -101,11 +101,17 @@ However, if you encounter any problems, please inform us via [the project bug tr
 | ```-ng, --no-globally```             | Replace global operators </br> ```G a => false R a```
 | ```-nd, --no-derived```              | Same as: ```-nw -nf -ng``` |
 
-### Information about Specifications:
+### Check Secification Type (and exit):
 
 | Command                         | Description                                    |
 | ------------------------------- | ---------------------------------------------- |
-| ```-c, --check```               | Check the input file                           |
+| ```-gr1```                      | Check whether the input is in GR(1)            |
+
+### Extract Information (and exit):
+
+| Command                         | Description                                    |
+| ------------------------------- | ---------------------------------------------- |
+| ```-c, --check```               | Check that input conforms to TLSF              |
 | ```-t, --print-title```         | Output the title of the input file             |
 | ```-d, --print-description```   | Output the description of the input file       |
 | ```-s, --print-semantics```     | Output the semantics of the input file         |
