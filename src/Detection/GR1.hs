@@ -372,14 +372,14 @@ separateLiveness xs = do
         case partitionEithers $ map sepFG ys of
           ([],[])   -> Left (FFalse, FFalse)
           ([x],[])
-            | isBooleanNextFormula x -> Left (fNot x, FFalse)
+            | isBooleanFormula x -> Left (fNot x, FFalse)
             | otherwise       -> Right ys
           ([],[x])  
-            | isBooleanNextFormula x -> Left (FFalse, x)
+            | isBooleanFormula x -> Left (FFalse, x)
             | otherwise       -> Right ys
           ([x],[y]) 
-            | isBooleanNextFormula x &&
-              isBooleanNextFormula y   -> Left (fNot x,y)
+            | isBooleanFormula x &&
+              isBooleanFormula y   -> Left (fNot x,y)
             | otherwise                -> Right ys
           _         -> Right ys
 
