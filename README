@@ -1,5 +1,5 @@
 # Synthesis Format Conversion Tool
-# (Version 0.1.0.2)
+# (Version 0.1.0.3)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF (Temporal Logic Synthesis Format).
@@ -133,7 +133,8 @@ syfco [OPTIONS]... <file>
 
 ### Check Secification Type (and exit):
 
-  -gr1                            : Check whether the input is in GR(1)
+  -gr                             : Check whether the input is in the
+                                    Generalized Reactivity fragment
 
 ### Extract Information (and exit):
 

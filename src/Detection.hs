@@ -9,17 +9,17 @@
 -----------------------------------------------------------------------------
 
 module Detection
-    ( GR1Formula(..)
+    ( GRFormula(..)
     , Refusal  
-    , detectGR1
+    , detectGR
     ) where
 
 -----------------------------------------------------------------------------
 
-import Detection.GR1
-    ( GR1Formula(..)
+import Detection.GeneralizedReactivity
+    ( GRFormula(..)
     , Refusal  
-    , detectGR1
+    , detectGR
     )
 
 -----------------------------------------------------------------------------

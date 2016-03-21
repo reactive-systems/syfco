@@ -1,17 +1,18 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Detection.GR1
+-- Module      :  Detection.GeneralizedReactivity
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
--- Detect whether a specification belongs to the GR1 fragment or not.
+-- Detect whether a specification belongs to the Generalized
+-- Reactivity fragment or not.
 -- 
 -----------------------------------------------------------------------------
 
-module Detection.GR1
-    ( GR1Formula(..)
+module Detection.GeneralizedReactivity
+    ( GRFormula(..)
     , Refusal  
-    , detectGR1
+    , detectGR
     ) where       
 
 -----------------------------------------------------------------------------
@@ -42,8 +43,8 @@ import Data.Function
     )
 
 import Control.Monad
-  ( unless  
-  )  
+    ( unless  
+    )  
     
 import Utils
     ( strictSort
@@ -87,13 +88,14 @@ type Refusal = String
 
 -----------------------------------------------------------------------------
 
-data GR1Formula =
-  GR1Formula
-  { initEnv :: [Formula]
+data GRFormula =
+  GRFormula
+  { level :: Int
+  , initEnv :: [Formula]
   , initSys :: [Formula]
   , assertEnv :: [Formula]
   , assertSys :: [Formula]
-  , liveness :: [(Formula,Formula)]
+  , liveness :: [([Formula],[Formula])]
   } deriving (Show)
 
 -----------------------------------------------------------------------------             
@@ -108,15 +110,15 @@ data TFml =
 
 -----------------------------------------------------------------------------
 
--- | Detect whether a given specification belongs to the GR(1)
--- fragment of LTL. If so, a 'GR1Formula' is returned. Otherwise,
--- either an error occured, or the formula is not in the GR(1) fragment
+-- | Detect whether a given specification belongs to the GR
+-- fragment of LTL. If so, a 'GRFormula' is returned. Otherwise,
+-- either an error occured, or the formula is not in the GR) fragment
 -- such that the reason for the refusal is returned.
 
-detectGR1
-  :: Configuration -> Specification -> Either (Either Error Refusal) GR1Formula
+detectGR
+  :: Configuration -> Specification -> Either (Either Error Refusal) GRFormula
                       
-detectGR1 c s = 
+detectGR c s = 
   let
     c' = c {
       simplifyWeak = True,
@@ -143,7 +145,7 @@ detectGR1 c s =
         
   in case fml of
     Left x  -> Left $ Left x
-    Right x -> case transformToGR1 x of
+    Right x -> case transformToGR x of
       Left y  -> Left $ Right y
       Right y -> return y
 
@@ -168,20 +170,20 @@ detectGR1 c s =
 
 -----------------------------------------------------------------------------
 
--- | Transforms an "evaluated" formula to GR(1), if possible. If it is
+-- | Transforms an "evaluated" formula to GR, if possible. If it is
 -- not possible, the reason for the refusal is returend.
 
-transformToGR1
-  :: Formula -> Either Refusal GR1Formula
+transformToGR
+  :: Formula -> Either Refusal GRFormula
 
-transformToGR1 fml = do
+transformToGR fml = do
   -- check that there is no until formula
   noUntil fml
   -- check that there is no next formula on the initial level
   noDirectNext fml
   -- turn the first boolean level of the formula into CNF
   let xs = firstLevelCNF $ pullTogether fml
-  -- separate the initial constraints
+  -- separate the initial constraints1
   (is,ps,ys) <- separateInitials xs
   -- separate the invariants
   (fs,gs,zs) <- separateInvariants is ys
@@ -190,8 +192,9 @@ transformToGR1 fml = do
 
   case rs of
     [] -> return 
-      GR1Formula 
-        { initEnv = is
+      GRFormula 
+        { level = length ls
+        , initEnv = is
         , initSys = ps
         , assertEnv = fs
         , assertSys = gs
@@ -201,7 +204,7 @@ transformToGR1 fml = do
     _  ->
       Left $
         "The following sub-formulas cannot be refined "
-        ++ "to fit the GR(1) requirements:"
+        ++ "to fit the GeneralizedReactivity requirements:"
         ++ concatMap (\x -> "\n  * " ++ simplePrint (fOr x)) rs
 
 -----------------------------------------------------------------------------
@@ -216,7 +219,7 @@ noUntil fml = case fml of
   FFalse     -> return ()
   Atomic {}  -> return ()
   Until {}   -> Left $
-    "GR(1) does not allow until sub-formulas:\n" 
+    "Generalized Reactivity does not allow until sub-formulas:\n" 
     ++ "  " ++ simplePrint fml
   Release {} -> assert False undefined
   Weak {}    -> assert False undefined
@@ -237,7 +240,7 @@ noDirectNext fml = case fml of
   Globally {} -> return ()
   Finally {}  -> return ()
   Next {}     -> Left $
-    "GR(1) does not allow next sub-formulas on the initial level:\n"
+    "GeneralizedReactivity does not allow next sub-formulas on the initial level:\n"
     ++ "  " ++ simplePrint fml
   _           -> mapM_ noDirectNext $ subFormulas fml
 
@@ -300,7 +303,7 @@ separateInitials xs = do
   let ys = firstLevelDNF $ pullTogether $ fAnd $ map fOr bs
   -- separate formulas over inputs from the remaining ones
   let (is,ps) = partitionEithers $ map pureInputFml ys
-  -- convert to GR(1) format
+  -- convert to Generalize Reactivity format
   return (map fNot is, ps, rs)
 
   where
@@ -324,8 +327,8 @@ separateInvariants is xs = do
   (bs,ns) <- separateBoolean ys
   -- check for compatibility
   unless (map (fNot . fAnd) bs == is) $ Left $
-    "The initial constraints cannot be refined to fit into the GR(1) "
-    ++ "format."
+    "The initial constraints cannot be refined to fit into the "
+    ++ "Generalized Reactivity format."
   -- separate singleton finally ormulas
   (cF,fr) <- separateFinally ns
   -- check for boolean sub-formulas
@@ -345,7 +348,7 @@ separateInvariants is xs = do
     checkInputsUnderNext fml = case fml of
       Next x ->
         unless (null $ fmlOutputs x) $ Left $
-          "GR(1) does not allow to constraint "
+          "GeneralizedReactivity does not allow to constraint "
           ++ "outputs under a transition target of "
           ++ "the environment:\n"
           ++ "  " ++ simplePrint fml
@@ -353,43 +356,46 @@ separateInvariants is xs = do
 
 -----------------------------------------------------------------------------
 
--- | Separate the GR(1) liveness condition form the formula.
+-- | Separate the GR liveness condition form the formula.
 
 separateLiveness
-  :: [[Formula]] -> Either Refusal ([(Formula,Formula)],[[Formula]])
-    
-separateLiveness xs = do
-  -- ensure that we have no messed up formula
-  let ys = firstLevelCNF $ pullTogether $ fAnd $ map fOr xs
-  -- check each separate disjunct
-  return $ partitionEithers $ map classify ys
+  :: [[Formula]] -> Either Refusal ([([Formula],[Formula])],[[Formula]])
+
+separateLiveness xs =
+  let
+    -- ensure that we have no messed up formula
+    ys = firstLevelCNF $ pullTogether $ fAnd $ map fOr xs
+    -- check each separate disjunct
+    (zs,rs) = partitionEithers $ map classify ys
+    -- sort on the first component
+    zs' = sortBy (compare `on` fst) zs
+    -- join them
+    ls = foldl join [] zs'
+  in
+    return (ls, rs)
 
   where
-    -- classify all sub-formulas that fit into the GR1 format
+    -- join common prefices
+    join [] (fs,gs) = [(fs,gs)]
+    join ((fs,gs):rs) (fs',gs')
+      | fs == fs'  = (fs,gs ++ gs'):rs
+      | otherwise = (fs',gs'):(fs,gs):rs
+                    
+    -- classify all sub-formulas that fit into the GR format
     classify ys
-      | not (all isFG ys) = Right ys
-      | otherwise       =
-        case partitionEithers $ map sepFG ys of
-          ([],[])   -> Left (FFalse, FFalse)
-          ([x],[])
-            | isBooleanFormula x -> Left (fNot x, FFalse)
-            | otherwise       -> Right ys
-          ([],[x])  
-            | isBooleanFormula x -> Left (FFalse, x)
-            | otherwise       -> Right ys
-          ([x],[y]) 
-            | isBooleanFormula x &&
-              isBooleanFormula y   -> Left (fNot x,y)
-            | otherwise                -> Right ys
-          _         -> Right ys
+      | not (all isFGB ys) = Right ys
+      | otherwise        =
+        let (a,b) = partitionEithers $ map sepFG ys
+        in Left (strictSort a, strictSort b)
 
-    isFG fml = case fml of
-      Finally (Globally _) -> True
-      Globally (Finally _) -> True
+
+    isFGB fml = case fml of
+      Finally (Globally f) -> isBooleanFormula f
+      Globally (Finally f) -> isBooleanFormula f
       _                    -> False
 
     sepFG fml = case fml of
-      Finally (Globally f) -> Left f
+      Finally (Globally f) -> Left $ fNot f
       Globally (Finally f) -> Right f
       _                    -> assert False undefined
 

@@ -81,7 +81,8 @@ import GHC.IO.Encoding
     )
 
 import Detection
-    ( detectGR1
+    ( GRFormula(..)
+    , detectGR
     )  
 
 -----------------------------------------------------------------------------
@@ -127,19 +128,24 @@ readContent c (content,file) = case readSpecification content of
             case file of
               Nothing -> putStrLn "valid"
               Just f  -> putStrLn $ "valid: " ++ f
-    | cGR1 c       ->
-        case detectGR1 c s of
+    | cGR c       ->
+        case detectGR c s of
           Left v -> case v of
             Left err -> prError err
             Right rf -> do
               case file of
-                Nothing -> putStrLn "NOT in GR(1)"
-                Just f  -> putStrLn $ "NOT in GR(1): " ++ f
+                Nothing ->
+                  putStrLn "NOT in the Generalized Reacitvity fragment"
+                Just f  ->
+                  putStrLn $ "NOT in the Generalized Reactivity fragment: "
+                             ++ f
               putStrLn "------------------"
               putStrLn rf
-          Right _    -> case file of
-            Nothing -> putStrLn "IN GR(1)"
-            Just f  -> putStrLn $ "IN GR(1): " ++ f
+          Right v    -> case file of
+            Nothing ->
+              putStrLn $ "IN GR(" ++ show (level v) ++ ")"
+            Just f  -> do
+              putStrLn $ "IN GR(" ++ show (level v) ++ "): " ++ f
     | pTitle c      -> prTitle s
     | pDesc c       -> prDescription s
     | pSemantics c  -> prSemantics s

@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool<br/>(Version 0.1.0.2)
+# Synthesis Format Conversion Tool<br/>(Version 0.1.0.3)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF (Temporal Logic Synthesis Format).
@@ -103,9 +103,9 @@ However, if you encounter any problems, please inform us via [the project bug tr
 
 #### Check Secification Type (and exit):
 
-| Command                         | Description                                    |
-| ------------------------------- | ---------------------------------------------- |
-| ```-gr1```                      | Check whether the input is in GR(1)            |
+| Command    | Description                                                             |
+| ---------- | ----------------------------------------------------------------------- |
+| ```-gr```  | Check whether the input is in the </br> Generalized Reactivity fragment |
 
 #### Extract Information (and exit):
 

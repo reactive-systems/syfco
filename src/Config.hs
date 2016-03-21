@@ -148,7 +148,7 @@ import qualified Text.Parsec as P
 --       replaced by alternative operators inside the created formula.
 -- 
 --     * A boolean flag specifying whether to check, whether the input 
---       belongs to the class of Generalized Reactivity (1) specifications
+--       belongs to the class of Generalized Reactivity specifications
 --       or not.
 -- 
 --     * A boolean flag specifying whether the given input files should
@@ -213,7 +213,7 @@ data Configuration =
   , noFinally :: Bool
   , noGlobally :: Bool
   , noDerived :: Bool
-  , cGR1 :: Bool  
+  , cGR :: Bool  
   , check :: Bool
   , pTitle :: Bool
   , pDesc :: Bool
@@ -261,7 +261,7 @@ defaultCfg =
     noFinally = False,
     noGlobally = False,
     noDerived = False,
-    cGR1 = False,
+    cGR = False,
     check = False,
     pTitle = False,
     pDesc = False,
@@ -378,7 +378,7 @@ parseArguments args = do
       "-nf"                      -> simple $ a { noFinally = True }
       "-ng"                      -> simple $ a { noGlobally = True }
       "-nd"                      -> simple $ a { noDerived = True }
-      "-gr1"                     -> simple $ (clean a) { cGR1 = True }      
+      "-gr"                      -> simple $ (clean a) { cGR = True }      
       "-c"                       -> simple $ (clean a) { check = True }
       "-t"                       -> simple $ (clean a) { pTitle = True }
       "-d"                       -> simple $ (clean a) { pDesc = True }
