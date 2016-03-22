@@ -17,6 +17,7 @@ module Writer.Error
     , errSetCap
     , errNoMatch
     , errToLower
+    , errNoGR1  
     , argsError
     , prError      
     ) where
@@ -26,6 +27,7 @@ module Writer.Error
 import Data.Error
     ( Error
     , runtimeError
+    , conversionError
     , argsError      
     , prError
     )  
@@ -115,5 +117,18 @@ errToLower fmt n1 n2 pos =
             "However, automatic conversion introduces a clash, since " ++
             "then '" ++ n1 ++ "' equals '" ++ n2 ++ "'."
   in runtimeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that indicates that the given formula is not in GR1,
+-- which is neccessary for the corresponding conversation.
+
+errNoGR1
+  :: String -> String -> Either Error a 
+
+errNoGR1 t fmt =
+  let msg = "The given specification is not in GR(1), which is " ++
+            "neccessary to convert to the " ++ fmt ++ " format."
+  in conversionError t msg
 
 -----------------------------------------------------------------------------

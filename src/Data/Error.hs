@@ -16,6 +16,7 @@ module Data.Error
     , typeError
     , bindingError
     , argsError
+    , conversionError  
     , depError
     , parseError  
     , prError
@@ -54,6 +55,7 @@ data Error =
   | ErrArgs ArgumentsError
   | ErrSyntax SyntaxError
   | ErrRunT RunTimeError
+  | ErrConv ConvError
 
 -----------------------------------------------------------------------------
 
@@ -101,6 +103,14 @@ data ArgumentsError =
   ArgumentsError
   { message :: String
   }
+
+-----------------------------------------------------------------------------
+
+data ConvError =
+  ConvError
+  { title :: String
+  , cmsg :: String
+  }  
 
 -----------------------------------------------------------------------------
 
@@ -163,6 +173,16 @@ argsError msg = Left $ ErrArgs $ ArgumentsError msg
 
 -----------------------------------------------------------------------------
 
+-- | Use this error constructor, if an invalid command line setting is
+-- detected.
+
+conversionError
+  :: String -> String -> Either Error a
+
+conversionError t msg = Left $ ErrConv $ ConvError t msg
+
+-----------------------------------------------------------------------------
+
 -- | Use this error constructor, whenever a parser fails.
 
 parseError
@@ -191,7 +211,8 @@ prError err = do
       ErrDep x    -> prMeta "Dependency Error" (errDPos x) (errDMsgs x)
       ErrSyntax x -> prMeta "Syntax Error" (errSPos x) (errSMsgs x)
       ErrRunT x   -> prMeta "Runtime Error" (errRPos x) (errRMsgs x)
-      ErrArgs x   -> "\"Error\" " ++ message x    
+      ErrConv x   -> "\"Conversion Error\": " ++ title x ++ "\n" ++ cmsg x
+      ErrArgs x   -> "\"Error\" " ++ message x
       ErrParse x  -> show x      
 
 -----------------------------------------------------------------------------
