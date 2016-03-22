@@ -33,9 +33,12 @@ data Component =
   Component
   { inputs :: [BindExpr String]
   , outputs :: [BindExpr String]
+  , initially :: [Expr String]
+  , preset :: [Expr String]
+  , requirements :: [Expr String]                
   , assumptions :: [Expr String]
   , invariants :: [Expr String]
-  , guarantees :: [Expr String]
+  , guarantees :: [Expr String]    
   }
 
 -----------------------------------------------------------------------------  
@@ -46,6 +49,12 @@ data Component =
 -- 
 --     * the output signals of the specification
 -- 
+--     * the initial configuration of the inputs
+-- 
+--     * the initial configuration of the outputs
+-- 
+--     * the requirements of the specification
+-- 
 --     * the assumptions of the specification
 -- 
 --     * the invariants of the specification
@@ -54,6 +63,7 @@ data Component =
 
 componentParser
   :: Parser ([BindExpr String], [BindExpr String], [Expr String],
+            [Expr String], [Expr String], [Expr String],
             [Expr String], [Expr String])
 
 componentParser = do
@@ -62,6 +72,9 @@ componentParser = do
         Component
         { inputs = []                   
         , outputs = []
+        , initially = []
+        , preset = []
+        , requirements = []                                                                 
         , assumptions = []
         , invariants = []
         , guarantees = []
@@ -70,6 +83,9 @@ componentParser = do
   return
     ( concatMap inputs xs
     , concatMap outputs xs
+    , concatMap initially xs
+    , concatMap preset xs
+    , concatMap requirements xs            
     , concatMap assumptions xs
     , concatMap invariants xs
     , concatMap guarantees xs )
@@ -83,24 +99,45 @@ componentParser = do
       , reservedNames =
           [ "MAIN"
           , "INPUTS"
-          , "OUTPUTS"            
+          , "OUTPUTS"
+          , "INITIALLY"
+          , "PRESET"
+          , "ASSUME"  
           , "ASSUMPTIONS"
+          , "REQUIRE"
+          , "REQUIREMENTS"
+          , "ASSERT"  
           , "INVARIANTS"
+          , "GUARANTEE"  
           , "GUARANTEES"
           ]
       }
 
     componentContentParser c =
-          (sectionParser "INPUTS"      signalParser
-             >>= \x -> return c { inputs = x      })      
-      <|> (sectionParser "OUTPUTS"     signalParser
-             >>= \x -> return c { outputs = x     })
+          (sectionParser "INPUTS" signalParser
+             >>= \x -> return c { inputs = x       })      
+      <|> (sectionParser "OUTPUTS" signalParser
+             >>= \x -> return c { outputs = x      })
+      <|> (sectionParser "INITIALLY" exprParser
+             >>= \x -> return c { initially = x    })
+      <|> (sectionParser "PRESET" exprParser
+             >>= \x -> return c { preset = x       })
+      <|> (sectionParser "REQUIRE" exprParser
+             >>= \x -> return c { requirements = x })
+      <|> (sectionParser "REQUIREMENTS" exprParser
+             >>= \x -> return c { requirements = x })
+      <|> (sectionParser "ASSUME" exprParser
+             >>= \x -> return c { assumptions = x  })          
       <|> (sectionParser "ASSUMPTIONS" exprParser
-             >>= \x -> return c { assumptions = x })
+             >>= \x -> return c { assumptions = x  })
+      <|> (sectionParser "ASSERT" exprParser
+             >>= \x -> return c { invariants = x   })          
       <|> (sectionParser "INVARIANTS"  exprParser
-             >>= \x -> return c { invariants = x  })
+             >>= \x -> return c { invariants = x   })
+      <|> (sectionParser "GUARANTEE"  exprParser
+             >>= \x -> return c { guarantees = x   })          
       <|> (sectionParser "GUARANTEES"  exprParser
-             >>= \x -> return c { guarantees = x  })
+             >>= \x -> return c { guarantees = x   })
 
     signalParser = do
       (x,pos) <- identifier (~~)

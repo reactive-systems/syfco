@@ -70,6 +70,15 @@ import Text.Parsec.Language
 -- 
 --     * The list of output signals
 -- 
+--     * The list of expresssions representing the initial input of
+--       the environment
+-- 
+--     * The list of expresssions representing the initial output of
+--       the system
+-- 
+--     * The list of expresssions representing the globally asserted
+--       requirements on the inputs of the specification
+-- 
 --     * The list of expresssions representing the
 --       assumptions of the specification
 -- 
@@ -89,7 +98,10 @@ data Specification =
   , parameters :: [BindExpr String]
   , definitions :: [BindExpr String]    
   , inputs :: [BindExpr String]
-  , outputs :: [BindExpr String]    
+  , outputs :: [BindExpr String]
+  , initially :: [Expr String]
+  , preset :: [Expr String]
+  , requirements :: [Expr String]    
   , assumptions :: [Expr String]
   , invariants :: [Expr String]
   , guarantees :: [Expr String]

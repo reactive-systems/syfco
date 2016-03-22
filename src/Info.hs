@@ -153,8 +153,8 @@ prInputs
 
 prInputs c s = case eval c s of
   Left err         -> prError err
-  Right (as,is,gs) -> putStrLn $
-    case fmlInputs $ And $ as ++ is ++ gs of
+  Right (es,ss,rs,as,is,gs) -> putStrLn $
+    case fmlInputs $ And $ es ++ ss ++ rs ++ as ++ is ++ gs of
       (x:xr) -> x ++ concatMap ((:) ',' . (:) ' ') xr        
       []     -> ""
 
@@ -167,8 +167,8 @@ prOutputs
 
 prOutputs c s = case eval c s  of
   Left err         -> prError err
-  Right (as,is,gs) -> putStrLn $
-    case fmlOutputs $ And $ as ++ is ++ gs of
+  Right (es,ss,rs,as,is,gs) -> putStrLn $
+    case fmlOutputs $ And $ es ++ ss ++ rs ++ as ++ is ++ gs of
       (x:xr) -> x ++ concatMap ((:) ',' . (:) ' ') xr        
       []     -> ""
           

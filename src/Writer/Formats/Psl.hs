@@ -53,8 +53,8 @@ writeFormat
   :: Configuration -> Specification -> Either Error String
 
 writeFormat c s = do
-  (as,is,gs) <- eval c s
-  fml0 <- merge as is gs
+  (es,ss,rs,as,is,gs) <- eval c s
+  fml0 <- merge es ss rs as is gs
   fml1 <- simplify (adjust c opConfig) fml0
   
   return $ printFormula opConfig (outputMode c) fml1

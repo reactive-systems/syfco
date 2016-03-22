@@ -62,7 +62,10 @@ writeFormat c s = do
       semantics = fromMaybe (semantics s) $ owSemantics c
       }
 
-  (as,is,gs) <- eval c s
+  (es,ss,rs,as,is,gs) <- eval c s
+  es' <- mapM (simplify (adjust c opConfig)) es
+  ss' <- mapM (simplify (adjust c opConfig)) ss
+  rs' <- mapM (simplify (adjust c opConfig)) rs
   as' <- mapM (simplify (adjust c opConfig)) as
   is' <- mapM (simplify (adjust c opConfig)) is
   gs' <- mapM (simplify (adjust c opConfig)) gs  
@@ -87,23 +90,35 @@ writeFormat c s = do
     ++ "\n"
     ++ "\n" ++ "MAIN {"
     ++ "\n" ++ "  INPUTS {"
-    ++ concatMap printSignal (fmlInputs $
-        Implies (And as') (And ((Globally $ And is') : gs')))
+    ++ concatMap printSignal 
+         (fmlInputs $ And $ es' ++ ss' ++ rs' ++ as' ++ is' ++ gs')
     ++ "\n" ++ "  }"
     ++ "\n" ++ "  OUTPUTS {"
-    ++ concatMap printSignal (fmlOutputs $
-        Implies (And as') (And ((Globally $ And is') : gs')))
+    ++ concatMap printSignal 
+         (fmlOutputs $ And $ es' ++ ss' ++ rs' ++ as' ++ is' ++ gs')
     ++ "\n" ++ "  }"
+    ++ (if not $ any checkTrue es' then "" 
+        else "\n" ++ "  INITIALLY {" ++
+             concatMap pr (filter checkTrue es') ++
+             "\n" ++ "  }")
+    ++ (if not $ any checkTrue ss' then "" 
+        else "\n" ++ "  PRESET {" ++
+             concatMap pr (filter checkTrue ss') ++
+             "\n" ++ "  }")
+    ++ (if not $ any checkTrue rs' then "" 
+        else "\n" ++ "  REQUIRE {" ++
+             concatMap pr (filter checkTrue rs') ++
+             "\n" ++ "  }")
     ++ (if not $ any checkTrue as' then "" 
-        else "\n" ++ "  ASSUMPTIONS {" ++
+        else "\n" ++ "  ASSUME {" ++
              concatMap pr (filter checkTrue as') ++
              "\n" ++ "  }")
     ++ (if not $ any checkTrue is' then "" 
-        else "\n" ++ "  INVARIANTS {" ++
+        else "\n" ++ "  ASSERT {" ++
              concatMap pr (filter checkTrue is') ++
              "\n" ++ "  }")
     ++ (if not $ any checkTrue gs' then "" 
-        else "\n" ++ "  GUARANTEES {" ++
+        else "\n" ++ "  GUARANTEE {" ++
              concatMap pr (filter checkTrue gs') ++
              "\n" ++ "  }")
     ++ "\n" ++ "}"

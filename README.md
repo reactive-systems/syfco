@@ -103,9 +103,9 @@ However, if you encounter any problems, please inform us via [the project bug tr
 
 #### Check Secification Type (and exit):
 
-| Command    | Description                                                             |
-| ---------- | ----------------------------------------------------------------------- |
-| ```-gr```  | Check whether the input is in the </br> Generalized Reactivity fragment |
+| Command    | Description                                                       |
+| ---------- | ----------------------------------------------------------------- |
+| ```-gr```  | Check whether the input is in the Generalized Reactivity fragment |
 
 #### Extract Information (and exit):
 

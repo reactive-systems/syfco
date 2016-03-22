@@ -273,10 +273,17 @@ isBooleanNextFormula fml = case fml of
 fAnd
   :: [Formula] -> Formula
 
-fAnd xs = case xs of
-  []  -> TTrue
-  [x] -> x
-  _   -> And xs
+fAnd xs =
+  case filter (/= TTrue) $ warp xs of
+    []  -> TTrue
+    [x] -> x
+    _   -> And xs
+
+  where
+    warp = concatMap wAnd
+    wAnd fml = case fml of
+      And x -> x
+      _     -> [fml]    
 
 -----------------------------------------------------------------------------
 
@@ -285,10 +292,17 @@ fAnd xs = case xs of
 fOr
   :: [Formula] -> Formula
 
-fOr xs = case xs of
-  []  -> FFalse
-  [x] -> x
-  _   -> Or xs
+fOr xs =
+  case filter (/= FFalse) $ warp xs of  
+    []  -> FFalse
+    [x] -> x
+    _   -> Or xs
+
+  where
+    warp = concatMap wOr
+    wOr fml = case fml of
+      Or x -> x
+      _    -> [fml]      
 
 -----------------------------------------------------------------------------
 

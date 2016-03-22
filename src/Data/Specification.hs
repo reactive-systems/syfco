@@ -66,14 +66,23 @@ type Expression = Expr Int
 -- 
 --     * The list of output signals
 -- 
---     * The list of expresssions representing the
---       assumptions of the specification
+--     * The list of expresssions representing the initial input of
+--       the environment
 -- 
---     * The list of expressions representing the
---       invariants of the specification
+--     * The list of expresssions representing the initial output of
+--       the system
 -- 
---     * The list of expressions representing the
---       guarantees of the specification
+--     * The list of expresssions representing the globally asserted
+--       requirements on the inputs of the specification
+-- 
+--     * The list of expresssions representing the assumptions of the
+--       specification
+-- 
+--     * The list of expressions representing the invariants of the
+--       specification
+-- 
+--     * The list of expressions representing the guarantees of the
+--       specification
 -- 
 --     * The symbol table used to access information about an identifier
 
@@ -90,7 +99,10 @@ data Specification =
   , parameters :: [Binding]
   , definitions :: [Binding]    
   , inputs :: [Binding]
-  , outputs :: [Binding]    
+  , outputs :: [Binding]
+  , initially :: [Expression]
+  , preset :: [Expression]
+  , requirements :: [Expression]        
   , assumptions :: [Expression]
   , invariants :: [Expression]
   , guarantees :: [Expression]

@@ -76,22 +76,25 @@ readSpecification str = do
   s3 <- specBindings s2
   s4 <- inferTypes s3
   return Specification
-    { source      = str
-    , title       = RD.title s4
-    , description = RD.description s4
-    , semantics   = fst $ RD.semantics s4
-    , semanticsP  = snd $ RD.semantics s4
-    , target      = fst $ RD.target s4
-    , targetP     = snd $ RD.target s4                    
-    , tags        = RD.tags s4
-    , parameters  = RD.parameters s4
-    , definitions = RD.definitions s4
-    , inputs      = RD.inputs s4
-    , outputs     = RD.outputs s4
-    , assumptions = RD.assumptions s4
-    , invariants  = RD.invariants s4
-    , guarantees  = RD.guarantees s4
-    , symboltable = symtable s4
+    { source       = str
+    , title        = RD.title s4
+    , description  = RD.description s4
+    , semantics    = fst $ RD.semantics s4
+    , semanticsP   = snd $ RD.semantics s4
+    , target       = fst $ RD.target s4
+    , targetP      = snd $ RD.target s4                    
+    , tags         = RD.tags s4
+    , parameters   = RD.parameters s4
+    , definitions  = RD.definitions s4
+    , inputs       = RD.inputs s4
+    , outputs      = RD.outputs s4
+    , initially    = RD.initially s4
+    , preset       = RD.preset s4
+    , requirements = RD.requirements s4                    
+    , assumptions  = RD.assumptions s4
+    , invariants   = RD.invariants s4
+    , guarantees   = RD.guarantees s4
+    , symboltable  = symtable s4
     }  
 
 -----------------------------------------------------------------------------

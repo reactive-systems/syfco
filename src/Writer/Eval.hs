@@ -155,7 +155,7 @@ data ST = ST
 
 eval
   :: Configuration -> Specification
-     -> Either Error ([Formula],[Formula],[Formula])
+     -> Either Error ([Formula],[Formula],[Formula],[Formula],[Formula],[Formula])
 
 eval c s = do
   s' <- foldM overwriteParameter s $ owParameter c
@@ -177,12 +177,16 @@ eval c s = do
         ST (symboltable s'') IM.empty $ busDelimiter c
   sti <- execStateT (mapM_ componentSignal ss) stt
 
+  es <- evalStateT (mapM evalLtl $ initially s'') sti  
+  ts <- evalStateT (mapM evalLtl $ preset s'') sti
+  rs <- evalStateT (mapM evalLtl $ requirements s'') sti  
   as <- evalStateT (mapM evalLtl $ assumptions s'') sti
   is <- evalStateT (mapM evalLtl $ invariants s'') sti
   gs <- evalStateT (mapM evalLtl $ guarantees s'') sti
 
   return $ splitConjuncts $ overwrite s'' 
-    (map plainltl as, map plainltl is, map plainltl gs)
+    ( map plainltl es, map plainltl ts, map plainltl rs,
+      map plainltl as, map plainltl is, map plainltl gs )
 
   where
     isunary y x = null $ idArgs $ symboltable y ! x
@@ -199,11 +203,14 @@ eval c s = do
       then map toLower x
       else x
 
-    overwrite sp (as,is,gs) =
+    overwrite sp (es,ss,rs,as,is,gs) =
       let
-        og = all outputsGuarded (as ++ is ++ gs)
-        ig = all inputsGuarded (as ++ is ++ gs)        
-      in (map (adjustOW og ig sp) as,
+        og = all outputsGuarded (es ++ ss ++ rs ++ as ++ is ++ gs)
+        ig = all inputsGuarded (es ++ ss ++ rs ++ as ++ is ++ gs)
+      in (map (adjustOW og ig sp) es,
+          map (adjustOW og ig sp) ss,
+          map (adjustOW og ig sp) rs,
+          map (adjustOW og ig sp) as,
           map (adjustOW og ig sp) is,
           map (adjustOW og ig sp) gs)
 
@@ -250,8 +257,13 @@ eval c s = do
       Next (Atomic (Input x)) -> Atomic $ Input x
       _                       -> applySub (unGuardInputs sp) e
 
-    splitConjuncts (xs,ys,zs) =
-      (concatMap splitC xs, concatMap splitC ys, concatMap splitC zs)
+    splitConjuncts (es,ss,rs,xs,ys,zs) =
+      ( concatMap splitC es, 
+        concatMap splitC ss,
+        concatMap splitC rs,         
+        concatMap splitC xs,
+        concatMap splitC ys,
+        concatMap splitC zs)
 
     splitC fml = case fml of
       And xs -> concatMap splitC xs

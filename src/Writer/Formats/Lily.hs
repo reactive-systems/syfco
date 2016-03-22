@@ -54,10 +54,17 @@ writeFormat
   :: Configuration -> Specification -> Either Error String
 
 writeFormat c s = do
-  (as1,is1,gs1) <- eval c s
-  as2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) as1
-  is2 <- mapM (simplify (adjust c opConfig) . Globally . adjustAtomic) is1
-  gs2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) gs1
+  (es1,ss1,rs1,as1,is1,gs1) <- eval c s
+    
+  as2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) $
+         case ss1 of
+           [] -> filter (/= FFalse) $ es1 ++ map fGlobally rs1 ++ as1
+           _  -> filter (/= FFalse) $ es1 ++
+                  map (\f -> fOr [fNot $ fAnd ss1, f])
+                    (map fGlobally rs1 ++ as1)
+
+  is2 <- mapM (simplify (adjust c opConfig) . fGlobally . adjustAtomic) is1
+  gs2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) (gs1 ++ ss1)
     
   let
     as3 = map (printFormula opConfig (outputMode c)) as2

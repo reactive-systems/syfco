@@ -88,19 +88,20 @@ opConfig = OperatorConfig
  - Feel free to adapt this function according to you needs. However, 
  - the following functions may be useful to simplify you life:
  -
- -   (as,is,gs) <- eval c s
+ -   (es,ss,rs,as,is,gs) <- eval c s
  -
  -     The function gets the configuration and the specification s and 
- -     returns three lists of LTL formulas: the assumptions, the
- -     invariants, and the guarantees.
+ -     returns six lists of LTL formulas: the initial configuration of 
+ -     the environment, the initial configuration of the system, the 
+ -     requirements, the assumptions, the invariants, and the guarantees.
  -
- -   fml <- merge as is gs
+ -   fml <- merge es ss rs as is gs
  -
  -     To combine the lists returned by 'eval' you can use the function 
  -     merge, which composes them to one formula in the predefined way.
  -     Thereby, the function already takes care that no unneccessary 
- -     constructs are introduced, if one or multiple of the lists are
- -     empty.
+ -     constructs are introduced, in case one or multiple of the lists 
+ -     are empty.
  -
  -   fml' <- simplify (adjust c opConfig) fml
  -
@@ -136,8 +137,8 @@ writeFormat
   :: Configuration -> Specification -> Either Error String
 
 writeFormat c s = do
-    (as,is,gs) <- eval c s
-    fml0 <- merge as is gs
+    (es,ss,rs,as,is,gs) <- eval c s
+    fml0 <- merge es ss rs as is gs
     fml1 <- simplify (adjust c opConfig) fml0
 
     return $ printFormula opConfig (outputMode c) fml1

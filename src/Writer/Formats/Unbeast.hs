@@ -30,21 +30,18 @@ writeFormat
   :: Configuration -> Specification -> Either Error String
 
 writeFormat c s = do
-  (as,is,gs) <- eval c s
-  as' <- mapM (simplify' (c { noRelease = True, noWeak = True })) as
-  vs' <- mapM (simplify' (c { noRelease = True, noWeak = True })) $
-         case (is, gs) of
-           ([],[])   -> []
-           ([],[x])  -> [x]
-           ([],_)    -> gs
-           ([x],[])  -> [Globally x]
-           ([x],[y]) -> [Globally x,y]
-           ([x],_)   -> Globally x : gs
-           (_,[])    -> [Globally $ And is]
-           (_,[x])   -> [Globally $ And is, x]
-           (_,_)     -> (Globally $ And is) : gs
+  (es,ss,rs,as,is,gs) <- eval c s
+  us <- mapM (simplify' (c { noRelease = True, noWeak = True })) $
+     case ss of
+       [] -> filter (/= FFalse) $ es ++ map fGlobally rs ++ as
+       _  -> filter (/= FFalse) $ es ++
+              map (\f -> fOr [fNot $ fAnd ss, f])
+                (map fGlobally rs ++ as)
+  
+  vs <- mapM (simplify' (c { noRelease = True, noWeak = True })) $
+         filter (/= TTrue) $ ss ++ [fGlobally $ fAnd is] ++ gs
 
-  return $ main as' vs'
+  return $ main us vs
 
   where
     main as vs = 

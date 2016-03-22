@@ -127,6 +127,9 @@ specificationBindings s = do
   mapM_ binding $ definitions s
   mapM_ binding $ inputs s
   mapM_ binding $ outputs s
+  mapM_ exprBindings $ initially s
+  mapM_ exprBindings $ preset s
+  mapM_ exprBindings $ requirements s  
   mapM_ exprBindings $ invariants s
   mapM_ exprBindings $ assumptions s
   mapM_ exprBindings $ guarantees s   

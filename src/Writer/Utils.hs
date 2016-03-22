@@ -32,6 +32,7 @@ import Config
 import Data.LTL
     ( Atomic(..)
     , Formula(..)
+    , fNot  
     )
 
 import Data.Binding
@@ -71,7 +72,7 @@ import Data.Array.IArray
 -- passed via @OperatorNames@.
 
 printFormula
-  :: OperatorConfig -> WriteMode ->  Formula -> String
+  :: OperatorConfig -> WriteMode -> Formula -> String
 
 printFormula opc mode formula = reverse $ case mode of
   Pretty -> pr [] formula
@@ -210,11 +211,23 @@ printFormula opc mode formula = reverse $ case mode of
 -- one of the lists is empty or a singleton.
 
 merge
-  :: [Formula] -> [Formula] -> [Formula] -> Either Error Formula
+  :: [Formula] -> [Formula] -> [Formula] ->
+    [Formula] -> [Formula] -> [Formula] -> Either Error Formula
 
-merge as is gs =
+merge es ss rs as is gs =
   let
-    fml = case (is,gs) of
+    fmle = case (rs,as) of
+      ([],[])   -> TTrue
+      ([],[x])  -> x
+      ([],_)    -> And gs
+      ([x],[])  -> Globally x
+      ([x],[y]) -> And [Globally x,y]
+      ([x],_)   -> And (Globally x : as)
+      (_,[])    -> Globally $ And rs
+      (_,[x])   -> And [Globally $ And rs, x]
+      (_,_)     -> And ((Globally $ And rs) : as)      
+    
+    fmls = case (is,gs) of
       ([],[])   -> TTrue
       ([],[x])  -> x
       ([],_)    -> And gs
@@ -224,10 +237,30 @@ merge as is gs =
       (_,[])    -> Globally $ And is
       (_,[x])   -> And [Globally $ And is, x]
       (_,_)     -> And ((Globally $ And is) : gs)
-  in case as of
-    []  -> return fml
-    [x] -> return $ Implies x fml
-    _   -> return $ Implies (And as) fml
+
+    fmli = case (fmle, fmls) of
+      (FFalse,_) -> TTrue
+      (TTrue,x)  -> x
+      (x,FFalse) -> fNot x
+      (_,TTrue)  -> TTrue
+      _          -> Implies fmle fmls
+
+    fmlc = case (ss,fmli) of
+      ([],_)      -> fmli
+      (_,FFalse)  -> FFalse
+      ([x],TTrue) -> x
+      (xs, TTrue) -> And xs
+      _           -> And (ss ++ [fmli])
+        
+    fmlf = case (es,fmlc) of
+      ([],_)       -> fmlc
+      ([x],FFalse) -> fNot x
+      (xs,FFalse)  -> Or $ map fNot xs
+      (_,TTrue)    -> TTrue
+      ([x],_)      -> Implies x fmlc
+      _            -> Implies (And es) fmlc
+  in
+    return fmlf
 
 -----------------------------------------------------------------------------
 

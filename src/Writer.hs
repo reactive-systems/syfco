@@ -79,8 +79,8 @@ partition
 
 partition c s = case eval c s of
     Left err         -> prError err
-    Right (as,is,gs) ->
-      let f = And (as ++ is ++ gs)
+    Right (es,ss,rs,as,is,gs) ->
+      let f = And (es ++ ss ++ rs ++ as ++ is ++ gs)
       in return $ 
          ".inputs" ++ concatMap (' ' :) (fmlInputs f) ++ "\n" ++
          ".outputs" ++ concatMap (' ' :) (fmlOutputs f) ++ "\n"

@@ -67,7 +67,7 @@ specificationParser
 specificationParser = do
   (i,d,s,r,a) <- infoParser 
   (ps,vs) <- globalParser <|> return ([],[])
-  (is,os,as,ns,gs) <- componentParser
+  (is,os,es,ss,rs,as,ns,gs) <- componentParser
 
   return Specification
     { title = i
@@ -79,6 +79,9 @@ specificationParser = do
     , definitions = vs
     , inputs = is
     , outputs = os
+    , initially = es
+    , preset = ss
+    , requirements = rs      
     , assumptions = as
     , invariants = ns
     , guarantees = gs

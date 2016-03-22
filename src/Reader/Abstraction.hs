@@ -104,7 +104,10 @@ abstractSpec s = do
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.outputs s
   is <- mapM abstractBind $ PD.inputs s
   os <- mapM abstractBind $ PD.outputs s
-  
+
+  es <- mapM abstractExpr $ PD.initially s
+  ss <- mapM abstractExpr $ PD.preset s
+  rs <- mapM abstractExpr $ PD.requirements s
   as <- mapM abstractExpr $ PD.assumptions s
   bs <- mapM abstractExpr $ PD.invariants s
   gs <- mapM abstractExpr $ PD.guarantees s
@@ -117,7 +120,7 @@ abstractSpec s = do
     (PD.semantics s)
     (PD.target s)
     (PD.tags s)
-    ps vs is os as bs gs
+    ps vs is os es ss rs as bs gs
     IM.empty
     (tName st)
     (tPos st)

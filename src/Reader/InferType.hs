@@ -116,6 +116,9 @@ inferLtl
 inferLtl s xs = do
   let ys = map (\i -> (i,imLookup i $ bindings s)) xs
   mapM_ updateType ys
+  mapM_ (inferFromUsage TLtl) $ initially s
+  mapM_ (inferFromUsage TLtl) $ preset s
+  mapM_ (inferFromUsage TLtl) $ requirements s  
   mapM_ (inferFromUsage TLtl) $ assumptions s
   mapM_ (inferFromUsage TLtl) $ invariants s
   mapM_ (inferFromUsage TLtl) $ guarantees s

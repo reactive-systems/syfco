@@ -72,6 +72,10 @@ import Data.Error
 
 import Writer.Eval
     ( eval
+    )
+
+import Writer.Utils
+    ( merge
     )  
 
 import Control.Exception
@@ -84,9 +88,13 @@ import qualified Data.Map.Strict as M
 
 -----------------------------------------------------------------------------
 
+-- | Type of the data structure describing the refusal. 
+
 type Refusal = String
 
 -----------------------------------------------------------------------------
+
+-- | Structure representing a Generalized Reactivity formula.
 
 data GRFormula =
   GRFormula
@@ -138,10 +146,9 @@ detectGR c s =
       }
 
     fml = do
-      (as,is,gs) <- eval c' s
-    
-      simplify c' $ noImplication $ noEquivalence $
-        Implies (fAnd as) (fAnd [fGlobally $ fAnd is, fAnd gs])
+      (es,ss,rs,as,is,gs) <- eval c' s
+      fml' <- merge es ss rs as is gs
+      simplify c' $ noImplication $ noEquivalence fml' 
         
   in case fml of
     Left x  -> Left $ Left x
