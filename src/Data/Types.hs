@@ -13,7 +13,15 @@ module Data.Types
     , Semantics(..)
     , SignalType(..)
     , IdType(..)
+    , SignalDecType(..)  
     ) where
+
+-----------------------------------------------------------------------------
+
+import Data.Expression
+    ( ExprPos
+    , Expr
+    )  
 
 -----------------------------------------------------------------------------
 
@@ -46,11 +54,23 @@ data SignalType =
 
 -----------------------------------------------------------------------------
 
+-- | Signal decleration types.
+
+data SignalDecType a =
+    SDSingle (a,ExprPos)
+  | SDBus (a,ExprPos) (Expr a)
+  | SDEnum (a,ExprPos) (a,ExprPos)
+
+-----------------------------------------------------------------------------
+
 -- | Expression types.
 
 data IdType =
     TEmptySet
   | TSignal SignalType
+  | TBus SignalType 
+  | TTypedBus SignalType String Int
+  | TEnum String Int
   | TNumber
   | TBoolean    
   | TLtl    
@@ -63,15 +83,22 @@ data IdType =
 
 instance Show IdType where
   show x = case x of
-    TEmptySet         -> "empty set" 
-    TSignal STInput   -> "input signal"
-    TSignal STOutput  -> "output signal"
-    TSignal STGeneric -> "signal"
-    TNumber           -> "numerical"
-    TBoolean          -> "boolean"    
-    TLtl              -> "ltl"
-    TPattern          -> "pattern"
-    TPoly y           -> "a" ++ show y    
-    TSet y            -> show y ++ " set"
+    TEmptySet               -> "empty set" 
+    TSignal STInput         -> "input signal"
+    TSignal STOutput        -> "output signal"
+    TSignal STGeneric       -> "signal"
+    TBus STInput            -> "input bus"
+    TBus STOutput           -> "output bus"
+    TBus STGeneric          -> "bus"
+    TTypedBus STInput t _   -> t ++ " input bus"
+    TTypedBus STOutput t _  -> t ++ " output bus"
+    TTypedBus STGeneric t _ -> t ++ " bus"
+    TEnum t _               -> t
+    TNumber                 -> "numerical"
+    TBoolean                -> "boolean"    
+    TLtl                    -> "ltl"
+    TPattern                -> "pattern"
+    TPoly y                 -> "a" ++ show y    
+    TSet y                  -> show y ++ " set"
 
 -----------------------------------------------------------------------------

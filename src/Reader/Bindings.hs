@@ -18,6 +18,10 @@ import Utils
     ( strictSort
     , imLookup
     )
+
+import Data.Types
+    ( SignalDecType(..)
+    )  
     
 import Data.Binding
     ( Binding
@@ -125,14 +129,22 @@ specificationBindings
 specificationBindings s = do
   mapM_ binding $ parameters s
   mapM_ binding $ definitions s
-  mapM_ binding $ inputs s
-  mapM_ binding $ outputs s
+  mapM_ signalBinding $ inputs s
+  mapM_ signalBinding $ outputs s
   mapM_ exprBindings $ initially s
   mapM_ exprBindings $ preset s
   mapM_ exprBindings $ requirements s  
   mapM_ exprBindings $ invariants s
   mapM_ exprBindings $ assumptions s
-  mapM_ exprBindings $ guarantees s   
+  mapM_ exprBindings $ guarantees s
+
+  where
+    signalBinding x = case x of
+      SDSingle {}   -> return ()
+      SDEnum {}     -> return ()
+      SDBus (y,_) e -> do
+        addBinding (y,e)
+        exprBindings e
 
 -----------------------------------------------------------------------------
 

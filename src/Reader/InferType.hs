@@ -17,10 +17,15 @@ module Reader.InferType
 import Utils
     ( imLookup
     )
+
+import Data.Enum
+    ( EnumDefinition(..)
+    )  
     
 import Data.Types
     ( IdType(..)
     , SignalType(..)
+    , SignalDecType(..)      
     )
     
 import Data.Binding
@@ -94,26 +99,39 @@ inferTypes
 inferTypes s =
   let
     tt1 = IM.mapWithKey (\i _ -> TPoly i) $ names s
-    tt2 = foldl (updType $ TSignal STInput) tt1 $ inputs s
-    tt3 = foldl (updType $ TSignal STOutput) tt2 $ outputs s
-    tt4 = foldl (updType TNumber) tt3 $ parameters s
+    tt2 = foldl updEnumType tt1 $ enumerations s
+    tt3 = foldl (updSignalType STInput) tt2 $ inputs s
+    tt4 = foldl (updSignalType STOutput) tt3 $ outputs s
+    tt5 = foldl (updType TNumber) tt4 $ map bIdent $ parameters s
     maxkey = 
-      if IM.null $ names s then 0 else
+      if IM.null $ names s then 1 else
         fst $ fst $ fromJust $ IM.maxViewWithKey $ names s
-    ts = map fst $ IM.toList tt4
+    ts = map fst $ IM.toList tt5
   in do
-    tt5 <- execStateT (inferLtl s ts) $ ST (maxkey + 1) tt4 (arguments s)
-    return $ s { types = tTypes tt5 }
+    tt6 <- execStateT (inferLtl s ts) $ ST (maxkey + 1) tt5 (arguments s)
+    return $ s { types = tTypes tt6 }
 
   where
-    updType t a i = IM.insert (bIdent i) t a
+    updType t a i = IM.insert i t a
 
----
+    updEnumType a x =
+      foldl (updType (TEnum (imLookup (eName x) $ names s) (eName x))) a $
+      map (\(y,_,_) -> y) $ eValues x    
+
+    updSignalType t a x = case x of
+      SDSingle (y,_)     -> IM.insert y (TSignal t) a
+      SDBus (y,_) _      -> IM.insert y (TBus t) a
+      SDEnum (y,_) (z,_) ->
+        IM.insert y (TTypedBus t (imLookup z $ names s) z) a
+
+-----------------------------------------------------------------------------
 
 inferLtl
   :: Specification -> TypeChecker [Int]
 
 inferLtl s xs = do
+  mapM_ inferBusParameter $ inputs s
+  mapM_ inferBusParameter $ outputs s    
   let ys = map (\i -> (i,imLookup i $ bindings s)) xs
   mapM_ updateType ys
   mapM_ (inferFromUsage TLtl) $ initially s
@@ -122,7 +140,12 @@ inferLtl s xs = do
   mapM_ (inferFromUsage TLtl) $ assumptions s
   mapM_ (inferFromUsage TLtl) $ invariants s
   mapM_ (inferFromUsage TLtl) $ guarantees s
-  checkTypes (arguments s) (bindings s) ys xs  
+  checkTypes (arguments s) (bindings s) ys xs
+
+  where
+    inferBusParameter x = case x of
+      SDBus _ e -> inferFromUsage TNumber e
+      _         -> return ()
 
 -----------------------------------------------------------------------------
 
@@ -130,7 +153,7 @@ checkTypes
   :: ArgumentTable -> ExpressionTable -> [(Int,Expr Int)] -> TypeChecker [Int]
 
 checkTypes as bs ys xs = do
-  mapM_ (checkType as) ys  
+  mapM_ (checkType as) ys
   tt <- get
   let ts = map (flip imLookup $ tTypes tt) xs
       (ns,os) = partitionEithers $ zipWith concrete ts xs
@@ -161,8 +184,11 @@ updateType
 updateType (i,e) = do
   tt <- get
   case imLookup i $ tTypes tt of
-    TSignal _ -> return ()
-    _         -> do
+    TSignal {}   -> return ()
+    TBus {}      -> return ()
+    TTypedBus {} -> return ()
+    TEnum {}     -> return ()
+    _            -> do
       t <- inferFromExpr e
       case t of
         TEmptySet -> return ()
@@ -180,8 +206,8 @@ updateType (i,e) = do
   where
     generalize t = case t of
       TSignal _ -> TSignal STGeneric
-      TSet t' -> TSet $ generalize t'
-      t' -> t'
+      TSet t'   -> TSet $ generalize t'
+      t'        -> t'
 
 -----------------------------------------------------------------------------
 
@@ -190,10 +216,12 @@ checkType
 
 checkType as (i,e) = do
   tt <- get
-  case imLookup i $ tTypes tt of
-    TSignal STInput -> inferFromUsage (TSet TNumber) e
-    TSignal STOutput -> inferFromUsage (TSet TNumber) e    
-    t         -> case imLookup i as of
+  case  imLookup i $ tTypes tt of
+    TSignal {}   -> return ()
+    TEnum {}     -> return ()
+    TTypedBus {} -> return ()
+    TBus {}      -> inferFromUsage (TSet TNumber) e
+    t            ->  case imLookup i as of
       [] -> inferFromUsage (TSet t) e
       _  -> inferFromUsageFormula (TSet t) e
 
@@ -301,6 +329,11 @@ inferFromUsage t e = case t of
   TEmptySet -> inferFromUsageEmptySet e
   TSet t' -> inferFromUsageSet t' e
   TSignal _ -> inferFromUsageSignal e
+  TBus _ -> inferFromUsageBus e
+  TTypedBus _ s i -> inferFromUsageTypedBus s i e
+  TEnum s i -> inferFromUsageEnum s i e
+
+
 
 -----------------------------------------------------------------------------
 
@@ -323,7 +356,7 @@ inferFromUsageNum e = case expr e of
   BaseCon _    -> return ()
   NumSMin x    -> inferFromUsage (TSet TNumber) x
   NumSMax x    -> inferFromUsage (TSet TNumber) x
-  NumSizeOf x  -> inferFromUsage (TSignal STGeneric) x
+  NumSizeOf x  -> inferFromUsage (TBus STGeneric) x
   NumSSize x   -> do
     t <- inferFromExpr x
     case t of
@@ -366,8 +399,8 @@ inferFromUsageBool e = case expr e of
   Pattern z v   -> do
     inferFromUsage TLtl z
     inferFromUsage TPattern v
-  BlnEQ x y     -> mapM_ (inferFromUsage TNumber) [x,y]
-  BlnNEQ x y    -> mapM_ (inferFromUsage TNumber) [x,y]
+  BlnEQ x y     -> inferFromEquality x y
+  BlnNEQ x y    -> inferFromEquality x y 
   BlnGE x y     -> mapM_ (inferFromUsage TNumber) [x,y]
   BlnGEQ x y    -> mapM_ (inferFromUsage TNumber) [x,y]
   BlnLE x y     -> mapM_ (inferFromUsage TNumber) [x,y]
@@ -400,9 +433,9 @@ inferFromUsageLtl e = case expr e of
   BaseFalse          -> return ()
   BaseBus x i        -> do
     inferFromUsage TNumber x
-    inferFromUsageId (TSignal STGeneric) (srcPos e) i
-  BlnEQ x y        -> mapM_ (inferFromUsage TNumber) [x,y]
-  BlnNEQ x y       -> mapM_ (inferFromUsage TNumber) [x,y]
+    inferFromUsageId (TBus STGeneric) (srcPos e) i
+  BlnEQ x y        -> inferFromEquality x y
+  BlnNEQ x y       -> inferFromEquality x y
   BlnGE x y        -> mapM_ (inferFromUsage TNumber) [x,y]
   BlnGEQ x y       -> mapM_ (inferFromUsage TNumber) [x,y]
   BlnLE x y        -> mapM_ (inferFromUsage TNumber) [x,y]
@@ -439,6 +472,32 @@ inferFromUsageLtl e = case expr e of
     t <- inferFromExpr e
     errExpect TLtl t $ srcPos e
 
+-----------------------------------------------------------------------------
+
+inferFromEquality
+  :: Expr Int -> TypeChecker (Expr Int)
+
+inferFromEquality x y = do
+  t <- inferFromExpr x
+  mapM_ (inferFromUsage t) [x,y]
+  tt <- get
+  case checkForEnum tt x y of
+    Nothing      -> mapM_ (inferFromUsage t) [x,y]
+    Just (s,i,z) -> inferFromUsage (TTypedBus STGeneric s i) z
+
+  where
+    checkForEnum tt a b = case expr a of
+      BaseId i -> case imLookup i $ tTypes tt of
+        TEnum s t -> Just (s,t,b)
+        _         -> checkForEnum' tt b a
+      _ -> checkForEnum' tt b a
+
+    checkForEnum' tt a b = case expr a of
+      BaseId i ->  case imLookup i $ tTypes tt of
+        TEnum s t -> Just (s,t,b)
+        _         -> Nothing
+      _ -> Nothing      
+        
 -----------------------------------------------------------------------------
 
 inferFromUsagePattern
@@ -518,6 +577,42 @@ inferFromUsageSignal e = case expr e of
 
 -----------------------------------------------------------------------------
 
+inferFromUsageBus
+  :: TypeChecker (Expr Int)
+
+inferFromUsageBus e = case expr e of
+  BaseId i     -> inferFromUsageId (TBus STGeneric) (srcPos e) i
+  BaseFml as i -> inferFromUsageFml as (TBus STGeneric) (srcPos e) i  
+  _            -> do
+    t <- inferFromExpr e
+    errExpect (TBus STGeneric) t $ srcPos e
+
+-----------------------------------------------------------------------------
+
+inferFromUsageTypedBus
+  :: String -> Int -> TypeChecker (Expr Int)
+
+inferFromUsageTypedBus s y e = case expr e of
+  BaseId i     -> inferFromUsageId (TTypedBus STGeneric s y) (srcPos e) i
+  BaseFml as i -> inferFromUsageFml as (TTypedBus STGeneric s y) (srcPos e) i    
+  _            -> do
+    t <- inferFromExpr e
+    errExpect (TTypedBus STGeneric s y) t $ srcPos e
+
+-----------------------------------------------------------------------------
+
+inferFromUsageEnum
+  :: String -> Int -> TypeChecker (Expr Int)
+
+inferFromUsageEnum s y e = case expr e of
+  BaseId i     -> inferFromUsageId (TEnum s y) (srcPos e) i
+  BaseFml as i -> inferFromUsageFml as (TEnum s y) (srcPos e) i      
+  _            -> do
+    t <- inferFromExpr e
+    errExpect (TEnum s y) t $ srcPos e    
+
+-----------------------------------------------------------------------------    
+
 inferFromUsageRange
   :: TypeChecker (Expr Int)
 
@@ -549,6 +644,16 @@ inferFromUsageId t pos i = do
         put $ tt {
           tTypes = IM.insert a (c $ TSignal STGeneric) $ tTypes tt
           }
+      (TPoly a, TBus _) -> do
+        tt <- get
+        put $ tt {
+          tTypes = IM.insert a (c $ TBus STGeneric) $ tTypes tt
+          }
+      (TPoly a, TTypedBus _ x y) -> do
+        tt <- get
+        put $ tt {
+          tTypes = IM.insert a (c $ TTypedBus STGeneric x y) $ tTypes tt
+          }
       (TPoly a, _)       -> do
         tt <- get
         put $ tt {
@@ -559,11 +664,24 @@ inferFromUsageId t pos i = do
         put $ tt {
           tTypes = IM.insert i (c t1) $ IM.insert b (c t1) $ tTypes tt
           }
+      (TBus {}, TEnum {})          -> return ()
+      (TBus {}, TTypedBus {})      -> return ()
+      (TBus {}, TSignal {})        -> return ()            
+      (TBus {}, TBus {})           -> return ()
+      (TTypedBus {}, TBus {})      -> return ()
+      (TTypedBus {}, TEnum {})     -> return ()
+      (TTypedBus {}, TSignal {})   -> return ()            
+      (TTypedBus {}, TTypedBus {}) -> return ()      
+      (TEnum {}, TBus {})          -> return ()      
+      (TEnum {}, TTypedBus {})     -> return ()
+      (TEnum {}, TSignal {})       -> return ()
+      (TEnum {}, TEnum {})         -> return ()            
+
       (TSet a, TSet b)   ->
         updIdType (c . TSet) a b 
       _                  -> 
         when (t1 /= t2 && ((t1 /= TLtl && noSignal t1) || noSignal t2)) $
-        errExpect t1 t2 pos
+          errExpect t1 t2 pos
 
     noSignal x = case x of
       TSignal _ -> False

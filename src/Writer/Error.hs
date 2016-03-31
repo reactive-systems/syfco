@@ -12,6 +12,7 @@
 module Writer.Error
     ( Error
     , errBounds
+    , errBusCmp  
     , errMinSet
     , errMaxSet
     , errSetCap
@@ -51,6 +52,20 @@ errBounds i u r pos =
   let msg = "index out of bounds: " ++ i ++ "[" ++ show r ++ "]" ++ "\n" ++
             "valid range:         0 - " ++ show (u - 1)  
   in StateT $ \_ -> runtimeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that indicates a comparison of two busses of
+-- unequal length.
+
+errBusCmp
+  :: String -> String -> String -> Int -> Int -> ExprPos -> StateT a (Either Error) b
+
+errBusCmp v1 v2 cm i j pos =
+  let msg = "invalid comparison: " ++ v1 ++ " " ++ show cm ++ " " ++ v2
+            ++ "\n" ++
+            "they are of unequal length: " ++ show i ++ " != " ++ show j 
+  in StateT $ \_ -> runtimeError pos msg                    
 
 -----------------------------------------------------------------------------
 

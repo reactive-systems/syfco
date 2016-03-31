@@ -20,13 +20,22 @@ import Utils
     ( iter
     )
 
+import Data.Enum
+    ( EnumDefinition(..)
+    )
+
 import Data.Maybe
     ( fromMaybe
+    , catMaybes  
     )
     
 import Config
     ( Configuration(..)
     )
+
+import Data.Either
+    ( partitionEithers
+    )  
 
 import Data.List
     ( find
@@ -39,8 +48,8 @@ import Data.Char
 import Data.LTL
     ( Atomic(..)
     , Formula(..)
-    , applyAtomic
-    , subFormulas  
+    , subFormulas
+    , applyAtomic  
     , applySub       
     )
     
@@ -48,6 +57,7 @@ import Data.Types
     ( IdType(..)
     , Semantics(..)
     , SignalType(..)
+    , SignalDecType(..)  
     )
     
 import Data.Binding
@@ -73,6 +83,7 @@ import Writer.Error
     ( Error
     , argsError  
     , errBounds
+    , errBusCmp  
     , errMinSet
     , errMaxSet
     , errSetCap  
@@ -99,6 +110,7 @@ import Control.Exception
     ( assert
     )  
 
+
     
 import Data.Array.IArray
     ( (!)
@@ -115,25 +127,61 @@ import qualified Data.Array.IArray as A
 -----------------------------------------------------------------------------
 
 data Value =
-    VNumber Int
+    VEmpty  
+  | VNumber Int
   | VLtl Formula
   | VSet (S.Set Value)
-  | VEmpty
-  deriving (Eq,Show)
+  | VEnum String Int [Int -> Either Bool ()]
+  | VSignal SignalType String
+  | VBus SignalType Int String 
 
------------------------------------------------------------------------------
+instance Show Value where
+  show v = case v of
+    VEmpty      -> "VEmpty"
+    VNumber i   -> "VNumber " ++ show i
+    VLtl f      -> "VLtl " ++ show f
+    VSet s      -> "VSet " ++ show s
+    VEnum {}    -> "VEnum"
+    VSignal _ s -> "VSingal " ++ s
+    VBus _ i s  -> "VBus " ++ s ++ "[" ++ show i ++ "]"
+
+instance Eq Value where
+  (==) VEmpty VEmpty                 = True
+  (==) (VNumber i) (VNumber j)       = i == j
+  (==) (VLtl f) (VLtl f')            = f == f'
+  (==) (VSet s) (VSet s')            = s == s'
+  (==) (VSignal _ s) (VSignal _ s')  = s == s'
+  (==) (VBus _ _ s) (VBus _ _ s')    = s == s'
+  (==) (VEnum _ i xs) (VEnum _ j ys) =
+     i == j && length xs == length ys &&
+     map (\f -> map f [0,1..i-1]) xs ==
+     map (\f -> map f [0,1..i-1]) ys     
+  (==) _ _                           = False
 
 instance Ord Value where
-  compare x y = case (x,y) of
-    (VEmpty, _)            -> LT
-    (_, VEmpty)            -> GT
-    (VNumber a, VNumber b) -> compare a b
-    (VNumber _, _)         -> LT
-    (VLtl a, VLtl b)       -> compare a b
-    (VLtl _, VNumber _)    -> GT
-    (VLtl _, VSet _)       -> LT
-    (VSet a, VSet b)       -> compare a b
-    (VSet _, _)            -> GT
+  compare VEmpty VEmpty                 = EQ
+  compare (VNumber i) (VNumber j)       = compare i j
+  compare (VLtl f) (VLtl f')            = compare f f'
+  compare (VSet s) (VSet s')            = compare s s'
+  compare (VSignal _ s) (VSignal _ s')  = compare s s'
+  compare (VBus _ _ s) (VBus _ _ s')    = compare s s'    
+  compare (VEnum _ i xs) (VEnum _ j ys)
+    | i /= j                 = compare i j 
+    | length xs /= length ys = compare (length xs) (length ys)
+    | otherwise             = 
+        compare (map (\f -> map f [0,1..i-1]) xs)  
+                (map (\f -> map f [0,1..i-1]) ys)
+  compare x y                           = compare (cidx x) (cidx y)
+
+    where
+      cidx :: Value -> Int
+      cidx VEmpty     = 0
+      cidx VNumber {} = 1
+      cidx VLtl {}    = 2
+      cidx VSet {}    = 3
+      cidx VEnum {}   = 4
+      cidx VSignal {} = 5
+      cidx VBus {}    = 6
 
 -----------------------------------------------------------------------------
 
@@ -144,7 +192,8 @@ type Evaluator a = a -> StateT ST (Either Error) Value
 data ST = ST
   { tLookup :: SymbolTable
   , tValues :: IM.IntMap Value
-  , delimiter :: String  
+  , delimiter :: String
+  , enums :: [EnumDefinition Int]  
   }
 
 -----------------------------------------------------------------------------
@@ -171,11 +220,17 @@ eval c s = do
     maxkey = foldl max (head xs) xs
     zs = if null xs then []
          else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
-    ss = map bIdent $ inputs s'' ++ outputs s''
+    ss = inputs s'' ++ outputs s''
 
-  stt <- execStateT (mapM_ staticBinding zs) $
-        ST (symboltable s'') IM.empty $ busDelimiter c
-  sti <- execStateT (mapM_ componentSignal ss) stt
+  st0 <- execStateT (mapM_ enumBinding $ enumerations s) $
+        ST (symboltable s'')
+        IM.empty
+        (busDelimiter c)
+        (enumerations s)
+  
+  stt <- execStateT (mapM_ staticBinding zs) st0
+  (rr,sti) <- runStateT (mapM componentSignal ss) stt
+  let (er,sr) = partitionEithers $ catMaybes rr
 
   es <- evalStateT (mapM evalLtl $ initially s'') sti  
   ts <- evalStateT (mapM evalLtl $ preset s'') sti
@@ -185,16 +240,16 @@ eval c s = do
   gs <- evalStateT (mapM evalLtl $ guarantees s'') sti
 
   return $ splitConjuncts $ overwrite s'' 
-    ( map plainltl es, map plainltl ts, map plainltl rs,
-      map plainltl as, map plainltl is, map plainltl gs )
+    ( map plainltl es, map plainltl ts, map plainltl (rs ++ er),
+      map plainltl (as ++ sr), map plainltl is, map plainltl gs )
 
   where
     isunary y x = null $ idArgs $ symboltable y ! x
 
-    plainltl = applyAtomic revert . vltl
+    plainltl = applyAtomic apA . vltl
 
-    revert :: Atomic -> Formula
-    revert x = Atomic $ case x of
+    apA :: Atomic -> Formula
+    apA x = Atomic $ case x of
       Input y  -> Input $ lower $ last $ words y
       Output y -> Output $ lower $ last $ words y
 
@@ -271,36 +326,90 @@ eval c s = do
 
 -----------------------------------------------------------------------------      
 
+enumBinding
+  :: EnumDefinition Int -> StateT ST (Either Error) ()
+
+enumBinding x = do
+  st <- get
+  let n = idName $ tLookup st ! eName x
+  put $ st {
+    tValues = foldl (add n $ eSize x) (tValues st) $ eValues x
+    }
+
+  where
+    add n s im (v,_,fs) = 
+      IM.insert v (VEnum n s fs) im
+
+-----------------------------------------------------------------------------      
+
 staticBinding
   :: Int -> StateT ST (Either Error) ()
 
 staticBinding x = do
   st <- get
-  
+
   VSet bs <- evalSet $ idBindings $ tLookup st ! x
 
-  let v = head $ S.toList bs
-  put $ st {
-    tValues = IM.insert x v $ tValues st
-    }
+  case S.toList bs of
+    []  -> return ()
+    v:_ -> do
+      put $ st {
+        tValues = IM.insert x v $ tValues st
+        }
 
 -----------------------------------------------------------------------------
 
 componentSignal
-  :: Int -> StateT ST (Either Error) ()
+  :: SignalDecType Int -> StateT ST (Either Error) (Maybe (Either Value Value))
 
-componentSignal i = do
+componentSignal s = do
   st <- get
-  let
-    c = case idType $ tLookup st ! i of
-      TSignal STInput  -> Input
-      TSignal STOutput -> Output
-      _                -> assert False undefined
-    n = show i ++ " " ++ idName (tLookup st ! i)
+  (i,v,r) <- case s of
+    SDSingle (i,_) -> case idType $ tLookup st ! i of
+      TSignal io  -> return (i,VSignal io $ idName (tLookup st ! i), Nothing)
+      _           -> assert False undefined
+    SDBus (i,_) e  -> do
+      VNumber n <- evalNum e
+      case idType $ tLookup st ! i of
+        TBus io  -> return (i,VBus io n $ idName (tLookup st ! i), Nothing)
+        _        -> assert False undefined
+    SDEnum (i,_) _ ->
+      case idType $ tLookup st ! i of
+        TTypedBus io _ t -> case find ((== t) . eName) $ enums st of
+          Nothing -> assert False undefined          
+          Just e  ->
+            let
+              m = idName (tLookup st ! i)
+              v = VBus io (eSize e) m
+              r = case eMissing e of
+                [] -> Nothing
+                xs -> case io of
+                  STInput  -> Just $ Left $
+                             missing (delimiter st) m Input (eSize e) xs
+                  STOutput -> Just $ Right $
+                             missing (delimiter st) m Output (eSize e) xs
+                  _        -> assert False undefined
+            in
+              return (i,v,r)
+
+        _                -> assert False undefined
+
   put $ st {
-    tValues = IM.insert i (VLtl $ Atomic $ c n) $ tValues st
+    tValues = IM.insert i v $ tValues st
     }
 
+  return r
+
+  where
+    missing d m c n xs = VLtl $ And $ map (tB d m c n) xs
+
+    tB d m c n f = Or $ map (tV d m c f) [0,1..n-1]
+
+    tV d m c f i = case f i of
+      Left True  -> Not $ Atomic $ c $ m ++ d ++ show i
+      Left False -> Atomic $ c $ m ++ d ++ show i
+      _          -> assert False undefined
+    
 -----------------------------------------------------------------------------
 
 evalExpr
@@ -375,18 +484,36 @@ evalLtl e = case expr e of
   LtlWeak x y      -> liftM2Ltl Weak x y
   BlnImpl x y      -> liftM2Ltl Implies x y
   BlnEquiv x y     -> liftM2Ltl Equiv x y  
-  BlnEQ x y        -> liftM2Num (==) x y 
-  BlnNEQ x y       -> liftM2Num (/=) x y 
+  BlnEQ x y        -> do
+    b <- evalEquality (==) "==" x y $ srcPos e
+    case b of
+      Left v -> return v
+      Right True -> return $ VLtl TTrue
+      Right False -> return $ VLtl FFalse
+  BlnNEQ x y       -> do
+    b <- evalEquality (/=) "!=" x y $ srcPos e
+    case b of
+      Left v -> return v
+      Right True -> return $ VLtl TTrue
+      Right False -> return $ VLtl FFalse  
   BlnGE x y        -> liftM2Num (>) x y
   BlnGEQ x y       -> liftM2Num (>=) x y
   BlnLE x y        -> liftM2Num (<) x y
   BlnLEQ x y       -> liftM2Num (<=) x y
   BaseId _         -> do
-    VLtl x <- evalExpr e
-    return $ VLtl x
+    x <- evalExpr e
+    case x of
+      VLtl y             -> return $ VLtl y
+      VSignal STInput y  -> return $ VLtl $ Atomic $ Input y
+      VSignal STOutput y -> return $ VLtl $ Atomic $ Output y
+      _                  -> assert False undefined
   BaseFml _ _      -> do
-    VLtl x <- evalExpr e
-    return $ VLtl x
+    x <- evalExpr e
+    case x of
+      VLtl y             -> return $ VLtl y
+      VSignal STInput y  -> return $ VLtl $ Atomic $ Input y
+      VSignal STOutput y -> return $ VLtl $ Atomic $ Output y
+      _                  -> assert False undefined
   LtlRNext x y     -> do
     VNumber n <- evalNum x
     VLtl v <- evalLtl y
@@ -430,18 +557,17 @@ evalLtl e = case expr e of
     let f = VLtl . Or . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
   BaseBus x y      -> do
-    VLtl (Atomic a) <- idValue y 
+    VBus io l s <- idValue y 
     VNumber b <- evalNum x
+
+    when (b < 0 || b >= l) $
+      errBounds s l b $ srcPos e
+
     st <- get
-    VSet z <- evalExpr $ idBindings $ tLookup st ! y
-    case S.toList z of
-      [VNumber s] -> 
-        when (b < 0 || b >= s) $ 
-          errBounds (show a) s b $ srcPos e
-      _           -> return ()
-    return $ VLtl $ Atomic $ case a of
-      Input r  -> Input (show y ++ " " ++ r ++ delimiter st ++ show b)
-      Output r -> Output (show y ++ " " ++ r ++ delimiter st ++ show b)
+    return $ VLtl $ Atomic $ case io of
+      STInput   -> Input $ s ++ delimiter st ++ show b
+      STOutput  -> Output $ s ++  delimiter st ++ show b
+      STGeneric -> assert False undefined
   _                -> assert False undefined
     
   where
@@ -501,18 +627,10 @@ evalNum e = case expr e of
       return $ VNumber $ foldl max (head xs) xs
   NumSSize x    -> do
     VSet y <- evalExpr x
-    let xs = map (\(VNumber v) -> v) $ S.elems y
-    return $ VNumber $ length xs
-  NumSizeOf x   -> do
-    VLtl (Atomic y) <- evalExpr x
-    let i = read $ head $ words $ case y of
-              Input z  -> z
-              Output z -> z
-    st <- get
-    VSet s <- evalExpr $ idBindings $ tLookup st ! i 
-    case  S.toList s of
-      [VNumber z] -> return $ VNumber z
-      _           -> assert False undefined
+    return $ VNumber $ S.size y
+  NumSizeOf x   -> do 
+    VBus _ i _ <- evalExpr x
+    return $ VNumber i
   NumRPlus xs x -> 
     let f = VNumber . sum . map (\(VNumber v) -> v)
     in evalConditional evalNum f xs x
@@ -552,8 +670,16 @@ evalBool e = case expr e of
   BlnEquiv x y  -> liftM2 (==) (evalBool x) (evalBool y)
   BlnOr x y     -> liftM2 (||) (evalBool x) (evalBool y)
   BlnAnd x y    -> liftM2 (&&) (evalBool x) (evalBool y)
-  BlnEQ x y     -> liftM2Num (==) x y
-  BlnNEQ x y    -> liftM2Num (/=) x y 
+  BlnEQ x y     -> do
+    b <- evalEquality (==) "==" x y $ srcPos e
+    case b of
+      Left _  -> assert False undefined
+      Right v -> return v
+  BlnNEQ x y    -> do
+    b <- evalEquality (/=) "!=" x y $ srcPos e
+    case b of
+      Left _  -> assert False undefined
+      Right v -> return v
   BlnGE x y     -> liftM2Num (>) x y
   BlnGEQ x y    -> liftM2Num (>=) x y
   BlnLE x y     -> liftM2Num (<) x y
@@ -736,6 +862,81 @@ evalColon e = case expr e of
 
 -----------------------------------------------------------------------------
 
+evalEquality
+  :: (Value -> Value -> Bool) -> String -> Expr Int -> Expr Int -> ExprPos
+  -> StateT ST (Either Error) (Either Value Bool)
+
+evalEquality eq eqs e1 e2 pos = do
+  a <- evalExpr e1
+  b <- evalExpr e2
+
+  st <- get
+  case (a,b) of
+    (VEnum n i xs, VBus io l s)     
+      | l /= i     -> errBusCmp n s eqs l i pos
+      | otherwise -> return $ Left $ VLtl $ Or $
+                    map (toB (delimiter st) io s [] i) xs
+    (VBus io l s, VEnum n i xs)     
+      | l /= i     -> errBusCmp n s eqs l i pos
+      | otherwise -> return $ Left $ VLtl $ Or $
+                    map (toB (delimiter st) io s [] i) xs      
+    (VBus io l s, VBus io' l' s') 
+      | l /= l'    -> errBusCmp s s' eqs l l' pos
+      | otherwise ->
+          return $ Left $ VLtl $ And 
+            [ Equiv (Atomic $ cio io $ s ++ delimiter st ++ show i)
+              (Atomic $ cio io' $ s' ++ delimiter st ++ show i) 
+            | i <- [0,1..l-1] ]
+    (VBus io l s, VSignal io' s') 
+      | l /= 1     -> errBusCmp s s' eqs l 1 pos
+      | otherwise -> 
+          return $ Left $ VLtl $ Equiv
+            (Atomic $ cio io $ s ++ delimiter st ++ "0")
+            (Atomic $ cio io' s')
+    (VSignal io' s', VBus io l s) 
+      | l /= 1     -> errBusCmp s s' eqs l 1 pos      
+      | otherwise ->
+          return $ Left $ VLtl $ Equiv
+            (Atomic $ cio io $ s ++ delimiter st ++ "0")
+            (Atomic $ cio io' s')      
+    (VEnum _ 1 [f], VSignal io' s')  ->
+      return $ Left $ VLtl $ case f 0 of
+        Right () -> TTrue
+        Left False -> Not $ Atomic $ cio io' s'
+        Left True  -> Atomic $ cio io' s'
+    (VSignal io' s', VEnum _ 1 [f])  ->
+      return $ Left $ VLtl $ case f 0 of
+        Right () -> TTrue
+        Left False -> Not $ Atomic $ cio io' s'
+        Left True  -> Atomic $ cio io' s'
+    (VEnum n j _, VSignal _ s') ->
+      errBusCmp n s' eqs j 1 pos
+    (VSignal _ s', VEnum n j _) ->
+      errBusCmp n s' eqs j 1 pos      
+    (VEnum {}, _) -> assert False undefined
+    (VBus {}, _)  -> assert False undefined
+    (_, VEnum {}) -> assert False undefined
+    (_, VBus {})  -> assert False undefined    
+    _             ->
+      if eq a b
+      then return $ Right True
+      else return $ Right False
+
+  where
+    toB _ _  _ a 0 _ = And a
+    toB d io s a i f = case f (i-1) of
+      Right ()    -> toB d io s a (i-1) f
+      Left True  ->
+        toB d io s ((Atomic $ cio io $ s ++ d ++ show (i-1)):a) (i-1) f
+      Left False ->
+        toB d io s ((Not $ Atomic $ cio io $ s ++ d ++ show (i-1)):a) (i-1) f
+    
+    cio STInput   = Input
+    cio STOutput  = Output
+    cio STGeneric = assert False undefined
+
+-----------------------------------------------------------------------------
+
 fmlValue
   :: [Expr Int] -> ExprPos -> Evaluator Int
 
@@ -775,7 +976,7 @@ prVal v = case v of
     []     -> "{}"
     (y:yr) -> "{ " ++ prVal y ++
              concatMap ((:) ',' . (:) ' ' . prVal) yr ++ " }"
-  VEmpty -> assert False undefined
+  _ -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -885,7 +1086,6 @@ overwriteParameter s (n,v) =
                     then Expr (SetExplicit []) $ bPos y
                     else Expr (SetExplicit [head $ bVal y]) $ bPos y
                  }) t
-      
 
 -----------------------------------------------------------------------------                   
 

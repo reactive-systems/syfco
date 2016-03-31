@@ -16,6 +16,14 @@ module Reader.Parser.Data
 -----------------------------------------------------------------------------
 
 import Data.Types
+    ( SignalDecType
+    )  
+
+import Data.Enum
+    ( EnumDefinition
+    )  
+
+import Data.Types
     ( Target
     , Semantics
     )
@@ -94,11 +102,12 @@ data Specification =
   , description :: String
   , semantics :: (Semantics, ExprPos)
   , target :: (Target, ExprPos)
-  , tags :: [String]  
+  , tags :: [String]
+  , enumerations :: [EnumDefinition String]  
   , parameters :: [BindExpr String]
   , definitions :: [BindExpr String]    
-  , inputs :: [BindExpr String]
-  , outputs :: [BindExpr String]
+  , inputs :: [SignalDecType String]
+  , outputs :: [SignalDecType String]
   , initially :: [Expr String]
   , preset :: [Expr String]
   , requirements :: [Expr String]    

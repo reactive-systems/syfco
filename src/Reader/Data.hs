@@ -21,6 +21,14 @@ module Reader.Data
 -----------------------------------------------------------------------------
 
 import Data.Types
+    ( SignalDecType
+    )  
+
+import Data.Enum
+    ( EnumDefinition
+    )  
+
+import Data.Types
     ( IdType
     , Semantics
     , Target
@@ -140,10 +148,11 @@ data Specification =
   , semantics :: (Semantics, ExprPos)
   , target :: (Target, ExprPos)
   , tags :: [String]
+  , enumerations :: [EnumDefinition Int]  
   , parameters :: [Binding]
   , definitions :: [Binding]    
-  , inputs :: [Binding]
-  , outputs :: [Binding]
+  , inputs :: [SignalDecType Int]
+  , outputs :: [SignalDecType Int]
   , initially :: [Expr Int]
   , preset :: [Expr Int]
   , requirements :: [Expr Int]            

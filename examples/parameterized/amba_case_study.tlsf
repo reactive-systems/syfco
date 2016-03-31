@@ -13,13 +13,18 @@ GLOBAL {
   }
 
   DEFINITIONS {
+    enum hburst =
+      SINGLE: 01
+      INCR:   00
+      BURST4: 10;
+    
     m = log2(n);
 
     /* Values of the HBURST signal.
      */
-    SINGLE(x) = !x[0] &&  x[1];
-    INCR(x)   = !x[0] && !x[1];
-    BURST4(x) =  x[0] && !x[1];
+//    SINGLE(x) = !x[0] &&  x[1];
+//    INCR(x)   = !x[0] && !x[1];
+//    BURST4(x) =  x[0] && !x[1];
 
     /* Checks whether a bus of size log(n) currently represents 
      * the numerical value v (encoded in binary).
@@ -80,7 +85,7 @@ MAIN {
      *   BURST4 (a four-transfer burst access), or
      *   INCR (unspecified length burst).
      */
-    HBURST[2];
+    hburst HBURST;
   } 
 
   OUTPUTS {
@@ -128,7 +133,7 @@ MAIN {
      *   HBUSREQ[i] high locks the bus. This this is forbidden by the 
      *   standard.
      */
-    G (HMASTLOCK && INCR(HBURST) -> X F !BUSREQ);
+    G (HMASTLOCK && (HBURST == INCR) -> X F !BUSREQ);
     
     /* Assumption 2: Leaving HREADY low locks the bus, the standard 
      *   forbids is.
@@ -163,7 +168,7 @@ MAIN {
      *   a new access does not start until the current master 
      *   (HMASTER) releases the bus by lowering HBUSREQ[HMASTER].
      */
-    HMASTLOCK && INCR(HBURST) && START ->
+    HMASTLOCK && (HBURST == INCR) && START ->
       X (!START W (!START && !BUSREQ));
 
     /* Guarantee 3: When a length-four locked burst starts, no other
@@ -173,10 +178,10 @@ MAIN {
      *   the cases where HREADY is true initially separately from the 
      *   case in which it is not.)
      */
-    HMASTLOCK && BURST4(HBURST) && START && HREADY ->
+    HMASTLOCK && (HBURST == BURST4) && START && HREADY ->
       X CWU(!START, !START && HREADY, 3);
      
-    HMASTLOCK && BURST4(HBURST) && START && !HREADY ->
+    HMASTLOCK && (HBURST == BURST4) && START && !HREADY ->
       X CWU(!START, !START && HREADY, 4); 
 
     /* Guarantee 4: The HMASTER signal follows the grants: When HREADY

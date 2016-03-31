@@ -41,7 +41,8 @@
   '("INFO" "TITLE" "DESCRIPTION" "SEMANTICS" "TARGET"
     "GLOBAL" "PARAMETERS" "DEFINITIONS" "OUTPUTS"
     "INPUTS" "ASSUMPTIONS" "INVARIANTS" "TAGS"
-    "GUARANTEES" "MAIN")
+    "GUARANTEES" "MAIN" "ASSERT" "REQUIREMENTS"
+    "INITIALLY" "PRESET" "REQUIRE" "GUARANTEE" "enum")
   "Advanced LTL Format keywords")
 
 (defvar tlsf-connectives-regexp
@@ -50,10 +51,11 @@
 (defvar tlsf-indent-keywords
   "^[ \t]*\\(INFO\\|GLOBAL\\|MAIN\\|PARAMETERS\\|DEFINITIONS\\|OUTPUTS\\|INPUTS\\|ASSUMPTIONS\\|INVARIANTS\\|GUARANTEES\\|SEMANTICS\\|TARGETS\\|TAGS\\)")
 
-(defvar tlsf-function-regexp "^\\s-*\\(\\w+\\)\\s-*\\((.*)\\)?\\s-*=[^=]")
+(defvar tlsf-function-regexp "^\\s-*\\(\\w+\\)\\s-*\\((.*)\\)?\\s-*=")
 (defvar tlsf-args-regexp "\\(\\w+\\)[,\\|)]")
-
+(defvar tlsf-enum-regexp "^\\s-*enum\\s-*\\(\\w+\\)\\s-*=")
 (defvar tlsf-bus-regexp "\\[\\(\\w+\\)\\]")
+(defvar tlsf-typedbus-regexp "^\\s-*\\(\\<\\w+\\>\\)\\s-*\\<\\w+\\>\\s-*;")
  
 (defvar tlsf-kw-regexp (regexp-opt tlsf-kw 'words))
 (defvar tlsf-builtin-regexp (regexp-opt tlsf-builtin 'words))
@@ -63,7 +65,9 @@
    (,tlsf-builtin-regexp . font-lock-builtin-face)
    (,tlsf-connectives-regexp . font-lock-variable-name-face)
    (,tlsf-function-regexp (1 font-lock-function-name-face))
-   (,tlsf-bus-regexp 1 font-lock-type-face)         
+   (,tlsf-bus-regexp 1 font-lock-type-face)
+   (,tlsf-typedbus-regexp 1 font-lock-type-face)   
+   (,tlsf-enum-regexp 1 font-lock-type-face) 
    (,tlsf-function-regexp
     "\\<\\w*\\>"
     (progn

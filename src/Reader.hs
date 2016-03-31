@@ -14,6 +14,10 @@ module Reader
 
 -----------------------------------------------------------------------------
 
+import Data.Enum
+    ( EnumDefinition(..)
+    )  
+
 import Data.Error
     ( Error
     )
@@ -33,8 +37,12 @@ import Reader.Sugar
     
 import Reader.Parser
     ( parse
+    )
+
+import Reader.Error
+    ( errEnumConflict
     )  
- 
+
 import Reader.Bindings
     ( specBindings
     )
@@ -61,6 +69,8 @@ import qualified Data.Array.IArray as A
 
 import qualified Reader.Data as RD
 
+import qualified Reader.Parser.Data as PD
+
 -----------------------------------------------------------------------------
 
 -- | Reads a specification from a string to the internal 'Specification'
@@ -70,7 +80,9 @@ readSpecification
   :: String -> Either Error Specification
 
 readSpecification str = do
-  s0 <- parse str 
+  s0 <- parse str
+  mapM_ checkEnum $ PD.enumerations s0
+  
   s1 <- abstract s0
   s2 <- replaceSugar s1
   s3 <- specBindings s2
@@ -84,6 +96,7 @@ readSpecification str = do
     , target       = fst $ RD.target s4
     , targetP      = snd $ RD.target s4                    
     , tags         = RD.tags s4
+    , enumerations = RD.enumerations s4
     , parameters   = RD.parameters s4
     , definitions  = RD.definitions s4
     , inputs       = RD.inputs s4
@@ -122,5 +135,21 @@ symtable s =
     xs = map (\(a,b,c,d,e ,f,g) -> (a,IdRec b c d e f g)) ys
   in
    A.array (minkey, maxkey) xs
+
+-----------------------------------------------------------------------------
+
+checkEnum
+  :: EnumDefinition String -> Either Error ()
+
+checkEnum e = case eDouble e of
+  Nothing      -> return ()
+  Just ((m,p),(x,_),(y,_),f) -> errEnumConflict m x y (toStr (eSize e) f) p
+
+  where
+    toStr n f = map (toS . f) [0,1..n-1]
+
+    toS (Right ())    = '*'
+    toS (Left True)  = '1'
+    toS (Left False) = '0'
 
 -----------------------------------------------------------------------------

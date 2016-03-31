@@ -118,7 +118,6 @@ stToCSV lt = do
     
     prType t = case t of
       TNumber   -> "number"
-      TSignal x -> show (TSignal x)
       TLtl      -> "ltl"
       TBoolean  -> "bool"
       TPattern  -> "pattern"
@@ -128,6 +127,7 @@ stToCSV lt = do
         if i >= ord 'a' && i <= ord 'z'
         then [chr i]
         else "a" ++ show i
+      _         -> show t       
 
 -----------------------------------------------------------------------------                
 

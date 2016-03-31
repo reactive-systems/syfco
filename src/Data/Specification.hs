@@ -15,6 +15,10 @@ module Data.Specification
 
 -----------------------------------------------------------------------------
 
+import Data.Types
+    ( SignalDecType
+    )  
+
 import Data.Expression
     ( Expr
     , ExprPos
@@ -32,6 +36,10 @@ import Data.Binding
 import Data.SymbolTable
     ( SymbolTable
     )
+
+import Data.Enum
+    ( EnumDefinition
+    )  
 
 -----------------------------------------------------------------------------
 
@@ -96,10 +104,11 @@ data Specification =
   , target :: Target
   , targetP :: ExprPos 
   , tags :: [String]
+  , enumerations :: [EnumDefinition Int]    
   , parameters :: [Binding]
   , definitions :: [Binding]    
-  , inputs :: [Binding]
-  , outputs :: [Binding]
+  , inputs :: [SignalDecType Int]
+  , outputs :: [SignalDecType Int]
   , initially :: [Expression]
   , preset :: [Expression]
   , requirements :: [Expression]        

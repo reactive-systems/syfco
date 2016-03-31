@@ -27,16 +27,16 @@ import Data.Char
 
 import Config
     ( Configuration(..)
-    )    
+    )
+
+import Data.Types
+    ( SignalDecType(..)
+    )  
 
 import Data.LTL
     ( Atomic(..)
     , Formula(..)
     , fNot  
-    )
-
-import Data.Binding
-    ( BindExpr(..)
     )
 
 import Data.SymbolTable
@@ -272,8 +272,8 @@ checkLower
 
 checkLower fmt s =
   let
-    ids = map bIdent (inputs s) ++
-          map bIdent (outputs s)
+    ids = map ident (inputs s) ++
+          map ident (outputs s)
     names = map (idName . (symboltable s !)) ids
     lnames = map (map toLower) names
     znames = zip3 ids names lnames
@@ -281,6 +281,11 @@ checkLower fmt s =
     checkDouble znames
     
   where
+    ident x = case x of
+      SDSingle (y,_) -> y
+      SDBus (y,_) _  -> y
+      SDEnum (y,_) _ -> y
+    
     checkDouble xs = case xs of
       [] ->  return ()
       [_] -> return ()

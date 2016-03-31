@@ -15,24 +15,63 @@ module Reader.Parser.Component
 -----------------------------------------------------------------------------
 
 import Text.Parsec
+    ( (<|>)
+    , many
+    , char
+    , sepBy
+    , oneOf  
+    )
+    
 import Text.Parsec.String
-import Text.Parsec.Token hiding (identifier)
+    ( Parser 
+    )
+    
+import Text.Parsec.Token
+    ( GenLanguageDef(..)
+    , makeTokenParser
+    , braces
+    , reservedOp
+    , whiteSpace
+    , reserved
+    )
 
-import Data.Binding
+import Data.Types
+    ( SignalDecType(..)
+    )  
+
 import Data.Expression
-import Reader.Parser.Data (globalDef)
-import Reader.Parser.Utils
-import Reader.Parser.Expression
+    ( Expr(..)
+    , ExprPos(..)  
+    )  
 
-import Data.Maybe 
-import Control.Monad 
+import Reader.Parser.Data
+    ( globalDef
+    )
+    
+import Reader.Parser.Utils
+    ( identifier
+    , getPos  
+    )
+    
+import Reader.Parser.Expression
+    ( exprParser
+    )  
+
+import Data.Maybe
+    ( catMaybes
+    )
+    
+import Control.Monad
+    ( void
+    , liftM  
+    )  
 
 -----------------------------------------------------------------------------
 
 data Component =
   Component
-  { inputs :: [BindExpr String]
-  , outputs :: [BindExpr String]
+  { inputs :: [SignalDecType String]
+  , outputs :: [SignalDecType String]
   , initially :: [Expr String]
   , preset :: [Expr String]
   , requirements :: [Expr String]                
@@ -62,9 +101,9 @@ data Component =
 --     * the guarantees of the specification
 
 componentParser
-  :: Parser ([BindExpr String], [BindExpr String], [Expr String],
-            [Expr String], [Expr String], [Expr String],
-            [Expr String], [Expr String])
+  :: Parser ([SignalDecType String], [SignalDecType String],
+            [Expr String], [Expr String], [Expr String], 
+            [Expr String], [Expr String], [Expr String])
 
 componentParser = do
   keyword "MAIN"
@@ -141,13 +180,19 @@ componentParser = do
 
     signalParser = do
       (x,pos) <- identifier (~~)
-      busParser x pos <|> return (BindExpr x [] pos [])
+      typedBusParser x pos
+        <|> busParser x pos
+        <|> return (SDSingle (x,pos))
 
     busParser x pos = do
       ch '['; (~~)
       e <- exprParser
       ch ']'; p <- getPos; (~~)
-      return $ BindExpr x [] (ExprPos (srcBegin pos) p) [e]
+      return $ SDBus (x,(ExprPos (srcBegin pos) p)) e
+
+    typedBusParser x pos = do
+      (y,p) <- identifier (~~)
+      return $ SDEnum (y,p) (x,pos)
 
     sectionParser x p = do
       keyword x

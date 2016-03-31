@@ -14,6 +14,14 @@ module Reader.Abstraction
 
 -----------------------------------------------------------------------------
 
+import Data.Types
+    ( SignalDecType(..)
+    )  
+
+import Data.Enum
+    ( EnumDefinition(..)
+    ) 
+
 import Data.Binding
     ( BindExpr(..)
     )
@@ -47,8 +55,8 @@ import Control.Monad.State
     , evalStateT
     , get
     , put
-    , void  
-    )  
+    , void
+    )
 
 import qualified Reader.Parser.Data as PD
 
@@ -82,7 +90,7 @@ abstract
 
 abstract spec = 
   evalStateT (abstractSpec spec)
-    ST { count = 0
+    ST { count = 1
        , tIndex = SM.empty
        , tName = IM.empty
        , tPos = IM.empty
@@ -96,14 +104,40 @@ abstractSpec
 
 abstractSpec s = do
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.parameters s
+  mapM_ (mapM_ (\(y,z,_) -> add (y,z)) . eValues) $ PD.enumerations s
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.definitions s
-  ps <- mapM abstractBind $ PD.parameters s 
+  ps <- mapM abstractBind $ PD.parameters s
   vs <- mapM abstractBind $ PD.definitions s
 
-  mapM_ (\x -> add (bIdent x,bPos x)) $ PD.inputs s
-  mapM_ (\x -> add (bIdent x,bPos x)) $ PD.outputs s
-  is <- mapM abstractBind $ PD.inputs s
-  os <- mapM abstractBind $ PD.outputs s
+  let
+    (ig,ib,ie) = foldl classify ([],[],[]) $ PD.inputs s
+    (og,ob,oe) = foldl classify ([],[],[]) $ PD.outputs s      
+
+  a <- get
+  ms <- mapM abstractEnum $ PD.enumerations s
+  ie' <- mapM abstractSignalType ie
+  oe' <- mapM abstractSignalType oe
+  a' <- get
+  put a' {
+    tIndex = tIndex a
+    }
+
+  ig' <- mapM add ig
+  og' <- mapM add og
+  ib' <- mapM abstractBus ib
+  ob' <- mapM abstractBus ob
+  ie'' <- mapM abstractTypedBus ie'
+  oe'' <- mapM abstractTypedBus oe'
+
+  let
+    is =
+      map SDSingle ig' ++
+      map (uncurry SDBus) ib' ++
+      map (uncurry SDEnum) ie''
+    os =
+      map SDSingle og' ++
+      map (uncurry SDBus) ob' ++
+      map (uncurry SDEnum) oe''      
 
   es <- mapM abstractExpr $ PD.initially s
   ss <- mapM abstractExpr $ PD.preset s
@@ -120,13 +154,72 @@ abstractSpec s = do
     (PD.semantics s)
     (PD.target s)
     (PD.tags s)
-    ps vs is os es ss rs as bs gs
+    ms ps vs is os es ss rs as bs gs
     IM.empty
     (tName st)
     (tPos st)
     (tArgs st)
     IM.empty
     IM.empty
+
+  where
+    classify (a,b,c) x = case x of
+      SDSingle y -> (y:a,b,c)
+      SDBus y z  -> (a,(y,z):b,c)
+      SDEnum y z -> (a,b,(y,z):c)
+    
+    abstractTypedBus (n,m) = do
+      a <- add n
+      return (a,m)
+
+-----------------------------------------------------------------------------
+
+abstractSignalType
+  :: Abstractor ((String,ExprPos),(String,ExprPos))
+               ((String,ExprPos),(Int,ExprPos))
+
+abstractSignalType (n,(t,p)) = do
+  a <- get
+  i <- case SM.lookup t $ tIndex a of
+    Just j  -> return j
+    Nothing -> errUnknown t p
+  return (n,(i,p))
+
+-----------------------------------------------------------------------------
+
+abstractBus
+  :: Abstractor ((String,ExprPos),Expr String)
+               ((Int,ExprPos),Expr Int)
+
+abstractBus ((s,p),e) = do
+  (i,p') <- add (s,p)
+  e' <- abstractExpr e
+  return ((i,p'),e')
+
+-----------------------------------------------------------------------------     
+
+abstractEnum
+  :: Abstractor (EnumDefinition String) (EnumDefinition Int)
+
+abstractEnum b = do
+  (n,p) <- add (eName b, ePos b)
+  vs <- mapM abstractEnumV $ eValues b
+    
+  return EnumDefinition
+    { eName = n
+    , eSize = eSize b
+    , eValues = vs
+    , ePos = p
+    , eMissing = eMissing b
+    , eDouble = Nothing
+    }
+
+  where
+    abstractEnumV (n,p,f) = do
+      a <- get
+      case SM.lookup n $ tIndex a of
+        Just j  -> return (j,p,f)
+        Nothing -> errUnknown n p
 
 -----------------------------------------------------------------------------
 

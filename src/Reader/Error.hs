@@ -13,6 +13,7 @@ module Reader.Error
     ( Error
     , errUnknown
     , errConflict
+    , errEnumConflict      
     , errPattern
     , errArgArity
     , errConditional
@@ -65,7 +66,19 @@ errConflict
 errConflict i x y = 
   let msg = "conflicting definitions: " ++ i ++ "\n" ++
             "already bound at " ++ prErrPos x
-  in StateT $ \_ -> bindingError y msg
+  in StateT $ \_ -> bindingError y msg                    
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that indicates two conflicting enumeration values.
+
+errEnumConflict
+  :: String -> String -> String -> String -> ExprPos -> Either Error b
+
+errEnumConflict e s1 s2 v y = 
+  let msg = "conflict in enumeration: " ++ e ++ "\n" ++
+            s1 ++ " and " ++ s2 ++ " share the same value: " ++ v 
+  in bindingError y msg
 
 -----------------------------------------------------------------------------
 

@@ -66,7 +66,7 @@ specificationParser
 
 specificationParser = do
   (i,d,s,r,a) <- infoParser 
-  (ps,vs) <- globalParser <|> return ([],[])
+  (ps,vs,ms) <- globalParser <|> return ([],[],[])
   (is,os,es,ss,rs,as,ns,gs) <- componentParser
 
   return Specification
@@ -75,6 +75,7 @@ specificationParser = do
     , semantics = s
     , target = r
     , tags = a
+    , enumerations = ms         
     , parameters = ps
     , definitions = vs
     , inputs = is
