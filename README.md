@@ -1,19 +1,20 @@
-# Synthesis Format Conversion Tool<br/>(Version 0.1.0.3)
+# Synthesis Format Conversion Tool<br/>(Version 1.0.0.0)
 
 A tool for reading, manipulating and transforming synthesis
-specifications in TLSF (Temporal Logic Synthesis Format).
+specifications in [TLSF](https://arxiv.org/abs/1604.02284).
 
 ## About this tool
 
-The tool interprets the high level constructs of TLSF (functions,
-sets, ...) and supports the transformation of the specification to
-Linear Temporal Logic (LTL) in different output formats. The tool has
-been designed to be modular with respect to the supported output
-formats and semantics. Furthermore, the tool allows to identify and
-manipulate parameters, targets and semantics of a specification on the
-fly. This is especially thought to be useful for comparative studies,
-as they are for example needed in the [Synthesis
-Competition](http://www.syntcomp.org/).
+The tool interprets the high level constructs of
+[TLSF 1.1](https://arxiv.org/abs/1604.02284)
+(functions, sets, ...) and supports the transformation of the
+specification to Linear Temporal Logic (LTL) in different output
+formats. The tool has been designed to be modular with respect to the
+supported output formats and semantics. Furthermore, the tool allows
+to identify and manipulate parameters, targets and semantics of a
+specification on the fly. This is especially thought to be useful for
+comparative studies, as they are for example needed in the [Synthesis
+Competition](http://www.syntcomp.org).
 
 The main features of the tool are summarized as follows:
 
@@ -24,8 +25,12 @@ The main features of the tool are summarized as follows:
 * Transformation to other existing specification formats, like Basic
   TLSF, [Promela LTL](http://spinroot.com/spin/Man/ltl.html),
   [PSL](https://en.wikipedia.org/wiki/Property_Specification_Language),
-  [Unbeast](https://www.react.uni-saarland.de/tools/unbeast/) or
-  [Wring](http://www.ist.tugraz.at/staff/bloem/wring.html).
+  [Unbeast](https://www.react.uni-saarland.de/tools/unbeast),
+  [Wring](http://www.ist.tugraz.at/staff/bloem/wring.html) or
+  [Slugs](https://github.com/VerifiableRobotics/slugs).
+
+* Syntactical analysis of membership in GR(k) for any k (modulo
+  boolean identities).
 
 * On the fly adjustment of parameters, semantics or targets.
 
@@ -45,11 +50,21 @@ SyfCo is written in Haskell and can be compiled using the Glasgow Haskell Compil
 
 Prerequisites:
 
-* [GHC](https://www.haskell.org/ghc/) (recommended version: >= 7.0.1, [Haskell2010](https://wiki.haskell.org/Definition))
+* [GHC](https://www.haskell.org/ghc) (recommended version: >= 7.0.1, [Haskell2010](https://wiki.haskell.org/Definition))
  
-* [parsec](https://hackage.haskell.org/package/parsec-3.1.0) (recommended version: >= 3.1)
+* [parsec](https://hackage.haskell.org/package/parsec) (recommended version: >= 3.1)
 
-Building the tool should be simple using [cabal](https://www.haskell.org/cabal/)
+* [array](https://hackage.haskell.org/package/array) (recommended version: >= 0.5)
+
+* [containers](https://hackage.haskell.org/package/containers) (recommended version: >= 0.5)
+
+* [directory](https://hackage.haskell.org/package/directory) (recommended version: >= 1.2)
+
+* [mtl](https://hackage.haskell.org/package/mtl) (recommended version: >= 2.2)
+
+* [transformers](https://hackage.haskell.org/package/transformers) (recommended version: >= 0.4)
+
+Building the tool should be simple using [cabal](https://www.haskell.org/cabal)
 
 <code>cabal install</code>
 
@@ -140,7 +155,7 @@ A number of synthesis benchmarks in TLSF can be found in the
 
 ## Editor Support
 
-If you use [Emacs](https://www.gnu.org/software/emacs/), you should try our emacs mode (```tlsf-mode.el```),
+If you use [Emacs](https://www.gnu.org/software/emacs), you should try our emacs mode (```tlsf-mode.el```),
 which can be found in the ```/misc``` directory.
 
 ## Adding output formats

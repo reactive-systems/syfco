@@ -35,7 +35,7 @@ profile: ${MAIN.hs}
 	@mkdir -p ${BLDDIR}
 	@ghc -prof -fprof-auto -idir1:src ${GHCFLAGS} ${MAIN} -odir ${BLDDIR} -hidir ${BLDDIR} -o ${NAME}
 	@strip ${NAME}
-	@echo -e '#!/bin/bash\n\n./syfco +RTS -p -RTS $${*}' > ${NAME}_profile
+	@echo -e '#!/bin/bash\n\n./${NAME} +RTS -p -RTS $${*}' > ${NAME}_profile
 	@chmod +x ${NAME}_profile
 
 static:

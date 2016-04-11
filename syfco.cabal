@@ -1,12 +1,12 @@
 name:                syfco
-version:             0.1.0.3
+version:             1.0.0.0
 synopsis:            A tool for reading, manipulating and transforming synthesis specifications.
 description:         Synthesis Format Conversion Tool   
 license:             MIT
 license-file:        LICENSE
 author:              Felix Klein <klein@react.uni-saarland.de>
 maintainer:          Felix Klein <klein@react.uni-saarland.de>
-stability:           alpha
+stability:           stable
 category:            SyntComp
 homepage:            https://github.com/reactive-systems/syfco
 bug-reports:         https://github.com/reactive-systems/syfco/issues

@@ -1,19 +1,19 @@
 # Synthesis Format Conversion Tool
-# (Version 0.1.0.3)
+# (Version 1.0.0.0)
 
 A tool for reading, manipulating and transforming synthesis
-specifications in TLSF (Temporal Logic Synthesis Format).
+specifications in TLSF [1].
 
 ## About this tool
 
-The tool interprets the high level constructs of TLSF (functions,
+The tool interprets the high level constructs of TLSF 1.1 (functions,
 sets, ...) and supports the transformation of the specification to
 Linear Temporal Logic (LTL) in different output formats. The tool has
 been designed to be modular with respect to the supported output
 formats and semantics. Furthermore, the tool allows to identify and
-manipulate parameters, targets and semantics of a specification on the
+manipulate parameters, targets and semantics of a  specification on the
 fly. This is especially thought to be useful for comparative studies,
-as they are for example needed in the Synthesis Competition.
+as they are for example needed in the Synthesis Competition [2].
 
 The main features of the tool are summarized as follows:
 
@@ -22,7 +22,10 @@ The main features of the tool are summarized as follows:
   variable bindings occur (i.e., without the GLOBAL section).
   
 * Transformation to other existing specification formats, like Basic
-  TLSF, Promela LTL, PSL, Unbeast or Wring.
+  TLSF, Promela LTL [3], PSL [4], Unbeast [5], Wring [6] or Slugs [7].
+
+* Syntactical analysis of membership in GR(k) for any k (modulo
+  boolean identities).
 
 * On the fly adjustment of parameters, semantics or targets.
 
@@ -44,11 +47,21 @@ Haskell Compiler (GHC).
 
 Prerequisites:
 
-* GHC (recommended version: >= 7.0.1, Haskell2010)
+* GHC [8] (recommended version: >= 7.0.1, Haskell2010 [9])
  
-* parsec (recommended version: >= 3.1)
+* parsec [10] (recommended version: >= 3.1)
 
-Building the tool should be simple using cabal
+* array [11] (recommended version: >= 0.5)
+
+* containers [12] (recommended version: >= 0.5)
+
+* directory [13] (recommended version: >= 1.2)
+
+* mtl [14] (recommended version: >= 2.2)
+
+* transformers [15] (recommended version: >= 0.4)
+
+Building the tool should be simple using cabal [16]
 
   cabal install
 
@@ -57,8 +70,9 @@ or, if you work in a UNIX environment, simply by using
   make
 
 However, if you encounter any problems, pleaseinform us via the
-project bug tracker
-(https://github.com/reactive-systems/syfco/issues).
+project bug tracker:
+
+  https://github.com/reactive-systems/syfco/issues
 
 ## Usage
 
@@ -167,7 +181,7 @@ directory.
 
 ## Editor Support
 
-If you use Emacs, you should try our emacs mode (tlsf-mode.el), which can
+If you use Emacs [17], you should try our emacs mode (tlsf-mode.el), which can
 be found in the /misc directory.
 
 ## Adding output formats
@@ -175,3 +189,23 @@ be found in the /misc directory.
 If you like to add a new output format, first consider
 /Writer/Formats/Example.hs, which contains the most common standard
 constructs and a short tutorial.
+
+--------------------------------------------------
+
+[1]   https://arxiv.org/abs/1604.02284
+[2]   http://www.syntcomp.org
+[3]   http://spinroot.com/spin/Man/ltl.html
+[4]   https://en.wikipedia.org/wiki/Property_Specification_Language
+[5]   https://www.react.uni-saarland.de/tools/unbeast
+[6]   http://www.ist.tugraz.at/staff/bloem/wring.html
+[7]   https://github.com/VerifiableRobotics/slugs
+[8]   https://www.haskell.org/ghc
+[9]   https://wiki.haskell.org/Definition
+[10]  https://hackage.haskell.org/package/parsec
+[11]  https://hackage.haskell.org/package/array
+[12]  https://hackage.haskell.org/package/containers
+[13]  https://hackage.haskell.org/package/directory
+[14]  https://hackage.haskell.org/package/mtl
+[15]  https://hackage.haskell.org/package/transformers
+[16]  https://www.haskell.org/cabal
+[17]  https://www.gnu.org/software/emacs
