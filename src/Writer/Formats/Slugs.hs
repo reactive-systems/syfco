@@ -54,19 +54,25 @@ writeFormat c s = do
         ++ "\n" ++ concatMap (++ "\n") iv
         ++ "\n" ++ "[OUTPUT]"
         ++ "\n" ++ concatMap (++ "\n") ov
-        ++ "\n" ++ "[ENV_INIT]"
-        ++ "\n" ++ concatMap (++ "\n") (map prFormula es)
-        ++ "\n" ++ "[SYS_INIT]"
-        ++ "\n" ++ concatMap (++ "\n") (map prFormula ss)
-        ++ "\n" ++ "[ENV_TRANS]"
-        ++ "\n" ++ concatMap (++ "\n") (map prFormula rs)
-        ++ "\n" ++ "[SYS_TRANS]"
-        ++ "\n" ++ concatMap (++ "\n") (map prFormula is)
-        ++ "\n" ++ "[ENV_LIVENESS]"
-        ++ "\n" ++ concatMap (++ "\n") (map prFormula le)
-        ++ "\n" ++ "[SYS_LIVENESS]"
-        ++ "\n" ++ concatMap (++ "\n") (map prFormula ls)                                
-        
+        ++ (if null es then "" else
+             "\n" ++ "[ENV_INIT]" ++ 
+             "\n" ++ concatMap (++ "\n") (map prFormula es))
+        ++ (if null ss then "" else             
+             "\n" ++ "[SYS_INIT]" ++
+             "\n" ++ concatMap (++ "\n") (map prFormula ss))
+        ++ (if null rs then "" else        
+              "\n" ++ "[ENV_TRANS]" ++
+              "\n" ++ concatMap (++ "\n") (map prFormula rs))
+        ++ (if null is then "" else        
+              "\n" ++ "[SYS_TRANS]" ++
+              "\n" ++ concatMap (++ "\n") (map prFormula is))
+        ++ (if null le then "" else 
+              "\n" ++ "[ENV_LIVENESS]" ++
+              "\n" ++ concatMap (++ "\n") (map prFormula le))
+        ++ (if null ls then "" else        
+             "\n" ++ "[SYS_LIVENESS]" ++
+             "\n" ++ concatMap (++ "\n") (map prFormula ls))
+
     prFormula fml = case fml of
       TTrue                 -> "TRUE"
       FFalse                -> "FALSE"
