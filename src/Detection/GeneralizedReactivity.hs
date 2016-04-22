@@ -36,7 +36,13 @@ import Data.Either
 import Data.List
     ( sortBy
     , partition
+    , sort
+    , find  
     )
+
+import Data.Types
+    ( Semantics(..)
+    )  
     
 import Data.Function
     ( on
@@ -142,8 +148,14 @@ detectGR c s =
       pullFinally = True,
       pullGlobally = True,
       pullNext = False,
-      noRelease = True
+      noRelease = True,
+      owSemantics = case semantics s of
+        SemanticsStrictMoore -> Just $ SemanticsStrictMealy
+        SemanticsMoore       -> Just $ SemanticsStrictMoore
+        _                    -> Nothing
       }
+
+    strict = semantics s `elem` [SemanticsStrictMealy, SemanticsStrictMoore]
 
     fml = do
       (es,ss,rs,as,is,gs) <- eval c' s
@@ -152,9 +164,9 @@ detectGR c s =
         
   in case fml of
     Left x  -> Left $ Left x
-    Right x -> case transformToGR x of
-      Left y  -> Left $ Right y
-      Right y -> return y
+    Right x -> case transformToGR strict x of
+        Left y  -> Left $ Right y
+        Right y -> return y        
 
   where
     noImplication fml = case fml of
@@ -175,15 +187,15 @@ detectGR c s =
       _         ->
         applySub noEquivalence fml               
 
------------------------------------------------------------------------------
+-----------------------------------------------------------------------------        
 
 -- | Transforms an "evaluated" formula to GR, if possible. If it is
 -- not possible, the reason for the refusal is returend.
 
 transformToGR
-  :: Formula -> Either Refusal GRFormula
+  :: Bool -> Formula -> Either Refusal GRFormula
 
-transformToGR fml = do
+transformToGR strict fml = do
   -- check that there is no until formula
   noUntil fml
   -- check that there is no next formula on the initial level
@@ -192,10 +204,15 @@ transformToGR fml = do
   let xs = firstLevelCNF $ pullTogether fml
   -- separate the initial constraints1
   (is,ps,ys) <- separateInitials xs
-  -- separate the invariants
-  (fs,gs,zs) <- separateInvariants is ys
-  -- separate the liveness constriants
-  (ls,rs) <- separateLiveness zs
+  -- separate the requirements
+  (fs,fr) <- separateRequirements is $ fAnd $ map fOr ys
+  -- separate remaining sub-formulas
+  (gs,ls,rs) <-
+    if strict
+    then case separateStandard fr of
+      Right (a,b,[]) -> return (a,b,[])
+      _              -> separateStrict fr
+    else separateStandard fr
 
   case rs of
     [] -> return 
@@ -208,13 +225,106 @@ transformToGR fml = do
         , liveness = ls
         }
         
-    _  ->
-      Left $
-        "The following sub-formulas cannot be refined "
-        ++ "to fit the GeneralizedReactivity requirements:"
-        ++ concatMap (\x -> "\n  * " ++ simplePrint (fOr x)) rs
+    _  -> errIncompatible $ map fOr rs
 
 -----------------------------------------------------------------------------
+
+separateStrict
+  :: Formula
+  -> Either Refusal ([Formula],[([Formula],[Formula])],[[Formula]])     
+
+separateStrict fml = let
+    -- convert to DNF
+    xs = firstLevelDNF $ pullTogether fml
+    -- pull globally formulas outwards
+    ys = map (pullG . fAnd) xs
+    -- ckassify the different elements
+    (c1,c2,c3,xr) = foldl classify ([],[],[],[]) ys
+  in do
+    (gs,ff) <- case c3 of
+      []  -> case c2 of
+        [] -> return ([],fOr (map (Finally . Globally) c1 ++ map fAnd xr))
+        _  -> errIncompatible $
+               map (\(x,y) -> fAnd [Finally (Globally x), Globally y]) c2
+      [x] -> let
+          cs = firstLevelCNF $ fOr $ pullF x
+          (fs,zs) = partitionEithers $ map isFL cs
+        in if null xr then
+             case find (((sort zs) /=) . sort . firstLevelCNF . snd) c2 of
+               Nothing ->
+                 return (map fOr zs,
+                         fOr (map (Finally . Globally) (c1 ++ map fst c2) ++
+                              map (Globally . Finally) fs))
+               Just r  -> errIncompatible [
+                           fAnd $ map fOr zs,
+                           fAnd $ map fOr $ firstLevelCNF $ snd r
+                           ]
+           else
+             errIncompatible $ map fOr xr
+      _   -> assert False undefined
+    (ls,rs) <- separateStandardLiveness ff
+    return (gs,ls,rs)
+    
+
+  where
+    pullG f = case f of
+      And xs -> let
+          ys = concatMap pullG xs
+          (gs,rs) = partitionEithers $ map isG ys
+        in
+          Globally (And gs) : rs
+      _ -> [f]
+
+    isG f = case f of
+      Globally x -> Left x
+      _          -> Right f
+
+    pullF f = case f of
+      Or xs -> let
+          ys = concatMap pullF xs
+          (fs,rs) = partitionEithers $ map isF ys
+        in
+          Finally (Or fs) : rs
+      _ -> [f]
+
+    isF f = case f of
+      Finally x -> Left x
+      _          -> Right f
+
+    isFL fs = case fs of
+      [Finally x] -> Left x
+      _           -> Right fs
+
+    classify (a,b,c,d) xs = case xs of
+      [Finally (Globally x)]             -> (x:a,b,c,d)
+      [Finally (Globally x), Globally y] -> (a,(x,y):b,c,d)
+      [Globally y, Finally (Globally x)] -> (a,(x,y):b,c,d)
+      [Globally x]                       -> (a,b,x:c,d)
+      _                                  -> (a,b,c,xs:d)
+
+-----------------------------------------------------------------------------    
+
+-- | Separation of the invariants and the lifeness constraints under
+-- standard semantics.
+
+separateStandard
+  :: Formula
+  -> Either Refusal ([Formula],[([Formula],[Formula])],[[Formula]])
+
+separateStandard fml = do
+  -- convert to CNF
+  let xs = firstLevelCNF $ pullTogether fml
+  -- separate singleton globally formulas
+  (cG,ys) <- separateGlobally xs
+  -- check for boolean sub-formulas  
+  let (gs,lg) = partition isBooleanNextFormula cG
+  -- separate the liveness constriants
+  (ls,rs) <- separateStandardLiveness $ fAnd $ map fOr $
+              ys ++ map ((: []) . fGlobally) lg
+  -- return all sub-formulas
+  return (gs,ls,rs)
+
+-----------------------------------------------------------------------------    
 
 -- | Check that there is no unil operator inside the formula.    
 
@@ -321,64 +431,60 @@ separateInitials xs = do
 
 -----------------------------------------------------------------------------
 
--- | Separate the invariants from the formula.    
+-- | Separates the requirements from the formula and checks the
+-- consisitency of the initial conditions.
 
-separateInvariants
-  :: [Formula] -> [[Formula]]
-  -> Either Refusal ([Formula],[Formula],[[Formula]])
+separateRequirements
+  :: [Formula] -> Formula
+  -> Either Refusal ([Formula], Formula)
 
-separateInvariants is xs = do
+separateRequirements is fml = do
   -- convert formulas to DNF
-  let ys = firstLevelDNF $ pullTogether $ fAnd $ map fOr xs
+  let ys = firstLevelDNF $ pullTogether fml
   -- separate the boolean fragment
   (bs,ns) <- separateBoolean ys
-  -- check for compatibility
+    -- check for compatibility
   unless (map (fNot . fAnd) bs == is) $ Left $
     "The initial constraints cannot be refined to fit into the "
     ++ "Generalized Reactivity format."
-  -- separate singleton finally ormulas
-  (cF,fr) <- separateFinally ns
+  -- separate singleton finally formulas
+  (cF,fr) <- separateFinally ns 
   -- check for boolean sub-formulas
   let (fs,lf) = partition isBooleanNextFormula cF
   -- check for inputs under next
   mapM_ checkInputsUnderNext fs 
-  -- convert back to CNF
-  let zs = firstLevelCNF $ pullTogether $ fOr $ map fAnd fr ++ map fFinally lf
-  -- separate singleton globally formulas
-  (cG,rs) <- separateGlobally zs
-  -- check for boolean sub-formulas  
-  let (gs,lg) = partition isBooleanNextFormula cG
-  -- return results
-  return (map fNot fs, gs, rs ++ map ((: []) . fGlobally) lg)
+  -- return the result
+  return (map fNot fs, fOr $ map fAnd fr ++ map fFinally lf)
 
   where
-    checkInputsUnderNext fml = case fml of
+    checkInputsUnderNext f = case f of
       Next x ->
         unless (null $ fmlOutputs x) $ Left $
           "GeneralizedReactivity does not allow to constraint "
           ++ "outputs under a transition target of "
           ++ "the environment:\n"
-          ++ "  " ++ simplePrint fml
-      _      -> mapM_ checkInputsUnderNext $ subFormulas fml
+          ++ "  " ++ simplePrint f
+      _      -> mapM_ checkInputsUnderNext $ subFormulas f
+
 
 -----------------------------------------------------------------------------
 
 -- | Separate the GR liveness condition form the formula.
 
-separateLiveness
-  :: [[Formula]] -> Either Refusal ([([Formula],[Formula])],[[Formula]])
+separateStandardLiveness
+  :: Formula -> Either Refusal ([([Formula],[Formula])],[[Formula]])
 
-separateLiveness xs =
+separateStandardLiveness fml =
   let
     -- ensure that we have no messed up formula
-    ys = firstLevelCNF $ pullTogether $ fAnd $ map fOr xs
+    ys = firstLevelCNF $ pullTogether fml
     -- check each separate disjunct
     (zs,rs) = partitionEithers $ map classify ys
     -- sort on the first component
     zs' = sortBy (compare `on` fst) zs
     -- join them
     ls = foldl join [] zs'
-  in
+  in 
     return (ls, rs)
 
   where
@@ -395,13 +501,12 @@ separateLiveness xs =
         let (a,b) = partitionEithers $ map sepFG ys
         in Left (strictSort a, strictSort b)
 
-
-    isFGB fml = case fml of
+    isFGB formula = case formula of
       Finally (Globally f) -> isBooleanFormula f
       Globally (Finally f) -> isBooleanFormula f
       _                    -> False
 
-    sepFG fml = case fml of
+    sepFG formula = case formula of
       Finally (Globally f) -> Left $ fNot f
       Globally (Finally f) -> Right f
       _                    -> assert False undefined
@@ -624,3 +729,14 @@ filterSupSets xs =
 
 -----------------------------------------------------------------------------
 
+-- | Returns an error listing all incompatible sub-formulas.    
+
+errIncompatible
+  :: [Formula] -> Either Refusal a
+
+errIncompatible xs =
+  Left $ "The following sub-formulas cannot be refined "
+         ++ "to fit the GeneralizedReactivity requirements:"
+         ++ concatMap (\x -> "\n  * " ++ simplePrint x) xs
+
+-----------------------------------------------------------------------------

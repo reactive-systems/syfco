@@ -40,7 +40,7 @@ data Semantics =
   | SemanticsMoore
   | SemanticsStrictMealy
   | SemanticsStrictMoore
-  deriving (Show)  
+  deriving (Show, Eq)  
 
 -----------------------------------------------------------------------------
 
