@@ -150,8 +150,8 @@ detectGR c s =
       pullNext = False,
       noRelease = True,
       owSemantics = case semantics s of
-        SemanticsStrictMoore -> Just $ SemanticsStrictMealy
-        SemanticsMoore       -> Just $ SemanticsStrictMoore
+        SemanticsStrictMoore -> Just SemanticsStrictMealy
+        SemanticsMoore       -> Just SemanticsStrictMoore
         _                    -> Nothing
       }
 
@@ -250,7 +250,7 @@ separateStrict fml = let
           cs = firstLevelCNF $ fOr $ pullF x
           (fs,zs) = partitionEithers $ map isFL cs
         in if null xr then
-             case find (((sort zs) /=) . sort . firstLevelCNF . snd) c2 of
+             case find ((sort zs /=) . sort . firstLevelCNF . snd) c2 of
                Nothing ->
                  return (map fOr zs,
                          fOr (map (Finally . Globally) (c1 ++ map fst c2) ++

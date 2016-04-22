@@ -12,6 +12,7 @@
 
 module Writer.Eval
     ( eval
+    , evalSignals  
     ) where
 
 -----------------------------------------------------------------------------
@@ -198,54 +199,33 @@ data ST = ST
 
 -----------------------------------------------------------------------------
 
--- | @eval d s@ Evaluates all high level constructs of the given
--- specification @s@. Thereby, signals which are obtaind by bus
--- accesses are printed using the delimiter string given by @d@.
+-- | @eval c s@ evaluates all high level constructs of the given
+-- specification @s@ under the current configuration @c@.
 
 eval
   :: Configuration -> Specification
      -> Either Error ([Formula],[Formula],[Formula],[Formula],[Formula],[Formula])
 
 eval c s = do
-  s' <- foldM overwriteParameter s $ owParameter c
-  let
-    s'' = s' {
-      target = fromMaybe (target s') $ owTarget c
-      }
-    xs = filter (isunary s'') $
-         map bIdent $ parameters s'' ++ definitions s''
-    ys = concatMap (\i -> map (\j -> (i,j)) $ filter (isunary s'') $
-                         idDeps $ symboltable s'' ! i) xs
-    minkey = foldl min (head xs) xs
-    maxkey = foldl max (head xs) xs
-    zs = if null xs then []
-         else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
-    ss = inputs s'' ++ outputs s''
-
-  st0 <- execStateT (mapM_ enumBinding $ enumerations s) $
-        ST (symboltable s'')
-        IM.empty
-        (busDelimiter c)
-        (enumerations s)
+  (s', st0, xs) <- initialize c s
+  let signals = inputs s' ++ outputs s'
   
-  stt <- execStateT (mapM_ staticBinding zs) st0
-  (rr,sti) <- runStateT (mapM componentSignal ss) stt
+  stt <- execStateT (mapM_ staticBinding xs) st0
+  (rr,sti) <- runStateT (mapM componentSignal signals) stt
   let (er,sr) = partitionEithers $ catMaybes rr
 
-  es <- evalStateT (mapM evalLtl $ initially s'') sti  
-  ts <- evalStateT (mapM evalLtl $ preset s'') sti
-  rs <- evalStateT (mapM evalLtl $ requirements s'') sti  
-  as <- evalStateT (mapM evalLtl $ assumptions s'') sti
-  is <- evalStateT (mapM evalLtl $ invariants s'') sti
-  gs <- evalStateT (mapM evalLtl $ guarantees s'') sti
+  es <- evalStateT (mapM evalLtl $ initially s') sti  
+  ts <- evalStateT (mapM evalLtl $ preset s') sti
+  rs <- evalStateT (mapM evalLtl $ requirements s') sti  
+  as <- evalStateT (mapM evalLtl $ assumptions s') sti
+  is <- evalStateT (mapM evalLtl $ invariants s') sti
+  gs <- evalStateT (mapM evalLtl $ guarantees s') sti
 
-  return $ splitConjuncts $ overwrite s'' 
+  return $ splitConjuncts $ overwrite s' 
     ( map plainltl es, map plainltl ts, map plainltl (rs ++ er),
       map plainltl (as ++ sr), map plainltl is, map plainltl gs )
 
   where
-    isunary y x = null $ idArgs $ symboltable y ! x
-
     plainltl = applyAtomic apA . vltl
 
     apA :: Atomic -> Formula
@@ -324,7 +304,81 @@ eval c s = do
       And xs -> concatMap splitC xs
       _      -> [fml]  
 
------------------------------------------------------------------------------      
+-----------------------------------------------------------------------------
+
+
+-- | @evalSignals c s@ evaluates all signals of the given
+-- specification @s@ under the current configuration @c@.
+
+evalSignals
+  :: Configuration -> Specification
+  -> Either Error ([String],[String])
+
+evalSignals c s = do
+  (s',st,xs) <- initialize c s
+  let signals = inputs s' ++ outputs s'  
+  stt <- execStateT (mapM_ staticBinding xs) st
+  stf <- execStateT (mapM_ componentSignal signals) stt
+  let
+    is = map getId $ inputs s'
+    os = map getId $ outputs s'
+
+  iv <- evalStateT (mapM getV is) stf
+  ov <- evalStateT (mapM getV os) stf
+
+  return (concat iv, concat ov)
+  
+  where
+    getId v = case v of
+      SDSingle (i,_) -> i
+      SDBus (i,_) _  -> i
+      SDEnum (i,_) _ -> i
+
+    getV i = do
+      st <- get
+      case IM.lookup i (tValues st) of
+        Nothing -> assert False undefined
+        Just x  -> case x of
+          VSignal _ y -> return [y]
+          VBus _ n y  -> return [y ++ delimiter st ++ show j | j <- [0,1..n-1]]
+          _           -> assert False undefined
+
+-----------------------------------------------------------------------------
+
+-- | Computes the initial state for the evaluation of the
+-- specification, as well as the adapted specification and the
+-- resolution order.
+
+initialize
+  :: Configuration -> Specification -> Either Error (Specification, ST, [Int])
+
+initialize c s = do
+  s' <- foldM overwriteParameter s $ owParameter c
+  let
+    s'' = s' {
+      target = fromMaybe (target s') $ owTarget c
+      }
+    xs = filter (isunary s'') $
+         map bIdent $ parameters s'' ++ definitions s''
+    ys = concatMap (\i -> map (\j -> (i,j)) $ filter (isunary s'') $
+                         idDeps $ symboltable s'' ! i) xs
+    minkey = foldl min (head xs) xs
+    maxkey = foldl max (head xs) xs
+    zs = if null xs then []
+         else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
+
+  st <- execStateT (mapM_ enumBinding $ enumerations s) $
+        ST (symboltable s'')
+        IM.empty
+        (busDelimiter c)
+        (enumerations s)
+
+  return (s'', st, zs)      
+
+  where
+    isunary y x = null $ idArgs $ symboltable y ! x
+
+-----------------------------------------------------------------------------    
 
 enumBinding
   :: EnumDefinition Int -> StateT ST (Either Error) ()
@@ -352,7 +406,7 @@ staticBinding x = do
 
   case S.toList bs of
     []  -> return ()
-    v:_ -> do
+    v:_ -> 
       put $ st {
         tValues = IM.insert x v $ tValues st
         }

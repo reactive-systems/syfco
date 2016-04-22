@@ -14,8 +14,8 @@ module Writer.Formats.Slugs where
 
 import Config
 
-import Utils
 import Data.LTL
+import Writer.Eval
 import Writer.Error
 import Data.Specification
 
@@ -29,49 +29,48 @@ import Control.Exception
 writeFormat
   :: Configuration -> Specification -> Either Error String
 
-writeFormat c s = do
+writeFormat c s = 
   case detectGR c s of
     Left v -> case v of
       Left err -> Left err
       Right _  -> errNoGR1 "not in GR(1)" "slugs"
     Right gr
       | level gr > 1 -> errNoGR1 ("in GR(" ++ show (level gr) ++ ")") "slugs"
-      | otherwise    -> return $ printSlugs gr
+      | otherwise    -> printSlugs gr
   
   where
-    printSlugs gr =
+    printSlugs gr = do
       let
         es = initEnv gr
         ss = initSys gr
         rs = assertEnv gr
         is = assertSys gr
         (le,ls) = head $ liveness gr
-        as = es ++ ss ++ rs ++ is ++ le ++ ls
-        iv = strictSort $ concatMap fmlInputs as
-        ov = strictSort $ concatMap fmlOutputs as
-      in
-                   "[INPUT]"
-        ++ "\n" ++ concatMap (++ "\n") iv
+
+      (iv,ov) <- evalSignals c s
+      
+      return $ "[INPUT]"
+        ++ "\n" ++ unlines iv
         ++ "\n" ++ "[OUTPUT]"
-        ++ "\n" ++ concatMap (++ "\n") ov
+        ++ "\n" ++ unlines ov
         ++ (if null es then "" else
              "\n" ++ "[ENV_INIT]" ++ 
-             "\n" ++ concatMap (++ "\n") (map prFormula es))
+             "\n" ++ unlines (map prFormula es))
         ++ (if null ss then "" else             
              "\n" ++ "[SYS_INIT]" ++
-             "\n" ++ concatMap (++ "\n") (map prFormula ss))
+             "\n" ++ unlines (map prFormula ss))
         ++ (if null rs then "" else        
               "\n" ++ "[ENV_TRANS]" ++
-              "\n" ++ concatMap (++ "\n") (map prFormula rs))
+              "\n" ++ unlines (map prFormula rs))
         ++ (if null is then "" else        
               "\n" ++ "[SYS_TRANS]" ++
-              "\n" ++ concatMap (++ "\n") (map prFormula is))
+              "\n" ++ unlines (map prFormula is))
         ++ (if null le then "" else 
               "\n" ++ "[ENV_LIVENESS]" ++
-              "\n" ++ concatMap (++ "\n") (map prFormula le))
+              "\n" ++ unlines (map prFormula le))
         ++ (if null ls then "" else        
              "\n" ++ "[SYS_LIVENESS]" ++
-             "\n" ++ concatMap (++ "\n") (map prFormula ls))
+             "\n" ++ unlines (map prFormula ls))
 
     prFormula fml = case fml of
       TTrue                 -> "TRUE"

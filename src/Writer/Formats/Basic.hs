@@ -62,13 +62,16 @@ writeFormat c s = do
       semantics = fromMaybe (semantics s) $ owSemantics c
       }
 
-  (es,ss,rs,as,is,gs) <- eval c s
+  (es,ss,rs,as,is,gs) <- eval c s'
   es' <- mapM (simplify (adjust c opConfig)) es
   ss' <- mapM (simplify (adjust c opConfig)) ss
   rs' <- mapM (simplify (adjust c opConfig)) rs
   as' <- mapM (simplify (adjust c opConfig)) as
   is' <- mapM (simplify (adjust c opConfig)) is
   gs' <- mapM (simplify (adjust c opConfig)) gs  
+
+  (si,so) <- evalSignals c s'
+
   return $
     "INFO {"
     ++ "\n" ++ "  TITLE:       \"" ++ title s' ++ "\""
@@ -90,12 +93,10 @@ writeFormat c s = do
     ++ "\n"
     ++ "\n" ++ "MAIN {"
     ++ "\n" ++ "  INPUTS {"
-    ++ concatMap printSignal 
-         (fmlInputs $ And $ es' ++ ss' ++ rs' ++ as' ++ is' ++ gs')
+    ++ concatMap printSignal si
     ++ "\n" ++ "  }"
     ++ "\n" ++ "  OUTPUTS {"
-    ++ concatMap printSignal 
-         (fmlOutputs $ And $ es' ++ ss' ++ rs' ++ as' ++ is' ++ gs')
+    ++ concatMap printSignal so
     ++ "\n" ++ "  }"
     ++ (if not $ any checkTrue es' then "" 
         else "\n" ++ "  INITIALLY {" ++

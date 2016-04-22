@@ -41,10 +41,12 @@ writeFormat c s = do
   vs <- mapM (simplify' (c { noRelease = True, noWeak = True })) $
          filter (/= TTrue) $ ss ++ [fGlobally $ fAnd is] ++ gs
 
-  return $ main us vs
+  (si,so) <- evalSignals c s       
+
+  return $ main si so us vs
 
   where
-    main as vs = 
+    main si so as vs = 
                  "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>" 
       ++ "\n" ++ "<!DOCTYPE SynthesisProblem SYSTEM \""
               ++ specfile ++ "\">"
@@ -69,10 +71,10 @@ writeFormat c s = do
       ++ "\n" ++ "  <PathToLTLCompiler>" ++ compiler
               ++ "</PathToLTLCompiler>"
       ++ "\n" ++ "  <GlobalInputs>"
-      ++ concatMap printSignal (fmlInputs $ Implies (And as) (And vs))
+      ++ concatMap printSignal si
       ++ "\n" ++ "  </GlobalInputs>"  
       ++ "\n" ++ "  <GlobalOutputs>"
-      ++ concatMap printSignal (fmlOutputs $ Implies (And as) (And vs))
+      ++ concatMap printSignal so
       ++ "\n" ++ "  </GlobalOutputs>"
       ++ (if null as then "" 
           else "\n" ++ "  <Assumptions>" ++

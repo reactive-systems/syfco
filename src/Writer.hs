@@ -25,12 +25,6 @@ import Data.Error
     ( Error
     )
     
-import Data.LTL
-    ( Formula(..)
-    , fmlInputs
-    , fmlOutputs  
-    )
-    
 import Data.Specification
     ( Specification
     )
@@ -44,7 +38,7 @@ import Writer.Error
     )
 
 import Writer.Eval
-    ( eval
+    ( evalSignals
     )      
     
 import Writer.Formats
@@ -78,13 +72,12 @@ import qualified Writer.Formats.Psl as Psl
 partition
   :: Configuration -> Specification -> IO String
 
-partition c s = case eval c s of
-    Left err         -> prError err
-    Right (es,ss,rs,as,is,gs) ->
-      let f = And (es ++ ss ++ rs ++ as ++ is ++ gs)
-      in return $ 
-         ".inputs" ++ concatMap (' ' :) (fmlInputs f) ++ "\n" ++
-         ".outputs" ++ concatMap (' ' :) (fmlOutputs f) ++ "\n"
+partition c s = case evalSignals c s of
+    Left err      -> prError err
+    Right (is,os) ->
+      return $ 
+        ".inputs" ++ concatMap (' ' :) is ++ "\n" ++
+        ".outputs" ++ concatMap (' ' :) os ++ "\n"
 
 -----------------------------------------------------------------------------
 
