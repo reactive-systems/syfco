@@ -1,0 +1,38 @@
+INFO {
+  TITLE:       "LTL -> DBA  -  Formula Q From LtlNfBa Paper"
+  DESCRIPTION: "Conversion of LTL to Deterministic Buchi Automaton"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 2;
+  }        
+
+  DEFINITIONS {
+    // F p_i or G p_i+1 for 0<=i<=n-1 
+    event_or_all(bus) =
+      &&[0 <= i < (SIZEOF bus - 1)]
+        (F bus[i] || G bus[i+1])
+      && (F bus[SIZEOF bus - 1]);      
+  } 
+}
+           
+MAIN {         
+
+  INPUTS {
+    p[n]; // input propositions
+  }
+
+  OUTPUTS {
+    acc; // accepting state
+  }
+
+  GUARANTEES {
+    (event_or_all(p))
+      <-> G F acc;
+  }
+
+}
+

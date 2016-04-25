@@ -1,0 +1,41 @@
+INFO {
+  TITLE:       "LTL -> DBA  -  Formula U1 From LtlNfBa Paper"
+  DESCRIPTION: "Conversion of LTL to Deterministic Buchi Automaton"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 2;
+  }        
+
+  DEFINITIONS {
+    // recursive until of bus signals 
+    recursive_until(bus) =
+      f(bus,SIZEOF bus - 1);
+      
+    // helper function
+    f(bus,size) = 
+      size > 0 : (f(bus,size - 1)) U bus[size]
+      size == 0 : bus[0];      
+  } 
+}
+           
+MAIN {         
+
+  INPUTS {
+    p[n]; // input propositions
+  }
+
+  OUTPUTS {
+    acc; // accepting state
+  }
+
+  GUARANTEES {
+    (recursive_until(p))
+      <-> G F acc;
+  }
+
+}
+
