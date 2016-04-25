@@ -78,7 +78,9 @@ writeFormat c s =
       Atomic x              -> show x
       Not x                 -> "!" ++ prFormula' x 
       Next (Atomic x)       -> show x ++ "'"
-      Next (Not (Atomic x)) -> "!(" ++ show x ++ "')"      
+      Next (Not (Atomic x)) -> "!(" ++ show x ++ "')"
+      Next (And xs)         -> prFormula $ And $ map Next xs
+      Next (Or xs)          -> prFormula $ Or $ map Next xs      
       Next x                -> "X " ++ prFormula' x 
       And []                -> prFormula TTrue
       And [x]               -> prFormula x
