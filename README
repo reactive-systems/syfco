@@ -73,10 +73,11 @@ then build (no installation) with:
 
   make
 
-However, if you encounter any problems, pleaseinform us via the
-project bug tracker:
+However, if you encounter any problems,
+please inform us via the project bug tracker:
 
   https://github.com/reactive-systems/syfco/issues
+
 
 ## Usage
 
