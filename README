@@ -23,7 +23,7 @@ The main features of the tool are summarized as follows:
   
 * Transformation to other existing specification formats, like Basic
   TLSF, Promela LTL [3], PSL [4], Unbeast [5], Wring [6],
-  structured Slugs [7].
+  structured Slugs [7], or SlugsIn [18].
 
 * Syntactical analysis of membership in GR(k) for any k (modulo
   boolean identities).
@@ -99,6 +99,7 @@ syfco [OPTIONS]... <file>
       * promela                   : Promela LTL
       * unbeast                   : Unbeast input format
       * slugs                     : structured Slugs format [GR(1) only]
+      * slugsin                   : SlugsIn format [GR(1) only]
       * psl                       : PSL Syntax
 
   -m, --mode                      : Output mode. Possible values are
@@ -213,3 +214,4 @@ constructs and a short tutorial.
 [15]  https://hackage.haskell.org/package/transformers
 [16]  https://www.haskell.org/cabal
 [17]  https://www.gnu.org/software/emacs
+[18]  https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#slugsin

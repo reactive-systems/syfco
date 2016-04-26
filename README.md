@@ -26,8 +26,9 @@ The main features of the tool are summarized as follows:
   TLSF, [Promela LTL](http://spinroot.com/spin/Man/ltl.html),
   [PSL](https://en.wikipedia.org/wiki/Property_Specification_Language),
   [Unbeast](https://www.react.uni-saarland.de/tools/unbeast),
-  [Wring](http://www.ist.tugraz.at/staff/bloem/wring.html) or
-  [structured Slugs](https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#structuredslugs).
+  [Wring](http://www.ist.tugraz.at/staff/bloem/wring.html),
+  [structured Slugs](https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#structuredslugs), and
+  [SlugsIn](https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#slugsin).
 
 * Syntactical analysis of membership in GR(k) for any k (modulo
   boolean identities).
@@ -83,7 +84,7 @@ However, if you encounter any problems, please inform us via [the project bug tr
 | Command                        | Description                                                          |
 | ------------------------------ | -------------------------------------------------------------------- |
 | ```-o, --output```             | Path of the output file (results are printed to STDOUT, if not  set) |
-| ```-f, --format```             | Output format. Possible values are: </br> <table><tbody>   <td>```full```</td>  <td>Input file with applied transformations (default)</td></tr><td>```basic```</td>  <td>High level format (without global section)</td></tr><tr>  <td>```utf8``` </td>  <td>Human readable output using UTF8 symbols </td></tr><tr>  <td>```wring``` </td>  <td>Wring input format</td></tr><tr>  <td>```lily``` </td>  <td>Lily input format</td></tr><tr>  <td>```acacia``` </td>  <td>Acacia / Acacia+ input format</td></tr><tr>  <td>```ltlxba``` </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promela``` </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```slugs```</td>  <td>structured Slugs format [GR(1) only]</td></tr><tr>  <td>```psl``` </td>  <td>PSL Syntax</td></tr><tr></tbody></table> |
+| ```-f, --format```             | Output format. Possible values are: </br> <table><tbody>   <td>```full```</td>  <td>Input file with applied transformations (default)</td></tr><td>```basic```</td>  <td>High level format (without global section)</td></tr><tr>  <td>```utf8``` </td>  <td>Human readable output using UTF8 symbols </td></tr><tr>  <td>```wring``` </td>  <td>Wring input format</td></tr><tr>  <td>```lily``` </td>  <td>Lily input format</td></tr><tr>  <td>```acacia``` </td>  <td>Acacia / Acacia+ input format</td></tr><tr>  <td>```ltlxba``` </td>  <td>LTL2BA / LTL3BA input format</td></tr><tr>  <td>```promela``` </td>  <td>Promela LTL</td></tr><tr>  <td>```unbeast```</td>  <td>Unbeast input format</td></tr><tr>  <td>```slugs```</td>  <td>structured Slugs format [GR(1) only]</td></tr><tr>  <td>```slugsin```</td>  <td>SlugsIn format [GR(1) only]</td></tr><tr>  <td>```psl``` </td>  <td>PSL Syntax</td></tr><tr></tbody></table> |
 | ``` -m, --mode```              | Output mode. Possible values are: </br> <table><tbody><tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible, default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr></tbody></table> |
 | ```-pf, --part-file```         | Create a partitioning (```.part```) file                             |
 | ```-bd, --bus-delimiter```     | Delimiter used to print indexed bus signals (default: '_')           |

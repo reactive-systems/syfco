@@ -231,6 +231,7 @@ prHelp = do
     , "      * promela                   : Promela LTL"
     , "      * unbeast                   : Unbeast input format"
     , "      * slugs                     : structured Slugs format [GR(1) only]"
+    , "      * slugsin                   : SlugsIn format [GR(1) only]"
     , "      * psl                       : PSL Syntax"
     , "" 
     , "  -m, --mode                      : Output mode. Possible values are"
