@@ -64,13 +64,13 @@ Prerequisites:
 
 * [transformers](https://hackage.haskell.org/package/transformers) (recommended version: >= 0.4)
 
-Building the tool should be simple using [cabal](https://www.haskell.org/cabal)
+To install the above dependencies, build the tool, and install it with [cabal](https://www.haskell.org/cabal):
 
-<code>cabal install</code>
+`cabal install`
 
-or, if you work in a UNIX environment, simply by using
+If the dependencies are already installed, then build (no installation) with:
 
-<code>make</code>
+`make`
 
 However, if you encounter any problems, please inform us via [the project bug tracker](https://github.com/reactive-systems/syfco/issues).
 
