@@ -24,7 +24,7 @@ import Control.Exception
 
 -----------------------------------------------------------------------------
 
--- | Unbeast format writer.
+-- | Slugs format writer.
 
 writeFormat
   :: Configuration -> Specification -> Either Error String
