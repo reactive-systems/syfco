@@ -230,7 +230,7 @@ prHelp = do
     , "      * ltlxba                    : LTL2BA / LTL3BA input format"
     , "      * promela                   : Promela LTL"
     , "      * unbeast                   : Unbeast input format"
-    , "      * slugs                     : Slugs format [GR(1) only]"
+    , "      * slugs                     : structured Slugs format [GR(1) only]"
     , "      * psl                       : PSL Syntax"
     , "" 
     , "  -m, --mode                      : Output mode. Possible values are"
