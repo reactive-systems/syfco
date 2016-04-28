@@ -43,7 +43,7 @@ import Data.List
 import Data.Types
     ( Semantics(..)
     )  
-    
+
 import Data.Function
     ( on
     )
@@ -58,7 +58,8 @@ import Utils
     ) 
 
 import Data.LTL
-    ( Formula(..)
+    ( Atomic(..)
+    , Formula(..)
     , fmlOutputs  
     , subFormulas  
     , isBooleanFormula
@@ -132,16 +133,14 @@ data TFml =
 detectGR
   :: Configuration -> Specification -> Either (Either Error Refusal) GRFormula
                       
-detectGR c s = 
+detectGR c s = do
   let
     c' = c {
-      simplifyWeak = True,
       simplifyStrong = False,
       noDerived = False,
       noWeak = True,
       noFinally = False,
       noGlobally = False,
-      negNormalForm = True,
       pushGlobally = False,
       pushFinally = False,
       pushNext = True,
@@ -151,24 +150,46 @@ detectGR c s =
       noRelease = True,
       owSemantics = case semantics s of
         SemanticsStrictMoore -> Just SemanticsStrictMealy
-        SemanticsMoore       -> Just SemanticsStrictMoore
+        SemanticsMoore       -> Just SemanticsMealy
         _                    -> Nothing
       }
 
     strict = semantics s `elem` [SemanticsStrictMealy, SemanticsStrictMoore]
 
-    fml = do
-      (es,ss,rs,as,is,gs) <- eval c' s
-      fml' <- merge es ss rs as is gs
-      simplify c' $ noImplication $ noEquivalence fml' 
+  case eval' c' s of
+    Left x                    -> Left $ Left x
+    Right y -> case quickCheckGR strict y of
+      Just f  -> return f
+      Nothing -> 
+        let
+          fml = do
+            let c'' = c' {
+                  negNormalForm = True,
+                  simplifyWeak = True
+                  }
+                      
+            (es,ss,rs,as,is,gs) <- eval c'' s            
+            fml' <- merge es ss rs as is gs
+            simplify c' $ noImplication $ noEquivalence fml' 
         
-  in case fml of
-    Left x  -> Left $ Left x
-    Right x -> case transformToGR strict x of
-        Left y  -> Left $ Right y
-        Right y -> return y        
+        in case fml of
+          Left x  -> Left $ Left x
+          Right x -> case transformToGR strict x of
+            Left z  -> Left $ Right z
+            Right z -> return z
 
   where
+    eval' x y = do
+      (es,ss,rs,as,is,gs) <- eval x y
+      es' <- mapM (simplify x) es
+      ss' <- mapM (simplify x) ss
+      rs' <- mapM (simplify x) rs
+      as' <- mapM (simplify x) as
+      is' <- mapM (simplify x) is
+      gs' <- mapM (simplify x) gs      
+
+      return (es',ss',rs',as',is',gs')
+    
     noImplication fml = case fml of
       Implies x y -> let
           x' = noImplication x
@@ -185,7 +206,178 @@ detectGR c s =
         in
           And [Implies x' y', Implies y' x']
       _         ->
-        applySub noEquivalence fml               
+        applySub noEquivalence fml
+        
+-----------------------------------------------------------------------------        
+
+-- | Transforms an evaluated, but not combined list of formula to GR,
+-- if possible.
+
+quickCheckGR
+  :: Bool -> ([Formula],[Formula],[Formula],[Formula],[Formula],[Formula])
+  -> Maybe GRFormula
+
+quickCheckGR strict (es,ss,rs,as,is,gs) = do
+  mapM_ boolIn es
+  mapM_ boolFml ss
+
+  let
+    rs'' = case pullG $ fAnd $ concatMap pullG rs of
+      Globally (And xs) : ys -> xs ++ ys
+      Globally x : ys        -> x : ys
+      zs                     -> zs
+
+    (rs',as') = case pullG $ fAnd $ concatMap pullG as of
+      Globally (And xs) : ys -> 
+        let (ls,os) = partitionEithers $ map boolNextInE xs
+        in (rs'' ++ ls, map Globally os ++ ys)
+      Globally x : ys -> case boolNextIn x of
+        Just ()  -> (x:rs'',ys)
+        Nothing -> (rs'', Globally x : ys)
+      zs                     -> (rs'',zs)
+
+  case as' of
+    [] -> do
+      mapM_ boolNextIn rs'
+
+      let
+        is'' = case pullG $ fAnd $ concatMap pullG is of
+          Globally (And xs) : ys -> xs ++ ys
+          Globally x : ys        -> x : ys          
+          zs                     -> zs
+
+        (is',gs') = case pullG $ fAnd $ concatMap pullG gs of
+          Globally (And xs) : ys -> 
+            let (ls,os) = partitionEithers $ map boolNextFmlE xs
+            in (is'' ++ ls, map Globally os ++ ys)
+          Globally x : ys -> case boolNextFml x of
+            Just ()  -> (x:is'',ys)
+            Nothing -> (is'', Globally x : ys)               
+          zs                     -> (is'',zs)           
+
+      mapM_ boolNextFml is'
+
+      case separateStandardLiveness $
+           noImplEquiv $ fAnd gs' of
+        Right (ls,[]) -> return
+          GRFormula 
+            { level = length ls
+            , initEnv = es
+            , initSys = ss
+            , assertEnv = rs'
+            , assertSys = is'
+            , liveness = ls
+            }
+        _             -> Nothing
+        
+    _  -> do
+      unless strict Nothing
+      
+      mapM_ boolNextIn rs'      
+
+      let is' = case pullG $ fAnd $ concatMap pullG is of
+            Globally (And xs) : ys -> xs ++ ys
+            Globally x : ys        -> x : ys
+            zs                     -> zs
+
+      mapM_ boolNextFml is'
+
+      case separateStandardLiveness $
+           noImplEquiv $ Implies (fAnd as') (fAnd gs) of
+        Right ([x],[]) -> return
+          GRFormula 
+            { level = 1
+            , initEnv = es
+            , initSys = ss
+            , assertEnv = rs'
+            , assertSys = is'
+            , liveness = [x]
+            }
+        _            -> Nothing
+
+  where
+    boolIn fml = case fml of
+      TTrue            -> return ()
+      FFalse           -> return ()
+      Atomic (Input _) -> return ()
+      Not x            -> boolIn x
+      And xs           -> mapM_ boolIn xs
+      Or xs            -> mapM_ boolIn xs
+      Implies x y      -> mapM_ boolIn [x,y]
+      Equiv x y        -> mapM_ boolIn [x,y]
+      _                -> Nothing
+
+    boolFml fml = case fml of
+      TTrue       -> return ()
+      FFalse      -> return ()
+      Atomic _    -> return ()
+      Not x       -> boolFml x 
+      And xs      -> mapM_ boolFml xs
+      Or xs       -> mapM_ boolFml xs
+      Implies x y -> mapM_ boolFml [x,y]
+      Equiv x y   -> mapM_ boolFml [x,y]
+      _           -> Nothing
+
+    boolNextIn fml = case fml of
+      TTrue             -> return ()
+      FFalse            -> return ()
+      Atomic _          -> return ()
+      Not x             -> boolNextIn x
+      And xs            -> mapM_ boolNextIn xs
+      Or xs             -> mapM_ boolNextIn xs
+      Implies x y       -> mapM_ boolNextIn [x,y]
+      Equiv x y         -> mapM_ boolNextIn [x,y]
+      Next x            -> boolIn x
+      _                 -> Nothing
+
+    boolNextInE fml = case boolNextIn fml of
+      Just ()  -> Left fml
+      Nothing -> Right fml
+
+    boolNextFml fml = case fml of
+      TTrue       -> return ()
+      FFalse      -> return ()
+      Atomic _    -> return ()
+      Not x       -> boolNextFml x      
+      And xs      -> mapM_ boolNextFml xs
+      Or xs       -> mapM_ boolNextFml xs
+      Implies x y -> mapM_ boolNextFml [x,y]
+      Equiv x y   -> mapM_ boolNextFml [x,y]
+      Next x      -> boolFml x
+      _           -> Nothing      
+
+    noImplEquiv fml = case fml of
+      TTrue             -> fml
+      FFalse            -> fml
+      Atomic _          -> fml
+      And xs            -> fAnd $ map noImplEquiv xs
+      Or xs             -> fOr $ map noImplEquiv xs
+      Implies x y       -> fOr [fNot (noImplEquiv x), noImplEquiv y]
+      Equiv x y         ->
+        let x' = noImplEquiv x
+            y' = noImplEquiv y      
+        in fOr [fAnd [x',y'], fAnd [fNot x', fNot y']]
+      _                 -> fml     
+      
+
+    boolNextFmlE fml = case boolNextFml fml of
+      Just ()  -> Left fml
+      Nothing -> Right fml
+
+    pullG f = case f of
+      And xs -> let
+          ys = concatMap pullG xs
+          (zs,os) = partitionEithers $ map isG ys
+        in
+          Globally (And zs) : os
+      _ -> [f]
+
+    isG f = case f of
+      Globally x -> case isG x of
+        Left y  -> Left y
+        Right y -> Left y
+      _          -> Right f      
+    
 
 -----------------------------------------------------------------------------        
 
