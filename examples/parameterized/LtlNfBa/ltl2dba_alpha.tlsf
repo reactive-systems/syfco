@@ -1,0 +1,38 @@
+INFO {
+  TITLE:       "LTL -> DBA  -  Formula alpha From LtlNfBa Paper"
+  DESCRIPTION: "Conversion of LTL to Deterministic Buchi Automaton"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 1;
+  }        
+
+  DEFINITIONS {
+    // Proposition p should hold for k steps 
+    k_next(p,k) =
+      k > 0 : p && X (k_next(p,k-1))
+      k == 0 : p;       
+  } 
+}
+           
+MAIN {         
+
+  INPUTS {
+    p; // input proposition
+    q; // input proposition
+  }
+
+  OUTPUTS {
+    acc; // accepting state
+  }
+
+  GUARANTEES {
+    F (k_next(p,n) && k_next(q,n))
+      <-> G F acc;
+  }
+
+}
+

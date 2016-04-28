@@ -1,0 +1,42 @@
+INFO {
+  TITLE:       "LTL -> DBA  -  Formula beta From LtlNfBa Paper"
+  DESCRIPTION: "Conversion of LTL to Deterministic Buchi Automaton"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 2;
+  }        
+
+  DEFINITIONS {
+    // recursive eventually of bus signals 
+    recursive_F(bus) =
+      f(bus,0);
+      
+    // helper function
+    f(bus,k) = 
+      k < SIZEOF bus - 1 : F (bus[k] && f(bus,k+1))
+      k == SIZEOF bus - 1: F bus[k];      
+  } 
+}
+           
+MAIN {         
+
+  INPUTS {
+    p[n]; // input propositions                   
+    q[n]; // input propositions
+  }
+
+  OUTPUTS {
+    acc; // accepting state
+  }
+
+  GUARANTEES {
+    (recursive_F(p) && recursive_F(q))
+      <-> G F acc;
+  }
+
+}
+
