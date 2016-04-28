@@ -219,7 +219,7 @@ merge es ss rs as is gs =
     fmle = case (rs,as) of
       ([],[])   -> TTrue
       ([],[x])  -> x
-      ([],_)    -> And gs
+      ([],_)    -> And as
       ([x],[])  -> Globally x
       ([x],[y]) -> And [Globally x,y]
       ([x],_)   -> And (Globally x : as)
