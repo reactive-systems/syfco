@@ -1,0 +1,86 @@
+INFO {
+  TITLE:       "LTL -> DPA  -  Formula U1 From LtlNfBa Paper"
+  DESCRIPTION: "Conversion of LTL to Deterministic Parity Automaton"
+  SEMANTICS:   Moore
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 2; // size of formula
+    c = 1; // highest color in parity automaton    
+  }        
+
+  DEFINITIONS {      
+    // formula for "smallest infinite color is even"     
+    inf_even(bus,k) =                  
+      // if the highest number is uneven, it does not appear in the formula; recurse to next even number:
+      k % 2 == 1 : inf_even(bus,k-1)        
+      // for even numbers, ensure that they are infinite and smaller uneven numbers are not, or recurse to next even number:
+      k % 2 == 0 && k >= 2 : inf_even(bus,k-2) || ( G F bus[k] && not_inf_uneven(bus,k-1))
+      // smallest color: 
+      k == 0 : G F bus[k];
+      
+    // formula for "no smaller infinite uneven number" 
+    not_inf_uneven(bus,k) = // assumes that it is only called on positive uneven numbers
+      k == 1 : ! G F bus[k]
+      k > 1 : ! G F bus[k] && not_inf_uneven(bus,k-2); 
+    
+    // ensures mutual exclusion on an n-ary bus
+    mutual_exclusion(bus) =
+     mone(bus,0,(SIZEOF bus) - 1);
+
+    // ensures that none of the signals
+    // bus[i] - bus[j] is HIGH
+    none(bus,i,j) =
+      &&[i <= t <= j]
+        !bus[t];
+
+    // ensures that at most one of the signals
+    // bus[i] - bus[j] is HIGH
+    mone(bus,i,j) =
+    i > j : false
+    i == j : true
+    i < j :
+      // either no signal of the lower half is HIGH and at 
+      // most one signal of the upper half is HIGH
+      (none(bus, i, m(i,j)) && mone(bus, m(i,j) + 1, j)) ||
+      // or at most one signal of the lower half is HIGH
+      // and no signal in of the upper half is HIGH
+      (mone(bus, i, m(i,j)) && none(bus, m(i,j) + 1, j));
+
+    // returns the position between i and j
+    m(i,j) = (i + j) / 2;
+        
+    // recursive until of bus signals 
+    recursive_until(bus) =
+      f(bus,SIZEOF bus - 1);
+      
+    // helper function
+    f(bus,size) = 
+      size > 0 : (f(bus,size - 1)) U bus[size]
+      size == 0 : bus[0];   
+  } 
+}
+           
+MAIN {         
+
+  INPUTS {
+    p[n]; // input propositions
+  }
+
+  OUTPUTS {         
+    color[c+1]; // parity color
+  }                  
+  
+  INVARIANTS {
+      // ensure that every state has exactly one color
+      mutual_exclusion(color);
+  }
+
+  GUARANTEES {               
+    (recursive_until(p))
+      <-> inf_even(color,c);
+  }
+
+}
