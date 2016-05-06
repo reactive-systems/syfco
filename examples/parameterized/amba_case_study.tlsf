@@ -20,21 +20,15 @@ GLOBAL {
     
     m = log2(n);
 
-    /* Values of the HBURST signal.
-     */
-//    SINGLE(x) = !x[0] &&  x[1];
-//    INCR(x)   = !x[0] && !x[1];
-//    BURST4(x) =  x[0] && !x[1];
-
     /* Checks whether a bus of size log(n) currently represents 
      * the numerical value v (encoded in binary).
      */
     value(bus,v) = value'(bus,v,0,SIZEOF bus);
     value'(bus,v,i,j) =
-      j <= 0        : true
-      bit(v,i) == 1 : value'(bus,v,i + 1,j / 2) &&  bus[i]
-      otherwise    : value'(bus,v,i + 1,j / 2) && !bus[i];
-
+      i >= j        : true
+      bit(v,i) == 1 : value'(bus,v,i + 1,j) &&  bus[i]
+      otherwise    : value'(bus,v,i + 1,j) && !bus[i];
+  
     /* Returns the i-th bit of the numerical value v.
      */
     bit(v,i) =
