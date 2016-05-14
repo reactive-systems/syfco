@@ -2,7 +2,8 @@
 -- |
 -- Module      :  Writer.Formats.SlugsIn
 -- License     :  MIT (see the LICENSE file)
--- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- Maintainer  :  Ioannis Filippidis (jfilippidis@gmail.com)
+--                Felix Klein (klein@react.uni-saarland.de)
 --
 -- Translates GR(1) specification to SlugsIn syntax.
 --
@@ -43,7 +44,9 @@ writeFormat c s =
         ss = initSys gr
         rs = assertEnv gr
         is = assertSys gr
-        (le,ls) = head $ liveness gr
+        (le,ls) = case liveness gr of
+          []  -> ([],[])
+          x:_ -> x
 
       (iv,ov) <- evalSignals c s
 
