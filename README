@@ -22,7 +22,8 @@ The main features of the tool are summarized as follows:
   variable bindings occur (i.e., without the GLOBAL section).
   
 * Transformation to other existing specification formats, like Basic
-  TLSF, Promela LTL [3], PSL [4], Unbeast [5], Wring [6] or Slugs [7].
+  TLSF, Promela LTL [3], PSL [4], Unbeast [5], Wring [6],
+  structured Slugs [7], or SlugsIn [18].
 
 * Syntactical analysis of membership in GR(k) for any k (modulo
   boolean identities).
@@ -61,18 +62,22 @@ Prerequisites:
 
 * transformers [15] (recommended version: >= 0.4)
 
-Building the tool should be simple using cabal [16]
+
+To install the above dependencies, build the tool,
+and install it with cabal [16]:
 
   cabal install
 
-or, if you work in a UNIX environment, simply by using
+If the dependencies are already installed,
+then build (no installation) with:
 
   make
 
-However, if you encounter any problems, pleaseinform us via the
-project bug tracker:
+However, if you encounter any problems,
+please inform us via the project bug tracker:
 
   https://github.com/reactive-systems/syfco/issues
+
 
 ## Usage
 
@@ -94,7 +99,8 @@ syfco [OPTIONS]... <file>
       * ltlxba                    : LTL2BA / LTL3BA input format
       * promela                   : Promela LTL
       * unbeast                   : Unbeast input format
-      * slugs                     : Slugs format [GR(1) only]
+      * slugs                     : structured Slugs format [GR(1) only]
+      * slugsin                   : SlugsIn format [GR(1) only]
       * psl                       : PSL Syntax
 
   -m, --mode                      : Output mode. Possible values are
@@ -198,7 +204,7 @@ constructs and a short tutorial.
 [4]   https://en.wikipedia.org/wiki/Property_Specification_Language
 [5]   https://www.react.uni-saarland.de/tools/unbeast
 [6]   http://www.ist.tugraz.at/staff/bloem/wring.html
-[7]   https://github.com/VerifiableRobotics/slugs
+[7]   https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#structuredslugs
 [8]   https://www.haskell.org/ghc
 [9]   https://wiki.haskell.org/Definition
 [10]  https://hackage.haskell.org/package/parsec
@@ -209,3 +215,4 @@ constructs and a short tutorial.
 [15]  https://hackage.haskell.org/package/transformers
 [16]  https://www.haskell.org/cabal
 [17]  https://www.gnu.org/software/emacs
+[18]  https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#slugsin

@@ -60,6 +60,7 @@ import qualified Writer.Formats.Lily as Lily
 import qualified Writer.Formats.Ltlxba as Ltlxba
 import qualified Writer.Formats.Unbeast as Unbeast
 import qualified Writer.Formats.Slugs as Slugs
+import qualified Writer.Formats.SlugsIn as SlugsIn
 import qualified Writer.Formats.Basic as Basic
 import qualified Writer.Formats.Full as Full
 import qualified Writer.Formats.Psl as Psl
@@ -101,6 +102,7 @@ writeSpecification c s = do
     PROMELA -> Promela.writeFormat c s 
     UNBEAST -> Unbeast.writeFormat c s
     SLUGS   -> Slugs.writeFormat c s     
+    SLUGSIN -> SlugsIn.writeFormat c s
     PSL     -> Psl.writeFormat c s 
   
 -----------------------------------------------------------------------------

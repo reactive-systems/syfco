@@ -35,6 +35,7 @@ data WriteFormat =
   | ACACIA    
   | BASIC
   | SLUGS      
+  | SLUGSIN
   | FULL  
   | PSL
   deriving (Eq)
@@ -51,7 +52,8 @@ instance Show WriteFormat where
     LILY    -> "Lily"
     ACACIA  -> "Acacia"
     BASIC   -> "Basic"
-    SLUGS   -> "Slugs"       
+    SLUGS   -> "Slugs"
+    SLUGSIN -> "SlugsIn"
     FULL    -> "Full"
     PSL     -> "Psl"
 
@@ -72,6 +74,7 @@ parseFormat s = case s of
   "lily"    -> return LILY
   "psl"     -> return PSL
   "slugs"   -> return SLUGS
+  "slugsin" -> return SLUGSIN
   "basic"   -> return BASIC
   "full"    -> return FULL
   x         -> argsError ("Unknown format: " ++ x)
