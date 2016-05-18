@@ -170,7 +170,7 @@ detectGR c s = do
                       
             (es,ss,rs,as,is,gs) <- eval c'' s            
             fml' <- merge es ss rs as is gs
-            simplify c' $ noImplication $ noEquivalence fml' 
+            simplify c'' $ noImplication $ noEquivalence fml' 
         
         in case fml of
           Left x  -> Left $ Left x

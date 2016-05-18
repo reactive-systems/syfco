@@ -236,11 +236,16 @@ simplify c f =
                            | otherwise = ([], cs)
                   (as, zs) | lg || ss   = partitionEithers $ map splitGlobally ys
                            | otherwise = ([], ys)
-                in case (null ns, null as) of
-                  (True, True) -> And zs
-                  (True, _)    -> And $ reverse $ (Globally $ And as) : reverse zs
-                  (_, True)    -> And $ reverse $ (Next $ And ns) : reverse zs
-                  _            -> And $ reverse $ (Globally $ And as) : (Next $ And ns) : reverse zs
+                in case (ns, as) of
+                  ([],[])   -> And zs
+                  ([],[y])  -> And $ reverse $ (Globally y) : reverse zs
+                  ([],_)    -> And $ reverse $ (Globally $ And as) : reverse zs
+                  ([x],[])  -> And $ reverse $ (Next x) : reverse zs
+                  ([x],[y]) -> And $ reverse $ (Globally y) : (Next x) : reverse zs
+                  ([x],_)   -> And $ reverse $ (Globally $ And as) : (Next x) : reverse zs
+                  (_,[])    -> And $ reverse $ (Next $ And ns) : reverse zs
+                  (_,[y])   -> And $ reverse $ (Globally y) : (Next $ And ns) : reverse zs
+                  (_,_)     -> And $ reverse $ (Globally $ And as) : (Next $ And ns) : reverse zs
       Or []
         | sw || ss                          -> FFalse
         | otherwise                        -> Or []
@@ -278,11 +283,16 @@ simplify c f =
                             | otherwise = ([], cs)
                    (es, zs) | lf || ss   = partitionEithers $ map splitFinally ys
                             | otherwise = ([], ys)
-                 in case (null ns, null es) of
-                   (True, True) -> Or zs
-                   (True, _)    -> Or $ reverse $ (Finally $ Or es) : reverse zs
-                   (_, True)    -> Or $ reverse $ (Next $ Or ns) : reverse zs
-                   _            -> Or $ reverse $ (Finally $ Or es) : (Next $ And ns) : reverse zs
+                 in case (ns, es) of
+                   ([],[])   -> Or zs
+                   ([],[y])  -> Or $ reverse $ (Finally y) : reverse zs
+                   ([],_)    -> Or $ reverse $ (Finally $ Or es) : reverse zs
+                   ([x],[])  -> Or $ reverse $ (Next x) : reverse zs
+                   ([x],[y]) -> Or $ reverse $ (Finally y) : (Next x) : reverse zs
+                   ([x],_)   -> Or $ reverse $ (Finally $ Or es) : (Next x) : reverse zs
+                   (_,[])    -> Or $ reverse $ (Next $ Or ns) : reverse zs
+                   (_,[y])   -> Or $ reverse $ (Finally y) : (Next $ And ns) : reverse zs
+                   (_,_)     -> Or $ reverse $ (Finally $ Or es) : (Next $ And ns) : reverse zs
 
       -- pass through
                         
