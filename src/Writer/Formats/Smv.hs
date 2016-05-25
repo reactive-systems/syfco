@@ -1,10 +1,12 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Writer.Formats.SMV
+-- Module      :  Writer.Formats.Smv
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 -- 
 -- Transforms a specification to SMV format.
+-- See http://nusmv.fbk.eu/NuSMV/userman/v21/nusmv_3.html#SEC31 for more
+-- information about the SMV LTL specification.
 -- 
 -----------------------------------------------------------------------------
 
@@ -24,7 +26,7 @@ import Writer.Utils
 
 -----------------------------------------------------------------------------
 
--- | Promela operator configuration.
+-- | SMV LTL operator configuration.
 
 opConfig
   :: OperatorConfig
@@ -47,7 +49,7 @@ opConfig = OperatorConfig
 
 -----------------------------------------------------------------------------
 
--- | Promela LTL writer.
+-- | SMV LTL writer.
 
 writeFormat
   :: Configuration -> Specification -> Either Error String
