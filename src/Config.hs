@@ -556,6 +556,18 @@ checkConfiguration cfg
         "the weak until operator.\n" ++
         "Remove at least one of these constaints."                
 
+  | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
+    outputFormat cfg == SMV =
+
+      argsError $
+        "The given combination of transformations " ++
+        "(negation normal form, no release operators, and " ++
+        "no globally operators)" ++
+        "is impossible to satisfy when outputting to the " ++
+        "SMV format, since it does not support " ++ 
+        "the weak until operator.\n" ++
+        "Remove at least one of these constaints."                
+
   | negNormalForm cfg && noGlobally cfg && outputFormat cfg == PSL =
 
       argsError $

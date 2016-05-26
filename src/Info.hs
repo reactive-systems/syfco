@@ -233,6 +233,7 @@ prHelp = do
     , "      * slugs                     : structured Slugs format [GR(1) only]"
     , "      * slugsin                   : SlugsIn format [GR(1) only]"
     , "      * psl                       : PSL Syntax"
+    , "      * smv                       : SMV file format"
     , "" 
     , "  -m, --mode                      : Output mode. Possible values are"
     , ""

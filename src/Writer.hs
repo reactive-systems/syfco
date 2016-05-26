@@ -64,6 +64,7 @@ import qualified Writer.Formats.SlugsIn as SlugsIn
 import qualified Writer.Formats.Basic as Basic
 import qualified Writer.Formats.Full as Full
 import qualified Writer.Formats.Psl as Psl
+import qualified Writer.Formats.Smv as Smv
 
 -----------------------------------------------------------------------------
 
@@ -104,6 +105,7 @@ writeSpecification c s = do
     SLUGS   -> Slugs.writeFormat c s     
     SLUGSIN -> SlugsIn.writeFormat c s
     PSL     -> Psl.writeFormat c s 
+    SMV     -> Smv.writeFormat c s 
   
 -----------------------------------------------------------------------------
 
