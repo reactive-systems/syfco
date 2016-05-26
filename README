@@ -1,5 +1,5 @@
 # Synthesis Format Conversion Tool
-# (Version 1.0.0.1)
+# (Version 1.0.0.2)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF [1].
@@ -102,6 +102,7 @@ syfco [OPTIONS]... <file>
       * slugs                     : structured Slugs format [GR(1) only]
       * slugsin                   : SlugsIn format [GR(1) only]
       * psl                       : PSL Syntax
+      * smv                       : SMV file format      
 
   -m, --mode                      : Output mode. Possible values are
 

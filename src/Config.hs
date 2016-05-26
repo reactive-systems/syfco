@@ -498,7 +498,7 @@ checkConfiguration cfg
         "(negation normal form, no release operators, " ++
         "no globally operators, and no weak until operatators)" ++
         "is impossible to satisfy.\n" ++
-        "Remove at least one of these constaints."        
+        "Remove at least one of these constraints."        
       
   | negNormalForm cfg && noRelease cfg && noDerived cfg =
         
@@ -518,7 +518,7 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "LTL2BA / LTL3BA format, since it does not support " ++ 
         "the weak until operator.\n" ++
-        "Remove at least one of these constaints."
+        "Remove at least one of these constraints."
 
   | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
     outputFormat cfg == WRING =
@@ -530,7 +530,7 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "Wring format, since it does not support " ++ 
         "the weak until operator.\n" ++
-        "Remove at least one of these constaints."
+        "Remove at least one of these constraints."
 
   | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
     outputFormat cfg == LILY =
@@ -542,7 +542,7 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "Lily format, since it does not support " ++ 
         "the weak until operator.\n" ++
-        "Remove at least one of these constaints."                        
+        "Remove at least one of these constraints."                        
 
   | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
     outputFormat cfg == ACACIA =
@@ -554,7 +554,7 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "Acacia/Aciacia+ format, since it does not support " ++ 
         "the weak until operator.\n" ++
-        "Remove at least one of these constaints."                
+        "Remove at least one of these constraints."                
 
   | negNormalForm cfg && noRelease cfg && noGlobally cfg &&
     outputFormat cfg == SMV =
@@ -566,7 +566,7 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "SMV format, since it does not support " ++ 
         "the weak until operator.\n" ++
-        "Remove at least one of these constaints."                
+        "Remove at least one of these constraints."                
 
   | negNormalForm cfg && noGlobally cfg && outputFormat cfg == PSL =
 
@@ -576,7 +576,7 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "PSL format, since it does not support " ++ 
         "the weak until and the release operator.\n" ++
-        "Remove at least one of these constaints."
+        "Remove at least one of these constraints."
 
   | negNormalForm cfg && noDerived cfg && outputFormat cfg == PSL =
 
@@ -586,7 +586,7 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "PSL format, since it does not support " ++ 
         "the release operator.\n" ++
-        "Remove at least one of these constaints."
+        "Remove at least one of these constraints."
 
   | negNormalForm cfg && noDerived cfg && outputFormat cfg == UNBEAST =
 
@@ -596,7 +596,7 @@ checkConfiguration cfg
         "is impossible to satisfy when outputting to the " ++
         "UNBEAST format, since it does not support " ++ 
         "the release operator.\n" ++
-        "Remove at least one of these constaints."
+        "Remove at least one of these constraints."
 
   | outputFormat cfg == FULL &&
     (isJust (owSemantics cfg) || isJust (owTarget cfg) ||
