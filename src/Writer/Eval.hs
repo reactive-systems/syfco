@@ -40,7 +40,7 @@ import Data.Either
 
 import Data.List
     ( find
-    )  
+    )
 
 import Data.Char
     ( toLower
@@ -230,8 +230,10 @@ eval c s = do
 
     apA :: Atomic -> Formula
     apA x = Atomic $ case x of
-      Input y  -> Input $ lower $ last $ words y
-      Output y -> Output $ lower $ last $ words y
+      Input y  -> Input $ repap (atSymbol c) (primeSymbol c)
+                  $ lower $ last $ words y
+      Output y -> Output $ repap (atSymbol c) (primeSymbol c)
+                  $ lower $ last $ words y
 
     lower x =
       if needsLower (outputFormat c) 
@@ -326,7 +328,10 @@ evalSignals c s = do
   iv <- evalStateT (mapM getV is) stf
   ov <- evalStateT (mapM getV os) stf
 
-  return (concat iv, concat ov)
+  return (
+    map (repap (atSymbol c) (primeSymbol c)) $ concat iv,
+    map (repap (atSymbol c) (primeSymbol c)) $ concat ov
+    )
   
   where
     getId v = case v of
@@ -367,8 +372,8 @@ initialize c s = do
     zs = if null xs then []
          else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
 
-  st <- execStateT (mapM_ enumBinding $ enumerations s) $
-        ST (symboltable s'')
+  st <- execStateT (mapM_ enumBinding $ enumerations s) $ ST
+        (symboltable s'')
         IM.empty
         (busDelimiter c)
         (enumerations s)
@@ -1141,5 +1146,15 @@ overwriteParameter s (n,v) =
                     else Expr (SetExplicit [head $ bVal y]) $ bPos y
                  }) t
 
------------------------------------------------------------------------------                   
+-----------------------------------------------------------------------------
 
+-- | Replaces at and prime symbols by their defined counterpart.
+
+repap
+  :: String -> String -> String -> String
+
+repap atSym primeSym =
+  concatMap (\x -> if x == '@' then atSym else [x]) .
+  concatMap (\x -> if x == '\'' then primeSym else [x])
+
+-----------------------------------------------------------------------------

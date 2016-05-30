@@ -93,6 +93,12 @@ import qualified Text.Parsec as P
 --     * The delimiter string to seperate the bus index from the signal
 --       name
 -- 
+--     * The prime symbol/string representing primes in signals of the
+--       input format.
+-- 
+--     * The @-symbol/string representing @s in signals of the input
+--       format.
+-- 
 --     * A boolean flag specifying whether the input should be read from
 --       STDIN or not
 -- 
@@ -195,6 +201,8 @@ data Configuration =
   , outputMode :: WriteMode
   , partFile :: Maybe String
   , busDelimiter :: String
+  , primeSymbol :: String
+  , atSymbol :: String
   , fromStdin :: Bool
   , owSemantics :: Maybe Semantics
   , owTarget :: Maybe Target
@@ -242,7 +250,9 @@ defaultCfg =
     outputFormat = FULL,
     outputMode = Pretty,
     partFile = Nothing,
-    busDelimiter = "\"_\"",
+    busDelimiter = "_",
+    primeSymbol = "'",
+    atSymbol = "@",
     fromStdin = False,
     owSemantics = Nothing,
     owTarget = Nothing,
@@ -292,7 +302,7 @@ parseArguments
 parseArguments args = do
   c <- traverse parseArgument defaultCfg args
   checkConfiguration c
-  return c { busDelimiter = fixquotes $ busDelimiter c }
+  return c
   
   where
     traverse f a xs = case xs of
@@ -338,7 +348,19 @@ parseArguments args = do
         Nothing -> argsError "\"-bd\": No delimiter given"
       "--bus-delimiter"          -> case next of
         Nothing -> argsError "\"--bus-delimiter\": No delimiter given"
-        _       -> parseArgument a "-bd" next        
+        _       -> parseArgument a "-bd" next
+      "-ps"                      -> case next of
+        Just x  -> return $ Single $ a { primeSymbol = x }
+        Nothing -> argsError "\"-ps\": No symbol replacement given"
+      "--prime-symbol"           -> case next of
+        Just x  -> return $ Single $ a { primeSymbol = x }
+        Nothing -> argsError "\"--prime-symbol\": No symbol replacement given"
+      "-as"                      -> case next of
+        Just x  -> return $ Single $ a { atSymbol = x }
+        Nothing -> argsError "\"-as\": No symbol replacement given"
+      "--at-symbol"              -> case next of
+        Just x  -> return $ Single $ a { atSymbol = x }
+        Nothing -> argsError "\"--at-symbol\": No symbol replacement given"
       "-in"                      -> return $ None $ a { fromStdin = True }
       "-os"                      -> case next of
         Just x  -> case P.parse semanticsParser "Overwrite Semantics Error" x of 
@@ -435,8 +457,6 @@ parseArguments args = do
       pHelp = False
       }
 
-    fixquotes s = tail $ init s
-
     simple = return . None
 
 -----------------------------------------------------------------------------
@@ -484,12 +504,6 @@ checkConfiguration cfg
       argsError $
         "The flag 'Advanced Simplifications' cannot be combined " ++
         "with any other non-included transformation."
-        
-  | missingQuotes (busDelimiter cfg) =
-
-      argsError $
-        "The argument of \"-bd, --bus-delimiter\" has " ++
-        "to be sourrounded by double quotes."
         
   | negNormalForm cfg && noRelease cfg && noGlobally cfg && noWeak cfg =
 
