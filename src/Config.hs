@@ -436,8 +436,8 @@ parseArguments args = do
       "--print-target"           -> parseArgument a "-g" next
       "--print-tags"             -> parseArgument a "-a" next      
       "--print-parameters"       -> parseArgument a "-p" next
-      "--print-input-signals"    -> parseArgument a "-p" next
-      "--print-output-signals"   -> parseArgument a "-p" next      
+      "--print-input-signals"    -> parseArgument a "-ins" next
+      "--print-output-signals"   -> parseArgument a "-outs" next      
       "--print-info"             -> parseArgument a "-i" next
       "--version"                -> parseArgument a "-v" next
       "--help"                   -> parseArgument a "-h" next      
