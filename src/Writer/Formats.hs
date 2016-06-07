@@ -38,6 +38,7 @@ data WriteFormat =
   | SLUGSIN
   | FULL  
   | PSL
+  | SMV
   deriving (Eq)
 
 -----------------------------------------------------------------------------
@@ -56,6 +57,7 @@ instance Show WriteFormat where
     SLUGSIN -> "SlugsIn"
     FULL    -> "Full"
     PSL     -> "Psl"
+    SMV     -> "SMV"
 
 -----------------------------------------------------------------------------
 
@@ -77,6 +79,7 @@ parseFormat s = case s of
   "slugsin" -> return SLUGSIN
   "basic"   -> return BASIC
   "full"    -> return FULL
+  "smv"     -> return SMV
   x         -> argsError ("Unknown format: " ++ x)
 
 -----------------------------------------------------------------------------

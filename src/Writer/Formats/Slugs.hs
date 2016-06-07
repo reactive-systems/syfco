@@ -15,6 +15,7 @@ module Writer.Formats.Slugs where
 import Config
 
 import Data.LTL
+import Data.List
 import Writer.Eval
 import Writer.Error
 import Data.Specification
@@ -35,8 +36,18 @@ writeFormat c s =
       Left err -> Left err
       Right _  -> errNoGR1 "not in GR(1)" "slugs"
     Right gr
-      | level gr > 1 -> errNoGR1 ("in GR(" ++ show (level gr) ++ ")") "slugs"
-      | otherwise    -> printSlugs gr
+      | level gr > 1        ->
+          errNoGR1 ("in GR(" ++ show (level gr) ++ ")") "slugs"
+      | primeSymbol c == "'" -> do
+          (iv,ov) <- evalSignals c s
+          case find (== '\'') $ concat (iv ++ ov) of
+            Nothing -> printSlugs gr
+            Just _  ->
+              argsError $
+                "The specification contains primes, which cannot be used " ++
+                "inside Slugs signal names.\nThey can be replaced " ++
+                "by changing the default value of the \"-ps\" option."
+      | otherwise           -> printSlugs gr
   
   where
     printSlugs gr = do
@@ -45,7 +56,9 @@ writeFormat c s =
         ss = initSys gr
         rs = assertEnv gr
         is = assertSys gr
-        (le,ls) = head $ liveness gr
+        (le,ls) = case liveness gr of
+          []  -> ([],[])
+          x:_ -> x
 
       (iv,ov) <- evalSignals c s
       
