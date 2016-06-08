@@ -78,10 +78,7 @@ writeFormat c s =
       FFalse                -> " 0 "
       Atomic x              -> " " ++ show x ++ " "
       Not x                 -> "! " ++ prFormula x
-      Next (Atomic x)       -> show x ++ "' "
-      Next (Not (Atomic x)) -> "! " ++ show x ++ "' "
-      Next (And xs)         -> prFormula $ And $ map Next xs
-      Next (Or xs)          -> prFormula $ Or $ map Next xs
+      Next x                -> prFormula' x
       And []                -> prFormula TTrue
       And [x]               -> prFormula x
       And (x:xr)            -> concatMap (\y -> " & ") xr ++
@@ -95,10 +92,36 @@ writeFormat c s =
       Implies x y           -> " | ! " ++
                                prFormula x ++
                                prFormula y
-      Equiv x y             -> " ^ " ++
+      Equiv x y             -> " ! ^ " ++
                                prFormula x ++
                                prFormula y
       _                     -> assert False undefined
+
+
+      where prFormula' f = case f of
+              TTrue                 -> " 1 "
+              FFalse                -> " 0 "
+              Atomic x              -> " " ++ show x ++ "' "
+              Not x                 -> "! " ++ prFormula' x
+              Next x                -> assert False undefined
+              And []                -> prFormula' TTrue
+              And [x]               -> prFormula' x
+              And (x:xr)            -> concatMap (\y -> " & ") xr ++
+                                       prFormula' x ++
+                                       concatMap (\y -> prFormula' y) xr
+              Or []                 -> prFormula' FFalse
+              Or [x]                -> prFormula' x
+              Or (x:xr)             -> concatMap (\y -> " | ") xr ++
+                                       prFormula' x ++
+                                       concatMap (\y -> prFormula' y) xr
+              Implies x y           -> " | ! " ++
+                                       prFormula' x ++
+                                       prFormula' y
+              Equiv x y             -> " ! ^ " ++
+                                       prFormula' x ++
+                                       prFormula' y
+              _                     -> assert False undefined
+
 
 -----------------------------------------------------------------------------
 
