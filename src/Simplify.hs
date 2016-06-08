@@ -133,13 +133,13 @@ simplify c f =
         | ss || nnf                         -> Equiv (simplify' x) $ simplify' $ Not y
         | otherwise                        -> Not $ Equiv (simplify' x) $ simplify' y
       Not (Until x y)
-        | ss || nnf                         -> simplify' $ Release (Not x) $ Not y
+        | (ss || nnf) && not nr                -> simplify' $ Release (Not x) $ Not y
         | otherwise                        -> Not $ Until (simplify' x) $ simplify' y
       Not (Release x y)
         | ss || nr || nnf                    -> Until (simplify' $ Not x) $ simplify' $ Not y
         | otherwise                        -> Not $ Release (simplify' x) $ simplify' y
       Not (Weak x y)
-        | ss || nw || nnf                    -> simplify' $ Not $ Release y $ Or [x,y]
+        | (ss || nw || nnf) && not nr           -> simplify' $ Not $ Release y $ Or [x,y]
         | otherwise                        -> Not $ Weak (simplify' x) $ simplify' y
       Finally (Next x)
         | ss || ln || hf                     -> simplify' $ Next $ Finally x
