@@ -56,7 +56,7 @@ writeFormat
 
 writeFormat c s = do
   (es1,ss1,rs1,as1,is1,gs1) <-
-    eval (c { owSemantics = Just SemanticsMoore }) s
+    eval c s
     
   as2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) $
          case ss1 of
