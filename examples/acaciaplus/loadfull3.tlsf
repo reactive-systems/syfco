@@ -23,7 +23,7 @@ MAIN {
   ASSUMPTIONS {
     G F idle;
     G (!(idle && X !grant0 && X !grant1 && X !grant2) || X idle);
-    G (X !grant0 || X ((!request0 && !idle) U (!request0 || idle)));
+    G (X !grant0 || X ((!request0 && !idle) U (!request0 && idle)));
   }
 
   INVARIANTS {

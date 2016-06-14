@@ -53,7 +53,7 @@ MAIN {
   ASSUMPTIONS {
     G F idle;
     G (idle && X &&[0 <= i < n] !grant[i] -> X idle);
-    G (X !grant[0] || X ((!request[0] && !idle) U (!request[0] || idle)));
+    G (X !grant[0] || X ((!request[0] && !idle) U (!request[0] && idle)));
   }
 
   INVARIANTS {
