@@ -2,7 +2,8 @@
 -- |
 -- Module      :  Writer.Formats.Smv
 -- License     :  MIT (see the LICENSE file)
--- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- Maintainer  :  Leander Tentrup (tentrup@react.uni-saarland.de)
+--                Felix Klein (klein@react.uni-saarland.de)
 -- 
 -- Transforms a specification to SMV format.
 -- See http://nusmv.fbk.eu/NuSMV/userman/v21/nusmv_3.html#SEC31 for more
@@ -35,15 +36,15 @@ opConfig = OperatorConfig
   { tTrue      = "TRUE"
   , fFalse     = "FALSE"
   , opNot      = UnaryOp  "!"   1
-  , opAnd      = BinaryOp "&"  3 AssocLeft
-  , opOr       = BinaryOp "|"  3 AssocLeft
-  , opImplies  = BinaryOp "->"  3 AssocLeft
-  , opEquiv    = BinaryOp "<->" 3 AssocLeft
-  , opNext     = UnaryOp  "X"   1 
-  , opFinally  = UnaryOp  "F"  1 
-  , opGlobally = UnaryOp  "G"  1  
-  , opUntil    = BinaryOp "U"   2 AssocLeft 
-  , opRelease  = BinaryOp "V"   2 AssocLeft 
+  , opAnd      = BinaryOp "&"   3 AssocLeft
+  , opOr       = BinaryOp "|"   4 AssocLeft
+  , opImplies  = BinaryOp "->"  6 AssocRight
+  , opEquiv    = BinaryOp "<->" 5 AssocLeft
+  , opNext     = UnaryOp  "X"   1
+  , opFinally  = UnaryOp  "F"   1
+  , opGlobally = UnaryOp  "G"   1
+  , opUntil    = BinaryOp "U"   2 AssocLeft
+  , opRelease  = BinaryOp "V"   2 AssocLeft
   , opWeak     = BinaryOpUnsupported
   }
 
