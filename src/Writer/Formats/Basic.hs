@@ -62,7 +62,7 @@ writeFormat c s = do
       semantics = fromMaybe (semantics s) $ owSemantics c
       }
 
-  (es,ss,rs,as,is,gs) <- eval c s'
+  (es,ss,rs,as,is,gs) <- eval c s
   es' <- mapM (simplify (adjust c opConfig)) es
   ss' <- mapM (simplify (adjust c opConfig)) ss
   rs' <- mapM (simplify (adjust c opConfig)) rs
