@@ -3,9 +3,9 @@
 -- Module      :  Main
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- The main module.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Main
@@ -27,44 +27,44 @@ import Info
     , prVersion
     , prHelp
     )
-    
+
 import Config
     ( Configuration(..)
     , parseArguments
     )
-    
+
 import Reader
     ( readSpecification
     )
-    
+
 import Writer
     ( WriteFormat(..)
     , writeSpecification
-    , partition  
+    , partition
     )
 
 import Data.Error
     ( prError
-    , argsError 
+    , argsError
     )
 
 import Data.Maybe
     ( isJust
     , fromJust
-    )  
-    
+    )
+
 import Data.Specification
     ( Specification
-    )  
+    )
 
 import System.Environment
     ( getArgs
     )
-      
+
 import System.Directory
     ( doesFileExist
     )
-    
+
 import Control.Monad
     ( when
     )
@@ -83,7 +83,7 @@ import GHC.IO.Encoding
 import Detection
     ( GRFormula(..)
     , detectGR
-    )  
+    )
 
 -----------------------------------------------------------------------------
 
@@ -120,11 +120,11 @@ readContent
 
 readContent c (content,file) = case readSpecification content of
   Left err -> prError err
-  Right s  
+  Right s
     | check c       ->
         case writeSpecification c s of
           Left err -> prError err
-          Right _  -> 
+          Right _  ->
             case file of
               Nothing -> putStrLn "valid"
               Just f  -> putStrLn $ "valid: " ++ f
@@ -189,10 +189,10 @@ writeOutput c s = case writeSpecification c s of
         let ending = case outputFormat c of
               BASIC   -> ".tlsf"
               UNBEAST -> ".xml"
-              _       -> ".ltl"
-        
+              _       -> ""
+
         writeFile (rmSuffix f ++ ending) wc
-        
+
     when (isJust $ partFile c) $ do
       part <- partition c s
       writeFile (fromJust $ partFile c) part
