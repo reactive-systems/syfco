@@ -1,8 +1,9 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Writer.Formats.Basic
+-- Module      :  Writer.Formats.Bosy
 -- License     :  MIT (see the LICENSE file)
--- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- Maintainer  :  Leander Tentrup (tentrup@react.uni-saarland.de)
+--                Felix Klein (klein@react.uni-saarland.de)
 -- 
 -- Transforms a specification to the BoSy JSON file format
 -- 
@@ -53,7 +54,7 @@ opConfig = OperatorConfig
 
 -----------------------------------------------------------------------------
 
--- | Basic TLSF writer.
+-- | Bosy JSON writer.
 
 writeFormat
   :: Configuration -> Specification -> Either Error String

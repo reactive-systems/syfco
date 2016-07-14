@@ -235,6 +235,7 @@ prHelp = do
     , "      * slugsin                   : SlugsIn format [GR(1) only]"
     , "      * psl                       : PSL Syntax"
     , "      * smv                       : SMV file format"
+    , "      * bosy                      : Bosy JSON file format"
     , "" 
     , "  -m, --mode                      : Output mode. Possible values are"
     , ""
