@@ -40,6 +40,7 @@ data WriteFormat =
   | FULL  
   | PSL
   | SMV
+  | BOSY
   deriving (Eq)
 
 -----------------------------------------------------------------------------
@@ -60,6 +61,7 @@ instance Show WriteFormat where
     FULL        -> "Full"
     PSL         -> "Psl"
     SMV         -> "SMV"
+    BOSY        -> "BoSy"
 
 -----------------------------------------------------------------------------
 
@@ -83,6 +85,7 @@ parseFormat s = case s of
   "basic"        -> return BASIC
   "full"         -> return FULL
   "smv"          -> return SMV
+  "bosy"         -> return BOSY
   x              -> argsError ("Unknown format: " ++ x)
 
 -----------------------------------------------------------------------------
@@ -92,7 +95,7 @@ parseFormat s = case s of
 needsLower
   :: WriteFormat -> Bool
 
-needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, ACACIASPECS, LILY]
+needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, ACACIASPECS, LILY, BOSY]
 
 -----------------------------------------------------------------------------
 
