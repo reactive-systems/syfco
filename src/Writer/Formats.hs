@@ -32,7 +32,8 @@ data WriteFormat =
   | UNBEAST
   | LTLXBA
   | LILY  
-  | ACACIA    
+  | ACACIA
+  | ACACIASPECS
   | BASIC
   | SLUGS      
   | SLUGSIN
@@ -46,20 +47,21 @@ data WriteFormat =
 
 instance Show WriteFormat where
   show f = case f of
-    UTF8    -> "Utf8"
-    WRING   -> "Wring"
-    PROMELA -> "Promela LTL"
-    UNBEAST -> "Unbeast"
-    LTLXBA  -> "LtlXba"
-    LILY    -> "Lily"
-    ACACIA  -> "Acacia"
-    BASIC   -> "Basic"
-    SLUGS   -> "Slugs"
-    SLUGSIN -> "SlugsIn"
-    FULL    -> "Full"
-    PSL     -> "Psl"
-    SMV     -> "SMV"
-    BOSY    -> "BoSy"
+    UTF8        -> "Utf8"
+    WRING       -> "Wring"
+    PROMELA     -> "Promela LTL"
+    UNBEAST     -> "Unbeast"
+    LTLXBA      -> "LtlXba"
+    LILY        -> "Lily"
+    ACACIA      -> "Acacia"
+    ACACIASPECS -> "AcaciaSpecs"
+    BASIC       -> "Basic"
+    SLUGS       -> "Slugs"
+    SLUGSIN     -> "SlugsIn"
+    FULL        -> "Full"
+    PSL         -> "Psl"
+    SMV         -> "SMV"
+    BOSY        -> "BoSy"
 
 -----------------------------------------------------------------------------
 
@@ -69,21 +71,22 @@ parseFormat
   :: String -> Either Error WriteFormat
 
 parseFormat s = case s of
-  "utf8"    -> return UTF8 
-  "wring"   -> return WRING
-  "ltlxba"  -> return LTLXBA
-  "unbeast" -> return UNBEAST 
-  "promela" -> return PROMELA
-  "acacia"  -> return ACACIA
-  "lily"    -> return LILY
-  "psl"     -> return PSL
-  "slugs"   -> return SLUGS
-  "slugsin" -> return SLUGSIN
-  "basic"   -> return BASIC
-  "full"    -> return FULL
-  "smv"     -> return SMV
-  "bosy"    -> return BOSY
-  x         -> argsError ("Unknown format: " ++ x)
+  "utf8"         -> return UTF8
+  "wring"        -> return WRING
+  "ltlxba"       -> return LTLXBA
+  "unbeast"      -> return UNBEAST
+  "promela"      -> return PROMELA
+  "acacia"       -> return ACACIA
+  "acacia-specs" -> return ACACIASPECS
+  "lily"         -> return LILY
+  "psl"          -> return PSL
+  "slugs"        -> return SLUGS
+  "slugsin"      -> return SLUGSIN
+  "basic"        -> return BASIC
+  "full"         -> return FULL
+  "smv"          -> return SMV
+  "bosy"         -> return BOSY
+  x              -> argsError ("Unknown format: " ++ x)
 
 -----------------------------------------------------------------------------
 
@@ -92,7 +95,7 @@ parseFormat s = case s of
 needsLower
   :: WriteFormat -> Bool
 
-needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, LILY, BOSY]
+needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, ACACIASPECS, LILY, BOSY]
 
 -----------------------------------------------------------------------------
 

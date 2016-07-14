@@ -635,7 +635,7 @@ separateRequirements is fml = do
   let ys = firstLevelDNF $ pullTogether fml
   -- separate the boolean fragment
   (bs,ns) <- separateBoolean ys
-    -- check for compatibility
+  -- check for compatibility
   unless (map (fNot . fAnd) bs == is) $ Left $
     "The initial constraints cannot be refined to fit into the "
     ++ "Generalized Reactivity format."
@@ -791,7 +791,7 @@ firstLevelCNF formula =
       Just _ -> (m,b,i)
       Nothing -> case M.lookup (fNot x) m of
         Just i' -> (M.insert x (i'+1) m,M.insert (i'+1) x b, i)
-        Nothing -> (M.insert x (2*i) m, M.insert (2*i) x b, i+1)
+        Nothing -> (M.insert x (2*i) m, M.insert (2*i) x b, i+2)
     fml' = replaceLevelOneAtoms mm formula
   in 
     map (map (bb M.!)) $ fCNF fml'
@@ -810,6 +810,8 @@ firstLevelCNF formula =
       _               -> assert False undefined
     
     levelOneAtoms a fml = case fml of
+      TTrue           -> a
+      FFalse          -> a
       Atomic {}       -> fml : a
       Not (Atomic {}) -> fml : a
       Next {}         -> fml : a
@@ -840,7 +842,7 @@ firstLevelCNF formula =
     filternegations = filternegations' [] . bucketSort
     filternegations' a xs = case xs of
       (x : y : xr) 
-        | x + 1 == y -> filternegations' a xr
+        | x + 1 == y -> []
         | otherwise -> filternegations' (x : a) (y : xr)
       (x : xr) -> filternegations' (x : a) xr
       [] -> reverse a 
@@ -870,13 +872,27 @@ firstLevelCNF formula =
     pure fml = case fml of
       TAnd {}   -> Left fml
       TAtomic x -> Right x
-      _         -> error $ show fml  --assert False undefined
+      _         -> assert False undefined
 
     -- merge all two level And and Or 
     warp fml = case fml of
-      TAnd xs -> TAnd $ warpAnd $ map warp xs
-      TOr xs  -> TOr $ warpOr $ map warp xs
-      _       -> fml
+      TAnd []  -> TTTrue
+      TAnd [x] -> warp x
+      TAnd xs
+        | TFFalse `elem` xs -> TFFalse
+        | otherwise         -> case filter (/= TTTrue) xs of
+          []  -> TTTrue
+          [x] -> warp x
+          ys  -> TAnd $ warpAnd $ map warp ys
+      TOr []   -> TFFalse
+      TOr [x]  -> warp x
+      TOr xs
+        | TTTrue `elem` xs -> TTTrue
+        | otherwise        -> case filter (/= TFFalse) xs of
+          []  -> TFFalse
+          [x] -> warp x
+          ys  -> TOr $ warpOr $ map warp ys
+      _        -> fml
 
     -- merge two level And
     warpAnd = concatMap wAnd
@@ -904,6 +920,8 @@ filterSupSets xs =
 
   where
     filtersets a [] = a
+    filtersets a ([]:xr) =
+      filtersets a xr
     filtersets a (x:xr) =
       filtersets (x:a) (rmsup x [] xr)
 

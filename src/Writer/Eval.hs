@@ -51,7 +51,10 @@ import Data.LTL
     , Formula(..)
     , subFormulas
     , applyAtomic  
-    , applySub       
+    , applySub
+    , fGlobally
+    , fAnd
+    , fNot
     )
     
 import Data.Types
@@ -244,29 +247,49 @@ eval c s = do
       let
         og = all outputsGuarded (es ++ ss ++ rs ++ as ++ is ++ gs)
         ig = all inputsGuarded (es ++ ss ++ rs ++ as ++ is ++ gs)
-      in (map (adjustOW og ig sp) es,
-          map (adjustOW og ig sp) ss,
-          map (adjustOW og ig sp) rs,
-          map (adjustOW og ig sp) as,
-          map (adjustOW og ig sp) is,
-          map (adjustOW og ig sp) gs)
+
+        (es',ss',rs',as',is',gs') =
+          if (semantics sp, owSemantics c) `elem`
+             [(SemanticsStrictMealy, Just SemanticsMealy),
+              (SemanticsStrictMealy, Just SemanticsMoore),
+              (SemanticsStrictMoore, Just SemanticsMealy),
+              (SemanticsStrictMoore, Just SemanticsMoore)]
+          then (es, filter (/= TTrue) ((fWeak (fAnd is) (fNot (fAnd rs))) : ss), rs, as, [], gs)
+          else (es,ss,rs,as,is,gs)
+      in
+        (map (adjustOW og ig sp) es',
+         map (adjustOW og ig sp) ss',
+         map (adjustOW og ig sp) rs',
+         map (adjustOW og ig sp) as',
+         map (adjustOW og ig sp) is',
+         map (adjustOW og ig sp) gs')
+
+    fWeak TTrue _  = TTrue
+    fWeak x FFalse = fGlobally x
+    fWeak x y      = Weak x y
 
     adjustOW og ig sp e = case owSemantics c of
       Nothing -> e
-      Just m -> case (semantics sp, m) of
-        (SemanticsMealy, SemanticsMealy) -> e
-        (SemanticsMoore, SemanticsMoore) -> e                                        
-        (SemanticsStrictMealy, SemanticsStrictMealy) -> e
-        (SemanticsStrictMoore, SemanticsStrictMoore) -> e          
-        (SemanticsMealy, SemanticsMoore) ->
-          if ig then unGuardInputs sp e else guardOutputs sp e
-        (SemanticsStrictMealy, SemanticsStrictMoore) ->
-          if ig then unGuardInputs sp e else guardOutputs sp e          
-        (SemanticsMoore, SemanticsMealy) -> 
-          if og then unGuardOutputs sp e else guardInputs sp e
-        (SemanticsStrictMoore, SemanticsStrictMealy) ->
-          if og then unGuardOutputs sp e else guardInputs sp e
-        _ -> error "TODO no converions between strict, non-strict yet"
+      Just m
+        | (semantics sp, m) `elem`
+            [(SemanticsMealy, SemanticsMealy),
+             (SemanticsMoore, SemanticsMoore),
+             (SemanticsStrictMealy, SemanticsStrictMealy),
+             (SemanticsStrictMoore, SemanticsStrictMoore),
+             (SemanticsStrictMealy, SemanticsMealy),
+             (SemanticsStrictMoore, SemanticsMoore)] -> e
+        | (semantics sp, m) `elem`
+            [(SemanticsMealy, SemanticsMoore),
+             (SemanticsStrictMealy, SemanticsMoore),
+             (SemanticsStrictMealy, SemanticsStrictMoore)] ->
+              if ig then unGuardInputs sp e else guardOutputs sp e
+        | (semantics sp, m) `elem`
+            [(SemanticsMoore, SemanticsMealy),
+             (SemanticsStrictMoore, SemanticsMealy),
+             (SemanticsStrictMoore, SemanticsStrictMealy)] ->
+              if og then unGuardOutputs sp e else guardInputs sp e
+        | otherwise ->
+             error "Conversion from non-strict -> strict semantics not possible"
 
     outputsGuarded e = case e of
       Next (Atomic (Output _)) -> True

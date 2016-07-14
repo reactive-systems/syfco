@@ -1,5 +1,5 @@
 # Synthesis Format Conversion Tool
-# (Version 1.0.0.3)
+# (Version 1.0.0.4)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF [1].
@@ -96,6 +96,7 @@ syfco [OPTIONS]... <file>
       * wring                     : Wring input format
       * lily                      : Lily input format
       * acacia                    : Acacia / Acacia+ input format
+      * acacia-specs              : Acacia input format with spec units
       * ltlxba                    : LTL2BA / LTL3BA input format
       * promela                   : Promela LTL
       * unbeast                   : Unbeast input format

@@ -56,6 +56,7 @@ import qualified Writer.Formats.Utf8 as Utf8
 import qualified Writer.Formats.Wring as Wring
 import qualified Writer.Formats.Promela as Promela
 import qualified Writer.Formats.Acacia as Acacia
+import qualified Writer.Formats.AcaciaSpecs as AcaciaSpecs
 import qualified Writer.Formats.Lily as Lily
 import qualified Writer.Formats.Ltlxba as Ltlxba
 import qualified Writer.Formats.Unbeast as Unbeast
@@ -94,20 +95,21 @@ writeSpecification c s = do
     checkLower (show $ outputFormat c) s
   
   case outputFormat c of
-    UTF8    -> Utf8.writeFormat c s 
-    BASIC   -> Basic.writeFormat c s
-    FULL    -> Full.writeFormat c s    
-    WRING   -> Wring.writeFormat c s 
-    LTLXBA  -> Ltlxba.writeFormat c s
-    LILY    -> Lily.writeFormat c s     
-    ACACIA  -> Acacia.writeFormat c s 
-    PROMELA -> Promela.writeFormat c s 
-    UNBEAST -> Unbeast.writeFormat c s
-    SLUGS   -> Slugs.writeFormat c s     
-    SLUGSIN -> SlugsIn.writeFormat c s
-    PSL     -> Psl.writeFormat c s 
-    SMV     -> Smv.writeFormat c s 
-    BOSY    -> Bosy.writeFormat c s 
+    UTF8        -> Utf8.writeFormat c s
+    BASIC       -> Basic.writeFormat c s
+    FULL        -> Full.writeFormat c s
+    WRING       -> Wring.writeFormat c s
+    LTLXBA      -> Ltlxba.writeFormat c s
+    LILY        -> Lily.writeFormat c s
+    ACACIA      -> Acacia.writeFormat c s
+    ACACIASPECS -> AcaciaSpecs.writeFormat c s
+    PROMELA     -> Promela.writeFormat c s
+    UNBEAST     -> Unbeast.writeFormat c s
+    SLUGS       -> Slugs.writeFormat c s
+    SLUGSIN     -> SlugsIn.writeFormat c s
+    PSL         -> Psl.writeFormat c s
+    SMV         -> Smv.writeFormat c s
+    BOSY        -> Bosy.writeFormat c s
   
 -----------------------------------------------------------------------------
 
