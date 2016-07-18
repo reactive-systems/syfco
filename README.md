@@ -111,7 +111,7 @@ However, if you encounter any problems, please inform us via [the project bug tr
 | ```-pfi, --push-finally-inwards```   | Push finally operators inwards </br> <code>F (a &#124;&#124; b) => (F a) &#124;&#124; (F b)</code> |
 | ```-pxi, --push-next-inwards```      | Push next operators inwards </br> ```X (a && b) => (X a) && (X b)``` </br>  <code>X (a &#124;&#124; b) => (X a) &#124;&#124; (X b)</code> |
 | ```-pgo, --pull-globally-outwards``` | Pull global operators outwards </br> ```(G a) && (G b) => G (a && b)``` |
-| ```-pfo, --pull-finally-outwards```  | Pull finally operators outwards  </br>  <code>(F a) &#124;&#124; (F b) => G (a &#124;&#124; b)</code>
+| ```-pfo, --pull-finally-outwards```  | Pull finally operators outwards  </br>  <code>(F a) &#124;&#124; (F b) => F (a &#124;&#124; b)</code>
 | ```-pxo, --pull-next-outwards```     | Pull next operators outwards </br> ```(X a) && (X b) => X (a && b)``` </br> <code>(X a) &#124;&#124; (X b) => X (a && b)</code>
 | ``` -nw, --no-weak-until```          | Replace weak until operators </br> <code>a W b => (a U b) &#124;&#124; (G a)</code>
 | ```-nr, --no-release```              | Replace release operators </br> ```a R b => b W (a && b)```
