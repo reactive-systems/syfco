@@ -1,12 +1,12 @@
 # Synthesis Format Conversion Tool
-# (Version 1.0.0.7)
+# (Version 1.0.0.8)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF [0].
 
 ## About this tool
 
-The tool interprets the high level constructs ofTLSF 1.1 [1]
+The tool interprets the high level constructs of TLSF 1.1 [1]
 (functions, sets, ...) and supports the transformation of the
 specification to Linear Temporal Logic (LTL) in different output
 formats. The tool has been designed to be modular with respect to the

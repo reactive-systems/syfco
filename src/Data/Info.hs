@@ -134,8 +134,8 @@ usage m =
                  adapt (80 - len - 3) vs)) xs
       in case m of
         Markdown ->
-          [ " | Command | Description |"
-          , " | ------- | ----------- |" ]
+          [ "|Command|Description|"
+          , "|-------|-----------|" ]
           ++ map prMRow (filter (\(s,_,_,_) -> not $ null s) xs')
         _        ->
           concatMap prRow xs'
@@ -164,7 +164,7 @@ usage m =
       | otherwise =  rearrange l a (x:b) (n + length x + 1) xr
 
     prMRow (short,long,sub,desc) =
-      " | " ++ code m ("-" ++ short ++ ", --" ++ long) ++ " | " ++
+      "|" ++ code m ("-" ++ short ++ ", --" ++ long) ++ "|" ++
       ( case desc of
            []   -> ""
            x:xr -> concat (x : map ("</br> " ++) xr) ++
@@ -173,7 +173,7 @@ usage m =
                     Just ys -> "</br> <table><tbody> " ++
                               concatMap prMSub ys ++
                               " </tbody></table>"
-      ) ++ " |"
+      ) ++ "|"
 
     prMSub (name,d,desc) =
       "<tr><td>" ++ code m name ++
@@ -379,7 +379,7 @@ readme m = appendlinks $ unlines
   , ""
   , "## About this tool"
   , ""
-  , "The tool interprets the high level constructs of" ++
+  , "The tool interprets the high level constructs of " ++
     link "TLSF 1.1" "https://arxiv.org/abs/1604.02284"
   , "(functions, sets, ...) and supports the transformation of the"
   , "specification to Linear Temporal Logic (LTL) in different output"
