@@ -16,3 +16,4 @@ cabal.sandbox.config
 *.hp
 syfco
 syfco_profile
+.commit

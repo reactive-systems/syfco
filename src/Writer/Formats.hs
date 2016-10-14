@@ -3,23 +3,42 @@
 -- Module      :  Writer.Formats
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Main list of supported writer formats.
--- 
+--
+-----------------------------------------------------------------------------
+
+{-# LANGUAGE DeriveGeneric #-}
+
 -----------------------------------------------------------------------------
 
 module Writer.Formats
-    ( WriteFormat(..)
-    , parseFormat
-    , needsLower
-    ) where
+  ( WriteFormat(..)
+  , needsLower
+  ) where
 
 -----------------------------------------------------------------------------
 
+import Data.Utils
+  ( MachinePrintable(..)
+  )
+
+import Data.List
+  ( find
+  )
+
 import Data.Error
-    ( Error
-    , argsError
-    )  
+  ( Error
+  , argsError
+  )
+
+import GHC.Generics
+  ( Generic
+  )
+
+import Generics.Deriving.Enum
+  ( GEnum
+  )
 
 -----------------------------------------------------------------------------
 
@@ -27,22 +46,27 @@ import Data.Error
 
 data WriteFormat =
     UTF8
-  | WRING  
+  | WRING
   | PROMELA
   | UNBEAST
   | LTLXBA
-  | LILY  
+  | LILY
   | ACACIA
   | ACACIASPECS
   | BASIC
-  | SLUGS      
+  | SLUGS
   | SLUGSIN
-  | FULL  
+  | FULL
   | PSL
   | SMV
-  deriving (Eq)
+  deriving (Eq, Generic)
+
+instance GEnum WriteFormat
 
 -----------------------------------------------------------------------------
+
+-- | Human readable names of the formats, which may include spaces or
+-- other special characters.
 
 instance Show WriteFormat where
   show f = case f of
@@ -63,27 +87,25 @@ instance Show WriteFormat where
 
 -----------------------------------------------------------------------------
 
--- | Simple parser to read the corresponding format from the command line.
+-- | Computer readable names of the formats used via the command line or
+-- configuration files. The name of each format has to be unique.
 
-parseFormat
-  :: String -> Either Error WriteFormat
-
-parseFormat s = case s of
-  "utf8"         -> return UTF8
-  "wring"        -> return WRING
-  "ltlxba"       -> return LTLXBA
-  "unbeast"      -> return UNBEAST
-  "promela"      -> return PROMELA
-  "acacia"       -> return ACACIA
-  "acacia-specs" -> return ACACIASPECS
-  "lily"         -> return LILY
-  "psl"          -> return PSL
-  "slugs"        -> return SLUGS
-  "slugsin"      -> return SLUGSIN
-  "basic"        -> return BASIC
-  "full"         -> return FULL
-  "smv"          -> return SMV
-  x              -> argsError ("Unknown format: " ++ x)
+instance MachinePrintable WriteFormat where
+  mprint fmt = case fmt of
+    UTF8        -> "utf8"
+    WRING       -> "wring"
+    PROMELA     -> "promela"
+    UNBEAST     -> "unbeast"
+    LTLXBA      -> "ltlxba"
+    LILY        -> "lily"
+    ACACIA      -> "acacia"
+    ACACIASPECS -> "acacia-specs"
+    BASIC       -> "basic"
+    SLUGS       -> "slugs"
+    SLUGSIN     -> "slugsin"
+    FULL        -> "full"
+    PSL         -> "psl"
+    SMV         -> "smv"
 
 -----------------------------------------------------------------------------
 
@@ -95,4 +117,3 @@ needsLower
 needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, ACACIASPECS, LILY]
 
 -----------------------------------------------------------------------------
-

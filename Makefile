@@ -20,6 +20,11 @@ default: ${MAIN.hs}
 	@ghc -idir1:src ${GHCFLAGS} ${MAIN} -odir ${BLDDIR} -hidir ${BLDDIR} -o ${NAME}
 	@strip ${NAME}
 
+ghci: ${MAIN.hs}
+	@mkdir -p ${BLDDIR}
+	@ghci -idir1:src ${GHCFLAGS} ${MAIN} -odir ${BLDDIR} -hidir ${BLDDIR} -o ${NAME}
+	@strip ${NAME}
+
 debug: ${MAIN.hs}
 	@mkdir -p ${BLDDIR}
 	@ghc -idir1:src ${GHCFLAGS} -O0 ${MAIN} -odir ${BLDDIR} -hidir ${BLDDIR} -o ${NAME}
@@ -41,11 +46,11 @@ profile: ${MAIN.hs}
 static:
 	@mkdir -p ${BLDSTATIC}
 	@ghc -static -optc-static -optl-static -optl-pthread -idir1:src ${GHCFLAGS} ${MAIN} -odir ${BLDSTATIC} -hidir ${BLDDIR} -o ${NAME}
-	@strip ${NAME}	
+	@strip ${NAME}
 
 clean:
 	@rm -fR ${BLDDIR}
-	@rm -fR ${BLDSTATIC}	
+	@rm -fR ${BLDSTATIC}
 	@rm -fR ${NAME}
 	@rm -fR ${NAME}_profile
 	@rm -fR dist

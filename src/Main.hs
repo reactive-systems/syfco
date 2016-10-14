@@ -1,4 +1,4 @@
------------------------------------------------------------------------------
+----------------------------------------------------------------------------
 -- |
 -- Module      :  Main
 -- License     :  MIT (see the LICENSE file)
@@ -8,82 +8,89 @@
 --
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE MultiWayIf #-}
+
+-----------------------------------------------------------------------------
+
 module Main
-    ( main
-    ) where
+  ( main
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Info
-    ( prTitle
-    , prDescription
-    , prSemantics
-    , prTarget
-    , prTags
-    , prParameters
-    , prInputs
-    , prOutputs
-    , prInfo
-    , prVersion
-    , prHelp
-    )
+  ( prTitle
+  , prDescription
+  , prSemantics
+  , prTarget
+  , prTags
+  , prParameters
+  , prInputs
+  , prOutputs
+  , prInfo
+  , prVersion
+  , prHelp
+  , prReadme
+  , prReadmeMd
+  )
 
 import Config
-    ( Configuration(..)
-    , parseArguments
-    )
+  ( Configuration(..)
+  , parseArguments
+  , printableConfig
+  )
 
 import Reader
-    ( readSpecification
-    )
+  ( readSpecification
+  )
 
 import Writer
-    ( WriteFormat(..)
-    , writeSpecification
-    , partition
-    )
+  ( WriteFormat(..)
+  , writeSpecification
+  , partition
+  )
 
 import Data.Error
-    ( prError
-    , argsError
-    )
+  ( prError
+  , argsError
+  )
 
 import Data.Maybe
-    ( isJust
-    , fromJust
-    )
+  ( isJust
+  , fromJust
+  )
 
 import Data.Specification
-    ( Specification
-    )
+  ( Specification
+  )
 
 import System.Environment
-    ( getArgs
-    )
+  ( getArgs
+  )
 
 import System.Directory
-    ( doesFileExist
-    )
+  ( doesFileExist
+  )
 
 import Control.Monad
-    ( when
-    )
+  ( when
+  )
 
 import Control.Exception
-    ( assert
-    )
+  ( assert
+  )
 
 import GHC.IO.Encoding
-    ( setLocaleEncoding
-    , setFileSystemEncoding
-    , setForeignEncoding
-    , utf8
-    )
+  ( setLocaleEncoding
+  , setFileSystemEncoding
+  , setForeignEncoding
+  , utf8
+  )
 
 import Detection
-    ( GRFormula(..)
-    , detectGR
-    )
+  ( GRFormula(..)
+  , detectGR
+  )
 
 -----------------------------------------------------------------------------
 
@@ -97,12 +104,12 @@ main = do
   setFileSystemEncoding utf8
   setForeignEncoding utf8
   args <- getArgs
-  case parseArguments args of
-    Left err -> prError err
-    Right c
-      | pHelp c    -> prHelp
-      | pVersion c -> prVersion
-      | otherwise  -> readContents c
+  c <- parseArguments args
+  if | pHelp c     -> prHelp
+     | pVersion c  -> prVersion
+     | pReadme c   -> prReadme
+     | pReadmeMd c -> prReadmeMd
+     | otherwise   -> readContents c
 
 -----------------------------------------------------------------------------
 
@@ -110,8 +117,10 @@ readContents
   :: Configuration -> IO ()
 
 readContents c = do
-  contents <- readInput c
-  mapM_ (readContent c) contents
+  mapM_ (writeConfiguration c) $ saveConfig c
+  when (not (null (inputFile c)) || fromStdin c) $ do
+    contents <- readInput c
+    mapM_ (readContent c) contents
 
 -----------------------------------------------------------------------------
 
@@ -167,8 +176,8 @@ readInput c = case inputFile c of
     x <- getContents
     return [(x,Nothing)]
   xs -> mapM (\f -> do
-    b <- doesFileExist f
-    if b then do
+    exists <- doesFileExist f
+    if exists then do
       r <- readFile f
       return (r,Just f)
     else case argsError $ "File does not exist: " ++ f of
@@ -203,5 +212,14 @@ writeOutput c s = case writeSpecification c s of
       'l':'m':'x':'.':xr     -> reverse xr
       'l':'t':'l':'.':xr     -> reverse xr
       _                      -> path
+
+-----------------------------------------------------------------------------
+
+
+writeConfiguration
+  :: Configuration -> FilePath -> IO ()
+
+writeConfiguration c file =
+  writeFile file $  printableConfig c
 
 -----------------------------------------------------------------------------

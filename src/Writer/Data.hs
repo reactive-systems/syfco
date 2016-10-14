@@ -3,33 +3,58 @@
 -- Module      :  Writer.Data
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Common data used by the writer module.
--- 
+--
+-----------------------------------------------------------------------------
+
+{-# LANGUAGE DeriveGeneric #-}
+
 -----------------------------------------------------------------------------
 
 module Writer.Data
-    ( WriteMode(..)
-    , OperatorConfig(..)
-    , UnaryOperator(..)
-    , BinaryOperator(..)
-    , Unsupported(..)  
-    , Assoc(..)  
-    ) where
+  ( WriteMode(..)
+  , OperatorConfig(..)
+  , UnaryOperator(..)
+  , BinaryOperator(..)
+  , Unsupported(..)
+  , Assoc(..)
+  ) where
+
+-----------------------------------------------------------------------------
+
+import Data.Utils
+  ( MachinePrintable(..)
+  )
+
+import GHC.Generics
+  ( Generic
+  )
+
+import Generics.Deriving.Enum
+  ( GEnum
+  )
 
 -----------------------------------------------------------------------------
 
 -- | There are two writing modes currently supported:
--- 
+--
 --     * pretty printing, producing a well readable minimal ouptut
--- 
+--
 --     * fully paranthesized printing, producing fully parenthesized
 --       expressions
 
 data WriteMode =
     Pretty
   | Fully
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
+
+instance GEnum WriteMode
+
+instance MachinePrintable WriteMode where
+  mprint mode = case mode of
+    Pretty -> "pretty"
+    Fully  -> "fully"
 
 -----------------------------------------------------------------------------
 
@@ -39,7 +64,7 @@ data WriteMode =
 data Assoc =
     AssocLeft
   | AssocRight
-  deriving (Eq)  
+  deriving (Eq)
 
 -----------------------------------------------------------------------------
 
@@ -50,13 +75,13 @@ data UnaryOperator =
     { uopName :: String
     , uopPrecedence :: Int
     }
-  | UnaryOpUnsupported    
+  | UnaryOpUnsupported
   deriving (Eq)
 
 -----------------------------------------------------------------------------
 
 -- | A binary operator can be set up by a name, its precedencs and its
--- associativity. 
+-- associativity.
 
 data BinaryOperator =
   BinaryOp
@@ -67,23 +92,23 @@ data BinaryOperator =
   | BinaryOpUnsupported
   deriving (Eq)
 
------------------------------------------------------------------------------  
+-----------------------------------------------------------------------------
 
 -- | A simple expression printer can be set up using the function
 -- 'printFormula' from 'Writer.Pretty'. The bundle the specific
 -- operator names, their precedence and their associativity, the data
 -- structure @OperatorNames@ is used.
--- 
+--
 -- Thereby, constants as True and False are given by Strings and unary
 -- operators are given by their name their precedence. For binary
 -- operators, additionally the associativity has to be defined.
--- 
+--
 -- The precedence is given by an Integer, where a lower value means
 -- higher precedence. If the same value is used for multiple
 -- operators, their precedence is treated equally.
--- 
+--
 -- The associativity is either 'AssocLeft' or 'AssocRight'.
--- 
+--
 -- Unsupported Operators can be disabled using 'UnaryOpUnsupported' or
 -- 'BinaryOpUnsupported', respectively.
 
@@ -117,4 +142,4 @@ instance Unsupported UnaryOperator where
 instance Unsupported BinaryOperator where
   unsupported = (== BinaryOpUnsupported)
 
------------------------------------------------------------------------------  
+-----------------------------------------------------------------------------

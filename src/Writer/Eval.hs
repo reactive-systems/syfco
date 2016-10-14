@@ -1,124 +1,125 @@
-{-# LANGUAGE FlexibleContexts #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Writer.Eval
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Unfolds all high level constructs of a specification to the corresponding
 -- low level constructs.
--- 
+--
+-----------------------------------------------------------------------------
+
+{-# LANGUAGE FlexibleContexts #-}
+
 -----------------------------------------------------------------------------
 
 module Writer.Eval
-    ( eval
-    , evalSignals  
-    ) where
+  ( eval
+  , evalSignals
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Utils
-    ( iter
-    )
+  ( iter
+  )
 
 import Data.Enum
-    ( EnumDefinition(..)
-    )
+  ( EnumDefinition(..)
+  )
 
 import Data.Maybe
-    ( fromMaybe
-    , catMaybes  
-    )
-    
+  ( fromMaybe
+  , catMaybes
+  )
+
 import Config
-    ( Configuration(..)
-    )
+  ( Configuration(..)
+  )
 
 import Data.Either
-    ( partitionEithers
-    )  
+  ( partitionEithers
+  )
 
 import Data.List
-    ( find
-    )
+  ( find
+  )
 
 import Data.Char
-    ( toLower
-    )
+  ( toLower
+  )
 
 import Data.LTL
-    ( Atomic(..)
-    , Formula(..)
-    , subFormulas
-    , applyAtomic  
-    , applySub
-    , fGlobally
-    , fAnd
-    , fNot
-    )
-    
+  ( Atomic(..)
+  , Formula(..)
+  , subFormulas
+  , applyAtomic
+  , applySub
+  , fGlobally
+  , fAnd
+  , fNot
+  )
+
 import Data.Types
-    ( IdType(..)
-    , Semantics(..)
-    , SignalType(..)
-    , SignalDecType(..)  
-    )
-    
+  ( IdType(..)
+  , Semantics(..)
+  , SignalType(..)
+  , SignalDecType(..)
+  )
+
 import Data.Binding
-    ( BindExpr(..)
-    )
-    
+  ( BindExpr(..)
+  )
+
 import Data.Expression
-    ( Expr(..)
-    , Expr'(..)
-    , ExprPos
-    )
-    
+  ( Expr(..)
+  , Expr'(..)
+  , ExprPos
+  )
+
 import Data.Specification
-    ( Specification(..)
-    )
-    
+  ( Specification(..)
+  )
+
 import Data.SymbolTable
-    ( IdRec(..)
-    , SymbolTable
-    )  
+  ( IdRec(..)
+  , SymbolTable
+  )
 
 import Writer.Error
-    ( Error
-    , argsError  
-    , errBounds
-    , errBusCmp  
-    , errMinSet
-    , errMaxSet
-    , errSetCap  
-    , errNoMatch  
-    )
+  ( Error
+  , argsError
+  , errBounds
+  , errBusCmp
+  , errMinSet
+  , errMaxSet
+  , errSetCap
+  , errNoMatch
+  )
 
 import Writer.Formats
-    ( needsLower
-    )  
+  ( needsLower
+  )
 
 import Control.Monad.State
-    ( StateT(..)
-    , foldM
-    , execStateT
-    , evalStateT
-    , liftM2        
-    , liftM
-    , when 
-    , get
-    , put
-    )
+  ( StateT(..)
+  , foldM
+  , execStateT
+  , evalStateT
+  , liftM2
+  , liftM
+  , when
+  , get
+  , put
+  )
 
 import Control.Exception
-    ( assert
-    )  
+  ( assert
+  )
 
-
-    
 import Data.Array.IArray
-    ( (!)
-    )  
+  ( (!)
+  )
 
 import qualified Data.Graph as G
 
@@ -131,13 +132,13 @@ import qualified Data.Array.IArray as A
 -----------------------------------------------------------------------------
 
 data Value =
-    VEmpty  
+    VEmpty
   | VNumber Int
   | VLtl Formula
   | VSet (S.Set Value)
   | VEnum String Int [Int -> Either Bool ()]
   | VSignal SignalType String
-  | VBus SignalType Int String 
+  | VBus SignalType Int String
 
 instance Show Value where
   show v = case v of
@@ -159,7 +160,7 @@ instance Eq Value where
   (==) (VEnum _ i xs) (VEnum _ j ys) =
      i == j && length xs == length ys &&
      map (\f -> map f [0,1..i-1]) xs ==
-     map (\f -> map f [0,1..i-1]) ys     
+     map (\f -> map f [0,1..i-1]) ys
   (==) _ _                           = False
 
 instance Ord Value where
@@ -168,12 +169,12 @@ instance Ord Value where
   compare (VLtl f) (VLtl f')            = compare f f'
   compare (VSet s) (VSet s')            = compare s s'
   compare (VSignal _ s) (VSignal _ s')  = compare s s'
-  compare (VBus _ _ s) (VBus _ _ s')    = compare s s'    
+  compare (VBus _ _ s) (VBus _ _ s')    = compare s s'
   compare (VEnum _ i xs) (VEnum _ j ys)
-    | i /= j                 = compare i j 
+    | i /= j                 = compare i j
     | length xs /= length ys = compare (length xs) (length ys)
-    | otherwise             = 
-        compare (map (\f -> map f [0,1..i-1]) xs)  
+    | otherwise             =
+        compare (map (\f -> map f [0,1..i-1]) xs)
                 (map (\f -> map f [0,1..i-1]) ys)
   compare x y                           = compare (cidx x) (cidx y)
 
@@ -197,7 +198,7 @@ data ST = ST
   { tLookup :: SymbolTable
   , tValues :: IM.IntMap Value
   , delimiter :: String
-  , enums :: [EnumDefinition Int]  
+  , enums :: [EnumDefinition Int]
   }
 
 -----------------------------------------------------------------------------
@@ -207,26 +208,27 @@ data ST = ST
 
 eval
   :: Configuration -> Specification
-     -> Either Error ([Formula],[Formula],[Formula],[Formula],[Formula],[Formula])
+     -> Either Error ([Formula],[Formula],[Formula],
+                     [Formula],[Formula],[Formula])
 
 eval c s = do
   (s', st0, xs) <- initialize c s
   let signals = inputs s' ++ outputs s'
-  
+
   stt <- execStateT (mapM_ staticBinding xs) st0
   (rr,sti) <- runStateT (mapM componentSignal signals) stt
   let (er,sr) = partitionEithers $ catMaybes rr
 
-  es <- evalStateT (mapM evalLtl $ initially s') sti  
+  es <- evalStateT (mapM evalLtl $ initially s') sti
   ts <- evalStateT (mapM evalLtl $ preset s') sti
-  rs <- evalStateT (mapM evalLtl $ requirements s') sti  
+  rs <- evalStateT (mapM evalLtl $ requirements s') sti
   as <- evalStateT (mapM evalLtl $ assumptions s') sti
   is <- evalStateT (mapM evalLtl $ invariants s') sti
   gs <- evalStateT (mapM evalLtl $ guarantees s') sti
 
-  return $ splitConjuncts $ overwrite s' 
+  return $ splitConjuncts $ overwrite s'
     ( map plainltl es, map plainltl ts, map plainltl (rs ++ er),
-      map plainltl (as ++ sr), map plainltl is, map plainltl gs )
+      map plainltl as, map plainltl (is ++ sr), map plainltl gs )
 
   where
     plainltl = applyAtomic apA . vltl
@@ -239,7 +241,7 @@ eval c s = do
                   $ lower $ last $ words y
 
     lower x =
-      if needsLower (outputFormat c) 
+      if needsLower (outputFormat c)
       then map toLower x
       else x
 
@@ -254,7 +256,8 @@ eval c s = do
               (SemanticsStrictMealy, Just SemanticsMoore),
               (SemanticsStrictMoore, Just SemanticsMealy),
               (SemanticsStrictMoore, Just SemanticsMoore)]
-          then (es, filter (/= TTrue) ((fWeak (fAnd is) (fNot (fAnd rs))) : ss), rs, as, [], gs)
+          then (es, filter (/= TTrue) ((fWeak (fAnd is) (fNot (fAnd rs))) : ss),
+                rs, as, [], gs)
           else (es,ss,rs,as,is,gs)
       in
         (map (adjustOW og ig sp) es',
@@ -299,7 +302,7 @@ eval c s = do
     inputsGuarded e = case e of
       Next (Atomic (Input _)) -> True
       Atomic (Input _) -> False
-      _ -> all inputsGuarded $ subFormulas e      
+      _ -> all inputsGuarded $ subFormulas e
 
     guardOutputs sp e = case e of
       Atomic (Output x) -> Next $ Atomic $ Output x
@@ -307,7 +310,7 @@ eval c s = do
 
     guardInputs sp e = case  e of
       Atomic (Input x) -> Next $ Atomic $ Input x
-      _        -> applySub (guardInputs sp) e      
+      _        -> applySub (guardInputs sp) e
 
     unGuardOutputs sp e  = case e of
       Next (Atomic (Output x)) -> Atomic $ Output x
@@ -318,16 +321,16 @@ eval c s = do
       _                       -> applySub (unGuardInputs sp) e
 
     splitConjuncts (es,ss,rs,xs,ys,zs) =
-      ( concatMap splitC es, 
+      ( concatMap splitC es,
         concatMap splitC ss,
-        concatMap splitC rs,         
+        concatMap splitC rs,
         concatMap splitC xs,
         concatMap splitC ys,
         concatMap splitC zs)
 
     splitC fml = case fml of
       And xs -> concatMap splitC xs
-      _      -> [fml]  
+      _      -> [fml]
 
 -----------------------------------------------------------------------------
 
@@ -341,7 +344,7 @@ evalSignals
 
 evalSignals c s = do
   (s',st,xs) <- initialize c s
-  let signals = inputs s' ++ outputs s'  
+  let signals = inputs s' ++ outputs s'
   stt <- execStateT (mapM_ staticBinding xs) st
   stf <- execStateT (mapM_ componentSignal signals) stt
   let
@@ -355,7 +358,7 @@ evalSignals c s = do
     map (repap (atSymbol c) (primeSymbol c)) $ concat iv,
     map (repap (atSymbol c) (primeSymbol c)) $ concat ov
     )
-  
+
   where
     getId v = case v of
       SDSingle (i,_) -> i
@@ -401,12 +404,12 @@ initialize c s = do
         (busDelimiter c)
         (enumerations s)
 
-  return (s'', st, zs)      
+  return (s'', st, zs)
 
   where
     isunary y x = null $ idArgs $ symboltable y ! x
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
 
 enumBinding
   :: EnumDefinition Int -> StateT ST (Either Error) ()
@@ -419,10 +422,10 @@ enumBinding x = do
     }
 
   where
-    add n s im (v,_,fs) = 
+    add n s im (v,_,fs) =
       IM.insert v (VEnum n s fs) im
 
------------------------------------------------------------------------------      
+-----------------------------------------------------------------------------
 
 staticBinding
   :: Int -> StateT ST (Either Error) ()
@@ -434,7 +437,7 @@ staticBinding x = do
 
   case S.toList bs of
     []  -> return ()
-    v:_ -> 
+    v:_ ->
       put $ st {
         tValues = IM.insert x v $ tValues st
         }
@@ -458,7 +461,7 @@ componentSignal s = do
     SDEnum (i,_) _ ->
       case idType $ tLookup st ! i of
         TTypedBus io _ t -> case find ((== t) . eName) $ enums st of
-          Nothing -> assert False undefined          
+          Nothing -> assert False undefined
           Just e  ->
             let
               m = idName (tLookup st ! i)
@@ -491,7 +494,7 @@ componentSignal s = do
       Left True  -> Not $ Atomic $ c $ m ++ d ++ show i
       Left False -> Atomic $ c $ m ++ d ++ show i
       _          -> assert False undefined
-    
+
 -----------------------------------------------------------------------------
 
 evalExpr
@@ -546,7 +549,7 @@ evalExpr e = case expr e of
   SetMinus {}     -> evalSet e
   BaseId x        -> idValue x
   BaseFml xs x    -> fmlValue xs (srcPos e) x
-  Colon {}        -> evalColon e  
+  Colon {}        -> evalColon e
   _               -> assert False undefined
 
 -----------------------------------------------------------------------------
@@ -556,8 +559,8 @@ evalLtl
 
 evalLtl e = case expr e of
   BaseTrue         -> return $ VLtl TTrue
-  BaseFalse        -> return $ VLtl FFalse  
-  BlnNot x         -> liftMLtl Not x  
+  BaseFalse        -> return $ VLtl FFalse
+  BlnNot x         -> liftMLtl Not x
   LtlNext x        -> liftMLtl Next x
   LtlGlobally x    -> liftMLtl Globally x
   LtlFinally x     -> liftMLtl Finally x
@@ -565,7 +568,7 @@ evalLtl e = case expr e of
   LtlRelease x y   -> liftM2Ltl Release x y
   LtlWeak x y      -> liftM2Ltl Weak x y
   BlnImpl x y      -> liftM2Ltl Implies x y
-  BlnEquiv x y     -> liftM2Ltl Equiv x y  
+  BlnEquiv x y     -> liftM2Ltl Equiv x y
   BlnEQ x y        -> do
     b <- evalEquality (==) "==" x y $ srcPos e
     case b of
@@ -577,7 +580,7 @@ evalLtl e = case expr e of
     case b of
       Left v -> return v
       Right True -> return $ VLtl TTrue
-      Right False -> return $ VLtl FFalse  
+      Right False -> return $ VLtl FFalse
   BlnGE x y        -> liftM2Num (>) x y
   BlnGEQ x y       -> liftM2Num (>=) x y
   BlnLE x y        -> liftM2Num (<) x y
@@ -605,23 +608,23 @@ evalLtl e = case expr e of
     if i > j then
       return $ VLtl TTrue
     else do
-      VLtl v <- evalLtl y      
-      return $ VLtl $ iter Next i $ 
+      VLtl v <- evalLtl y
+      return $ VLtl $ iter Next i $
         iter (\a -> And [v, Next a]) (j - i) v
   LtlRFinally x y  -> do
     (i,j) <- evalRange x
     if i > j then
       return $ VLtl TTrue
     else do
-      VLtl v <- evalLtl y      
-      return $ VLtl $ iter Next i $ 
+      VLtl v <- evalLtl y
+      return $ VLtl $ iter Next i $
         iter (\a -> Or [v, Next a]) (j - i) v
 
   BlnElem x y      -> do
     a <- evalExpr x
     VSet b <- evalExpr y
-    return $ VLtl $ if S.member a b then 
-      TTrue 
+    return $ VLtl $ if S.member a b then
+      TTrue
     else
       FFalse
   BlnOr x y        -> do
@@ -632,14 +635,14 @@ evalLtl e = case expr e of
     VLtl a <- evalLtl x
     VLtl b <- evalLtl y
     return $ VLtl $ And [a,b]
-  BlnRAnd xs x     -> 
+  BlnRAnd xs x     ->
     let f = VLtl . And . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
-  BlnROr xs x      -> 
+  BlnROr xs x      ->
     let f = VLtl . Or . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
   BaseBus x y      -> do
-    VBus io l s <- idValue y 
+    VBus io l s <- idValue y
     VNumber b <- evalNum x
 
     when (b < 0 || b >= l) $
@@ -651,11 +654,11 @@ evalLtl e = case expr e of
       STOutput  -> Output $ s ++  delimiter st ++ show b
       STGeneric -> assert False undefined
   _                -> assert False undefined
-    
+
   where
     liftMLtl f m = do
       VLtl x <- evalLtl m
-      return $ VLtl $ f x 
+      return $ VLtl $ f x
 
     liftM2Ltl f m n = do
       VLtl x <- evalLtl m
@@ -665,9 +668,9 @@ evalLtl e = case expr e of
     liftM2Num f m n = do
       VNumber x <- evalNum m
       VNumber y <- evalNum n
-      return $ VLtl $ if f x y then 
-        TTrue 
-      else 
+      return $ VLtl $ if f x y then
+        TTrue
+      else
         FFalse
 
 -----------------------------------------------------------------------------
@@ -680,8 +683,8 @@ idValue i = do
   case IM.lookup i $ tValues st of
     Just x  -> return x
     Nothing -> assert False undefined
-    
----
+
+-----------------------------------------------------------------------------
 
 evalNum
   :: Evaluator (Expr Int)
@@ -710,13 +713,13 @@ evalNum e = case expr e of
   NumSSize x    -> do
     VSet y <- evalExpr x
     return $ VNumber $ S.size y
-  NumSizeOf x   -> do 
+  NumSizeOf x   -> do
     VBus _ i _ <- evalExpr x
     return $ VNumber i
-  NumRPlus xs x -> 
+  NumRPlus xs x ->
     let f = VNumber . sum . map (\(VNumber v) -> v)
     in evalConditional evalNum f xs x
-  NumRMul xs x  -> 
+  NumRMul xs x  ->
     let f = VNumber . product . map (\(VNumber v) -> v)
     in evalConditional evalNum f xs x
   BaseId _      -> do
@@ -735,7 +738,7 @@ evalNum e = case expr e of
 
 -----------------------------------------------------------------------------
 
-evalBool 
+evalBool
   :: Expr Int -> StateT ST (Either Error) Bool
 
 evalBool e = case expr e of
@@ -745,9 +748,9 @@ evalBool e = case expr e of
   BlnNot x      -> liftM not $ evalBool x
   BlnImpl x y   -> do
     a <- evalBool x
-    if a then 
+    if a then
       evalBool y
-    else 
+    else
       return True
   BlnEquiv x y  -> liftM2 (==) (evalBool x) (evalBool y)
   BlnOr x y     -> liftM2 (||) (evalBool x) (evalBool y)
@@ -785,11 +788,11 @@ evalBool e = case expr e of
 
 -----------------------------------------------------------------------------
 
-checkPattern 
+checkPattern
   :: Formula -> Expr Int -> StateT ST (Either Error) Bool
 
 checkPattern f e = case (f,expr e) of
-  (_, BaseWild)                     -> return True  
+  (_, BaseWild)                     -> return True
   (TTrue, BaseTrue)             -> return True
   (FFalse, BaseFalse)           -> return True
   (Not x, BlnNot y)             -> checkPattern x y
@@ -841,14 +844,14 @@ evalSet e = case expr e of
     let f = VSet . S.unions . map (\(VSet v) -> v)
     in evalConditional evalSet f xs x
   SetRCap xs x   ->
-    if null xs then 
+    if null xs then
       errSetCap $ srcPos e
     else
       let
         g vs = foldl S.intersection (head vs) vs
         f = VSet . g . map (\(VSet v) -> v)
-      in 
-        evalConditional evalSet f xs x    
+      in
+        evalConditional evalSet f xs x
   BaseId _       -> do
     VSet x <- evalExpr e
     return $ VSet x
@@ -915,7 +918,6 @@ evalConditional fun f xs x =
 
 evalRange
   :: Expr Int -> StateT ST (Either Error) (Int,Int)
-           
 
 evalRange e = case expr e of
   Colon x y -> do
@@ -954,33 +956,33 @@ evalEquality eq eqs e1 e2 pos = do
 
   st <- get
   case (a,b) of
-    (VEnum n i xs, VBus io l s)     
+    (VEnum n i xs, VBus io l s)
       | l /= i     -> errBusCmp n s eqs l i pos
-      | otherwise -> return $ Left $ VLtl $ Or $
+      | otherwise -> return $ Left $ VLtl $ opeq eq $ Or $
                     map (toB (delimiter st) io s [] i) xs
-    (VBus io l s, VEnum n i xs)     
+    (VBus io l s, VEnum n i xs)
       | l /= i     -> errBusCmp n s eqs l i pos
-      | otherwise -> return $ Left $ VLtl $ Or $
-                    map (toB (delimiter st) io s [] i) xs      
-    (VBus io l s, VBus io' l' s') 
+      | otherwise -> return $ Left $ VLtl $ opeq eq $ Or $
+                    map (toB (delimiter st) io s [] i) xs
+    (VBus io l s, VBus io' l' s')
       | l /= l'    -> errBusCmp s s' eqs l l' pos
       | otherwise ->
-          return $ Left $ VLtl $ And 
+          return $ Left $ VLtl $ And
             [ Equiv (Atomic $ cio io $ s ++ delimiter st ++ show i)
-              (Atomic $ cio io' $ s' ++ delimiter st ++ show i) 
+              (Atomic $ cio io' $ s' ++ delimiter st ++ show i)
             | i <- [0,1..l-1] ]
-    (VBus io l s, VSignal io' s') 
+    (VBus io l s, VSignal io' s')
       | l /= 1     -> errBusCmp s s' eqs l 1 pos
-      | otherwise -> 
+      | otherwise ->
           return $ Left $ VLtl $ Equiv
             (Atomic $ cio io $ s ++ delimiter st ++ "0")
             (Atomic $ cio io' s')
-    (VSignal io' s', VBus io l s) 
-      | l /= 1     -> errBusCmp s s' eqs l 1 pos      
+    (VSignal io' s', VBus io l s)
+      | l /= 1     -> errBusCmp s s' eqs l 1 pos
       | otherwise ->
           return $ Left $ VLtl $ Equiv
             (Atomic $ cio io $ s ++ delimiter st ++ "0")
-            (Atomic $ cio io' s')      
+            (Atomic $ cio io' s')
     (VEnum _ 1 [f], VSignal io' s')  ->
       return $ Left $ VLtl $ case f 0 of
         Right () -> TTrue
@@ -994,17 +996,21 @@ evalEquality eq eqs e1 e2 pos = do
     (VEnum n j _, VSignal _ s') ->
       errBusCmp n s' eqs j 1 pos
     (VSignal _ s', VEnum n j _) ->
-      errBusCmp n s' eqs j 1 pos      
+      errBusCmp n s' eqs j 1 pos
     (VEnum {}, _) -> assert False undefined
     (VBus {}, _)  -> assert False undefined
     (_, VEnum {}) -> assert False undefined
-    (_, VBus {})  -> assert False undefined    
+    (_, VBus {})  -> assert False undefined
     _             ->
       if eq a b
       then return $ Right True
       else return $ Right False
 
   where
+    opeq o
+      | o VEmpty VEmpty = id
+      | otherwise       = fNot
+
     toB _ _  _ a 0 _ = And a
     toB d io s a i f = case f (i-1) of
       Right ()    -> toB d io s a (i-1) f
@@ -1012,7 +1018,7 @@ evalEquality eq eqs e1 e2 pos = do
         toB d io s ((Atomic $ cio io $ s ++ d ++ show (i-1)):a) (i-1) f
       Left False ->
         toB d io s ((Not $ Atomic $ cio io $ s ++ d ++ show (i-1)):a) (i-1) f
-    
+
     cio STInput   = Input
     cio STOutput  = Output
     cio STGeneric = assert False undefined
@@ -1023,16 +1029,16 @@ fmlValue
   :: [Expr Int] -> ExprPos -> Evaluator Int
 
 fmlValue args p i = do
-  st <- get  
+  st <- get
   as <- mapM evalExpr args
-  let xs = zip as $ idArgs $ tLookup st ! i    
+  let xs = zip as $ idArgs $ tLookup st ! i
   put st {
     tValues = foldl (\m (v,j) -> IM.insert j v m) (tValues st) xs
     }
   VSet a <- evalSet $ idBindings $ tLookup st ! i
   put st
   let ys = filter (/= VEmpty) $ S.toList a
-  if null ys then 
+  if null ys then
     errNoMatch (idName $ tLookup st ! i) (map (prVal . fst) xs) p
   else
     return $ head ys
@@ -1069,21 +1075,21 @@ asciiLTL fml = case fml of
   TTrue                   -> ptrue
   FFalse                  -> pfalse
   Not (Atomic (Input x))  -> pnot ++ prUO' (Atomic (Input x))
-  Not (Atomic (Output x)) -> pnot ++ prUO' (Atomic (Output x))      
+  Not (Atomic (Output x)) -> pnot ++ prUO' (Atomic (Output x))
   Atomic (Input x)        -> x
-  Atomic (Output x)       -> x      
-  Not x                   -> pnot ++ prUO' x 
+  Atomic (Output x)       -> x
+  Not x                   -> pnot ++ prUO' x
   And []                  -> asciiLTL TTrue
   And [x]                 -> asciiLTL x
   And (x:xr)              -> prAnd' x ++ concatMap (((" " ++ pand ++ " ") ++)
-                                                    . prAnd') xr 
+                                                    . prAnd') xr
   Or []                   -> asciiLTL FFalse
-  Or [x]                  -> asciiLTL x  
+  Or [x]                  -> asciiLTL x
   Or (x:xr)               -> prOr' x ++ concatMap (((" " ++ por ++ " ") ++)
                                                    . prOr') xr
   Implies x y             -> prOr' x ++ " " ++ pimplies ++ " " ++ prOr' y
   Equiv x y               -> prOr' x ++ " " ++ pequiv ++ " " ++ prOr' y
-  Next x                  -> pnext ++ prUO' x    
+  Next x                  -> pnext ++ prUO' x
   Globally x              -> pglobally ++ prUO' x
   Finally x               -> pfinally ++ prUO' x
   Until x y               -> prOr' x ++ " " ++ puntil ++ " " ++ prOr' y
@@ -1108,31 +1114,31 @@ asciiLTL fml = case fml of
       Equiv _ _   -> parens $ p f
       Until _ _   -> parens $ p f
       Release _ _ -> parens $ p f
-      _              -> p f      
+      _              -> p f
 
     prOr p f = case f of
       Implies _ _ -> parens $ p f
       Equiv _ _   -> parens $ p f
       Until _ _   -> parens $ p f
       Release _ _ -> parens $ p f
-      _              -> p f      
-    
+      _              -> p f
+
     prUO' =  prUO asciiLTL
     prAnd' = prAnd asciiLTL
-    prOr' = prOr asciiLTL      
+    prOr' = prOr asciiLTL
 
-    ptrue = "true" 
+    ptrue = "true"
     pfalse = "false"
-    pnot = "!" 
-    pand = "&&" 
-    por = "||" 
-    pimplies = "->" 
-    pequiv = "<->" 
-    pnext = "X" 
+    pnot = "!"
+    pand = "&&"
+    por = "||"
+    pimplies = "->"
+    pequiv = "<->"
+    pnext = "X"
     pglobally = "F"
-    pfinally = "G" 
-    puntil = "U" 
-    prelease = "R" 
+    pfinally = "G"
+    puntil = "U"
+    prelease = "R"
     pweak = "W"
 
 -----------------------------------------------------------------------------
@@ -1144,7 +1150,7 @@ overwriteParameter
 
 overwriteParameter s (n,v) =
   case find ((n ==) . idName . (symboltable s !) . bIdent) $ parameters s of
-  Nothing -> argsError $ "Specification has no parameter: " ++ n 
+  Nothing -> argsError $ "Specification has no parameter: " ++ n
   Just b  -> do
     let b' = b {
           bVal = if null $ bVal b
@@ -1164,7 +1170,7 @@ overwriteParameter s (n,v) =
     updSymTable y t =
       A.amap (\x -> if idName x /= idName (t ! bIdent y) then x else x {
                  idBindings =
-                    if null $ bVal y 
+                    if null $ bVal y
                     then Expr (SetExplicit []) $ bPos y
                     else Expr (SetExplicit [head $ bVal y]) $ bPos y
                  }) t

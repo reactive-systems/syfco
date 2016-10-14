@@ -1,7 +1,7 @@
 name:                syfco
-version:             1.0.0.4
+version:             1.0.0.6
 synopsis:            A tool for reading, manipulating and transforming synthesis specifications.
-description:         Synthesis Format Conversion Tool   
+description:         Synthesis Format Conversion Tool
 license:             MIT
 license-file:        LICENSE
 author:              Felix Klein <klein@react.uni-saarland.de>
@@ -22,6 +22,7 @@ executable syfco
                      directory >=1.2 && <1.3,
                      mtl >=2.2 && <2.3,
                      parsec >=3.1 && <3.2,
-                     transformers >=0.4 && <0.5
+                     transformers >= 0.4 && <0.5,
+                     generic-deriving >= 0.4
   default-language:  Haskell2010
   hs-source-dirs:    src
