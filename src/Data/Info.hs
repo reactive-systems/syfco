@@ -151,7 +151,9 @@ usage m =
 
     adapt' l str
       | length str <= l = [str]
-      | otherwise      = rearrange l [] [] 0 $ words str
+      | otherwise      = case m of
+        Markdown -> [str]
+        _        -> rearrange l [] [] 0 $ words str
 
     rearrange l a b n [] =
       reverse ((unwords $ reverse b):a)
@@ -167,23 +169,23 @@ usage m =
       "|" ++ code m ("-" ++ short ++ ", --" ++ long) ++ "|" ++
       ( case desc of
            []   -> ""
-           x:xr -> concat (x : map (" " ++) xr) ++
+           x:xr -> concat (x : map ("</br> " ++) xr) ++
                   case sub of
                     Nothing -> ""
-                    Just ys -> "</br></br> <table><tbody> " ++
+                    Just ys -> "</br> <table><tbody> " ++
                               concatMap prMSub ys ++
                               " </tbody></table>"
       ) ++ "|"
 
     prMSub (name,d,desc) =
       "<tr><td>" ++ code m name ++
-      "</td><td>" ++ concat (addspaces desc) ++
+      "</td><td>" ++ concat (addbreaks desc) ++
       (if d then " (default)" else "") ++
       "</td></tr>"
 
-    addspaces xs = case xs of
+    addbreaks xs = case xs of
       []   -> []
-      x:xr -> x : map (" " ++) xr
+      x:xr -> x : map ("</br>" ++) xr
 
     prRow (short,long,sub,desc)
       | short == "" = [ "" ]
