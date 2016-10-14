@@ -59,6 +59,7 @@ data WriteFormat =
   | FULL
   | PSL
   | SMV
+  | BOSY
   deriving (Eq, Generic)
 
 instance GEnum WriteFormat
@@ -84,6 +85,7 @@ instance Show WriteFormat where
     FULL        -> "Full"
     PSL         -> "Psl"
     SMV         -> "SMV"
+    BOSY        -> "BoSy"
 
 -----------------------------------------------------------------------------
 
@@ -106,6 +108,7 @@ instance MachinePrintable WriteFormat where
     FULL        -> "full"
     PSL         -> "psl"
     SMV         -> "smv"
+    BOSY        -> "bosy"
 
 -----------------------------------------------------------------------------
 
@@ -114,6 +117,6 @@ instance MachinePrintable WriteFormat where
 needsLower
   :: WriteFormat -> Bool
 
-needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, ACACIASPECS, LILY]
+needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, ACACIASPECS, LILY, BOSY]
 
 -----------------------------------------------------------------------------
