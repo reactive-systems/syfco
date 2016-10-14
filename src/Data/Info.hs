@@ -167,23 +167,23 @@ usage m =
       "|" ++ code m ("-" ++ short ++ ", --" ++ long) ++ "|" ++
       ( case desc of
            []   -> ""
-           x:xr -> concat (x : map ("</br> " ++) xr) ++
+           x:xr -> concat (x : map (" " ++) xr) ++
                   case sub of
                     Nothing -> ""
-                    Just ys -> "</br> <table><tbody> " ++
+                    Just ys -> "</br></br> <table><tbody> " ++
                               concatMap prMSub ys ++
                               " </tbody></table>"
       ) ++ "|"
 
     prMSub (name,d,desc) =
       "<tr><td>" ++ code m name ++
-      "</td><td>" ++ concat (addbreaks desc) ++
+      "</td><td>" ++ concat (addspaces desc) ++
       (if d then " (default)" else "") ++
       "</td></tr>"
 
-    addbreaks xs = case xs of
+    addspaces xs = case xs of
       []   -> []
-      x:xr -> x : map ("</br>" ++) xr
+      x:xr -> x : map (" " ++) xr
 
     prRow (short,long,sub,desc)
       | short == "" = [ "" ]
