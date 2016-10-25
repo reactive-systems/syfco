@@ -49,8 +49,6 @@ class MachinePrintable a where
 
 -- | MachinePrintable instance for bools.
 
-instance GEnum Bool
-
 instance MachinePrintable Bool where
   mprint b =
     if b then "true" else "false"
