@@ -35,10 +35,10 @@ import Generics.Deriving.Enum
 -- enumeratable, the class also provied an automatic parser. Note that
 -- the printed version has to be unique for this case.
 
-class MachinePrintable a where
+class GEnum a => MachinePrintable a where
   mprint :: a -> String
 
-  mparse :: GEnum a => String -> Either Error a
+  mparse :: String -> Either Error a
   mparse str =
     let xs = map (\x -> (x,mprint x)) genum
     in case find ((== str) . snd) xs of
