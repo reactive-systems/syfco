@@ -194,13 +194,11 @@ writeOutput c s = case writeSpecification c s of
   Right wc -> do
     case outputFile c of
       Nothing -> putStrLn wc
-      Just f  -> do
-        let ending = case outputFormat c of
-              BASIC   -> ".tlsf"
-              UNBEAST -> ".xml"
-              _       -> ""
-
-        writeFile (rmSuffix f ++ ending) wc
+      Just f  -> case outputFormat c of
+        BASIC   -> writeFile (rmSuffix f ++ ".tlsf") wc
+        FULL    -> writeFile (rmSuffix f ++ ".tlsf") wc
+        UNBEAST -> writeFile (rmSuffix f ++ ".xml") wc
+        _       -> writeFile f wc
 
     when (isJust $ partFile c) $ do
       part <- partition c s
