@@ -3,38 +3,38 @@
 -- Module      :  Reader.Sugar
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Removes syntactic sugar elements from the specification.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Sugar
-    ( replaceSugar
-    ) where
+  ( replaceSugar
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Reader.Error
-    ( Error
-    )
-    
+  ( Error
+  )
+
 import Data.Binding
-    ( Binding
-    , BindExpr(..)  
-    )
+  ( Binding
+  , BindExpr(..)
+  )
 
 import Reader.Data
-    ( Specification(..)
-    )
-    
+  ( Specification(..)
+  )
+
 import Data.Expression
-    ( Expr(..)
-    , Expr'(..)  
-    )  
+  ( Expr(..)
+  , Expr'(..)
+  )
 
 import Data.Either
-    ( partitionEithers
-    )  
+  ( partitionEithers
+  )
 
 -----------------------------------------------------------------------------
 
@@ -48,18 +48,18 @@ replaceSugar s = do
   vs <- mapM replaceBinding $ definitions s
   return s { definitions = vs }
 
------------------------------------------------------------------------------  
+-----------------------------------------------------------------------------
 
 replaceBinding
   :: Binding -> Either Error Binding
 
-replaceBinding b = 
+replaceBinding b =
   case bVal b of
     []  -> return b
     [_] -> return b
     xs  -> return b { bVal = replaceExpr xs }
 
------------------------------------------------------------------------------  
+-----------------------------------------------------------------------------
 
 replaceExpr
   :: [Expr Int] -> [Expr Int]
@@ -96,8 +96,8 @@ replaceExpr xs =
       Colon _ y -> Expr (Colon (f (srcPos e)) y) $ srcPos e
       _         -> e
 
-    orlist p = foldl (fldor p) (Expr BaseFalse p) 
+    orlist p = foldl (fldor p) (Expr BaseFalse p)
 
     fldor p e1 e2 = Expr (BlnOr e1 e2) p
 
------------------------------------------------------------------------------      
+-----------------------------------------------------------------------------

@@ -3,68 +3,69 @@
 -- Module      :  Reader.Parser.Expression
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Expression Parser.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Parser.Expression
-    ( exprParser
-    ) where
+  ( exprParser
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Expression
-    ( Expr(..)
-    , Expr'(..)
-    , SrcPos(..)
-    , ExprPos(..)  
-    )  
+  ( Expr(..)
+  , Expr'(..)
+  , SrcPos(..)
+  , ExprPos(..)
+  )
+
 import Reader.Parser.Data
-    ( globalDef
-    )
-    
+  ( globalDef
+  )
+
 import Reader.Parser.Utils
-    ( getPos
-    , identifier
-    , positionParser  
-    )  
+  ( getPos
+  , identifier
+  , positionParser
+  )
 
 import Control.Monad
-    ( liftM
-    , void
-    )  
+  ( liftM
+  , void
+  )
 
 import Text.Parsec
-    ( (<|>)
-    , char
-    , try  
-    , oneOf
-    , many1
-    , digit  
-    , lookAhead  
-    , notFollowedBy
-    )
-    
+  ( (<|>)
+  , char
+  , try
+  , oneOf
+  , many1
+  , digit
+  , lookAhead
+  , notFollowedBy
+  )
+
 import Text.Parsec.Expr
-    ( Assoc(..)
-    , Operator(..)
-    , buildExpressionParser  
-    )
-    
+  ( Assoc(..)
+  , Operator(..)
+  , buildExpressionParser
+  )
+
 import Text.Parsec.String
-    ( Parser
-    )
-    
+  ( Parser
+  )
+
 import Text.Parsec.Token
-    ( GenLanguageDef(..)
-    , commaSep
-    , reservedNames  
-    , whiteSpace
-    , makeTokenParser
-    , reserved
-    , reservedOp  
-    )  
+  ( GenLanguageDef(..)
+  , commaSep
+  , reservedNames
+  , whiteSpace
+  , makeTokenParser
+  , reserved
+  , reservedOp
+  )
 
 -----------------------------------------------------------------------------
 
@@ -78,7 +79,7 @@ exprParser = (~~) >> buildExpressionParser table term
     table =
       [ [ Prefix $ unaryOperators numUnary
         ]
-        
+
       , [ Infix  (binOp "*"        NumMul)     AssocLeft
         , Infix  (binOp "MUL"      NumMul)     AssocLeft
         ]
@@ -92,17 +93,17 @@ exprParser = (~~) >> buildExpressionParser table term
         , Infix  (binOp "-"        NumMinus)   AssocLeft
         , Infix  (binOp "MINUS"    NumMinus)   AssocLeft
         ]
-        
+
       , [ Prefix $ unaryOperators setUnary
-        ]  
-        
+        ]
+
       , [ Infix  (binOp "(-)"      SetMinus)   AssocRight
         , Infix  (binOp "(\\)"     SetMinus)   AssocRight
         , Infix  (binOp "SETMINUS" SetMinus)   AssocRight
         ]
       , [ Infix  (binOp "(*)"      SetCap)     AssocLeft
         , Infix  (binOp "CAP"      SetCap)     AssocLeft
-        ] 
+        ]
       , [ Infix  (binOp "(+)"      SetCup)     AssocLeft
         , Infix  (binOp "CUP"      SetCup)     AssocLeft
         ]
@@ -112,21 +113,21 @@ exprParser = (~~) >> buildExpressionParser table term
         , Infix  (binOp "!="       BlnNEQ)     AssocLeft
         , Infix  (binOp "NEQ"      BlnNEQ)     AssocLeft
         , Infix  (binOp ">"        BlnGE)      AssocLeft
-        , Infix  (binOp "GE"       BlnGE)      AssocLeft          
+        , Infix  (binOp "GE"       BlnGE)      AssocLeft
         , Infix  (binOp ">="       BlnGEQ)     AssocLeft
         , Infix  (binOp "GEQ"      BlnGEQ)     AssocLeft
         , Infix  (binOp "<"        BlnLE)      AssocLeft
-        , Infix  (binOp "LE"       BlnLE)      AssocLeft          
+        , Infix  (binOp "LE"       BlnLE)      AssocLeft
         , Infix  (binOp "<="       BlnLEQ)     AssocLeft
         , Infix  (binOp "LEQ"      BlnLEQ)     AssocLeft
         ]
       , [ Infix  (binOp "<-"       BlnElem)    AssocLeft
-        , Infix  (binOp "IN"       BlnElem)    AssocLeft          
-        , Infix  (binOp "ELEM"     BlnElem)    AssocLeft          
+        , Infix  (binOp "IN"       BlnElem)    AssocLeft
+        , Infix  (binOp "ELEM"     BlnElem)    AssocLeft
         ]
 
       , [ Prefix $ unaryOperators ltlUnary
-        ]  
+        ]
 
       , [ Infix  (binOp "&&"       BlnAnd)     AssocLeft
         , Infix  (binOp "AND"      BlnAnd)     AssocLeft
@@ -140,13 +141,13 @@ exprParser = (~~) >> buildExpressionParser table term
         , Infix  (binOp "EQUIV"    BlnEquiv)   AssocRight
         ]
       , [ Infix  (binOp "W"        LtlWeak)    AssocRight
-        ]        
+        ]
       , [ Infix  (binOp "U"        LtlUntil)   AssocRight
         ]
       , [ Infix  (binOp "R"        LtlRelease) AssocLeft
         ]
-      , [ Infix  (binOp "~"        Pattern)    AssocLeft        
-        ]        
+      , [ Infix  (binOp "~"        Pattern)    AssocLeft
+        ]
       , [ Infix  (binOp ":"        Colon)      AssocLeft
         ]
       ]
@@ -162,7 +163,7 @@ exprParser = (~~) >> buildExpressionParser table term
            "+","-","*","/","%","PLUS","MINUS","MUL","DIV","MOD",
            "SIZE","MIN","MAX","(-)","(\\)","(+)","(*)","SETMINUS",
            "CAP","CUP",":","~","W","U","R","X","G","F",",","X[",
-           "G[","F[","AND[","OR[","SUM","PROD","IN","SIZEOF"] 
+           "G[","F[","AND[","OR[","SUM","PROD","IN","SIZEOF"]
       , reservedNames =
           ["NOT","AND","OR","IMPLIES","EQUIV","true","false","F",
            "PLUS","MINUS","MUL","DIV","MOD","SIZE","MIN","MAX","_",
@@ -173,7 +174,7 @@ exprParser = (~~) >> buildExpressionParser table term
 
     term =
           parentheses
-      <|> setExplicit          
+      <|> setExplicit
       <|> between' '|' '|' (liftM NumSSize exprParser)
       <|> keyword "otherwise" BaseOtherwise
       <|> keyword "false" BaseFalse
@@ -188,15 +189,15 @@ exprParser = (~~) >> buildExpressionParser table term
       <|> unOp3 'M' 'I' 'N' NumSMin
       <|> unOp3 'M' 'A' 'X' NumSMax
       <|> parOp "+" manyExprParser NumRPlus
-      <|> parOp "SUM" manyExprParser NumRPlus      
+      <|> parOp "SUM" manyExprParser NumRPlus
       <|> parOp "*" manyExprParser NumRMul
-      <|> parOp "PROD" manyExprParser NumRMul       
+      <|> parOp "PROD" manyExprParser NumRMul
 
     setUnary =
           parOp "(+)" manyExprParser SetRCup
-      <|> parOp "CUP" manyExprParser SetRCap              
+      <|> parOp "CUP" manyExprParser SetRCap
       <|> parOp "(-)" manyExprParser SetRCup
-      <|> parOp "CAP" manyExprParser SetRCap          
+      <|> parOp "CAP" manyExprParser SetRCap
 
     ltlUnary =
           unOp' '!' BlnNot
@@ -212,7 +213,7 @@ exprParser = (~~) >> buildExpressionParser table term
       <|> parOp "FORALL" manyExprParser BlnRAnd
       <|> parOp "||" manyExprParser BlnROr
       <|> parOp "OR" manyExprParser BlnROr
-      <|> parOp "EXISTS" manyExprParser BlnROr            
+      <|> parOp "EXISTS" manyExprParser BlnROr
 
     parentheses = do
       notFollowedBy $ ch '(' >> oneOf "+-*/"
@@ -230,7 +231,7 @@ exprParser = (~~) >> buildExpressionParser table term
 
     emptySet s = do
       e <- closeSet
-      return $ Expr (SetExplicit []) (ExprPos s e) 
+      return $ Expr (SetExplicit []) (ExprPos s e)
 
     nonEmptySet s = do
       x <- exprParser
@@ -265,7 +266,7 @@ exprParser = (~~) >> buildExpressionParser table term
 
     binOp x c = do
       reservedOp tokenparser x
-      return $ \a b -> Expr (c a b) $ 
+      return $ \a b -> Expr (c a b) $
                        ExprPos (srcBegin $ srcPos a) $
                        srcEnd $ srcPos b
 
@@ -289,7 +290,7 @@ exprParser = (~~) >> buildExpressionParser table term
       ch2 c5 c6
       lookahead
       return c
-      
+
     unOp4 c1 c2 c3 c4 c = try $ do
       ch4 c1 c2 c3 c4
       lookahead
@@ -298,7 +299,7 @@ exprParser = (~~) >> buildExpressionParser table term
     unOp' x c = do
       ch x
       (~~)
-      return c      
+      return c
 
     unOp1 x c = try $ do
       ch x
@@ -309,13 +310,13 @@ exprParser = (~~) >> buildExpressionParser table term
       ch2 c1 c2
       ch c3
       lookahead
-      return c        
+      return c
 
     parOp x p c = do
       reservedOp tokenparser (x ++ "[")
       e <- p; ch ']'; (~~)
-      return (c e)            
-      
+      return (c e)
+
     between' c1 c2 p = do
       s <- getPos; ch c1; (~~); x <- p
       ch c2; e <- getPos; (~~)
@@ -327,8 +328,8 @@ exprParser = (~~) >> buildExpressionParser table term
 
     ident = do
       (i,pos) <- identifier (~~)
-      functionParser pos i 
-        <|> busParser pos i 
+      functionParser pos i
+        <|> busParser pos i
         <|> return (Expr (BaseId i) pos)
 
     functionParser pos i = do
@@ -345,23 +346,17 @@ exprParser = (~~) >> buildExpressionParser table term
       ch ']'; p <- getPos; (~~)
       return $ Expr (BaseBus x i) $
         ExprPos (srcBegin pos) p
-        
-    manyExprParser = commaSep tokenparser exprParser          
+
+    manyExprParser = commaSep tokenparser exprParser
 
     (~~) = whiteSpace tokenparser
-    
+
     lookahead = do
       lookAhead (ch ' ' <|> ch '(' <|> ch '\t' <|> ch '\n')
       (~~)
-    
+
     ch = void . char
     ch2 c1 c2 = do { ch c1; ch c2 }
     ch4 c1 c2 c3 c4 = do { ch2 c1 c2; ch2 c3 c4 }
-    
------------------------------------------------------------------------------    
 
-
-        
-
-  
-     
+-----------------------------------------------------------------------------

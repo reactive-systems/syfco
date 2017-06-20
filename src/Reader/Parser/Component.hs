@@ -3,68 +3,68 @@
 -- Module      :  Reader.Parser.Component
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Parser for the MAIN section.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Parser.Component
-    ( componentParser
-    ) where
+  ( componentParser
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Text.Parsec
-    ( (<|>)
-    , many
-    , char
-    , sepBy
-    , oneOf  
-    )
-    
+  ( (<|>)
+  , many
+  , char
+  , sepBy
+  , oneOf
+  )
+
 import Text.Parsec.String
-    ( Parser 
-    )
-    
+  ( Parser
+  )
+
 import Text.Parsec.Token
-    ( GenLanguageDef(..)
-    , makeTokenParser
-    , braces
-    , reservedOp
-    , whiteSpace
-    , reserved
-    )
+  ( GenLanguageDef(..)
+  , makeTokenParser
+  , braces
+  , reservedOp
+  , whiteSpace
+  , reserved
+  )
 
 import Data.Types
-    ( SignalDecType(..)
-    )  
+  ( SignalDecType(..)
+  )
 
 import Data.Expression
-    ( Expr(..)
-    , ExprPos(..)  
-    )  
+  ( Expr(..)
+  , ExprPos(..)
+  )
 
 import Reader.Parser.Data
-    ( globalDef
-    )
-    
+  ( globalDef
+  )
+
 import Reader.Parser.Utils
-    ( identifier
-    , getPos  
-    )
-    
+  ( identifier
+  , getPos
+  )
+
 import Reader.Parser.Expression
-    ( exprParser
-    )  
+  ( exprParser
+  )
 
 import Data.Maybe
-    ( catMaybes
-    )
-    
+  ( catMaybes
+  )
+
 import Control.Monad
-    ( void
-    , liftM  
-    )  
+  ( void
+  , liftM
+  )
 
 -----------------------------------------------------------------------------
 
@@ -74,57 +74,57 @@ data Component =
   , outputs :: [SignalDecType String]
   , initially :: [Expr String]
   , preset :: [Expr String]
-  , requirements :: [Expr String]                
+  , requirements :: [Expr String]
   , assumptions :: [Expr String]
   , invariants :: [Expr String]
-  , guarantees :: [Expr String]    
+  , guarantees :: [Expr String]
   }
 
------------------------------------------------------------------------------  
+-----------------------------------------------------------------------------
 
 -- | Parses the MAIN section of a specification file. It returns:
--- 
+--
 --     * the input signals of the specification
--- 
+--
 --     * the output signals of the specification
--- 
+--
 --     * the initial configuration of the inputs
--- 
+--
 --     * the initial configuration of the outputs
--- 
+--
 --     * the requirements of the specification
--- 
+--
 --     * the assumptions of the specification
--- 
+--
 --     * the invariants of the specification
--- 
+--
 --     * the guarantees of the specification
 
 componentParser
   :: Parser ([SignalDecType String], [SignalDecType String],
-            [Expr String], [Expr String], [Expr String], 
+            [Expr String], [Expr String], [Expr String],
             [Expr String], [Expr String], [Expr String])
 
 componentParser = do
   keyword "MAIN"
-  xs <- br $ many $ componentContentParser 
+  xs <- br $ many $ componentContentParser
         Component
-        { inputs = []                   
+        { inputs = []
         , outputs = []
         , initially = []
         , preset = []
-        , requirements = []                                                                 
+        , requirements = []
         , assumptions = []
         , invariants = []
         , guarantees = []
         }
-        
+
   return
     ( concatMap inputs xs
     , concatMap outputs xs
     , concatMap initially xs
     , concatMap preset xs
-    , concatMap requirements xs            
+    , concatMap requirements xs
     , concatMap assumptions xs
     , concatMap invariants xs
     , concatMap guarantees xs )
@@ -141,20 +141,20 @@ componentParser = do
           , "OUTPUTS"
           , "INITIALLY"
           , "PRESET"
-          , "ASSUME"  
+          , "ASSUME"
           , "ASSUMPTIONS"
           , "REQUIRE"
           , "REQUIREMENTS"
-          , "ASSERT"  
+          , "ASSERT"
           , "INVARIANTS"
-          , "GUARANTEE"  
+          , "GUARANTEE"
           , "GUARANTEES"
           ]
       }
 
     componentContentParser c =
           (sectionParser "INPUTS" signalParser
-             >>= \x -> return c { inputs = x       })      
+             >>= \x -> return c { inputs = x       })
       <|> (sectionParser "OUTPUTS" signalParser
              >>= \x -> return c { outputs = x      })
       <|> (sectionParser "INITIALLY" exprParser
@@ -166,15 +166,15 @@ componentParser = do
       <|> (sectionParser "REQUIREMENTS" exprParser
              >>= \x -> return c { requirements = x })
       <|> (sectionParser "ASSUME" exprParser
-             >>= \x -> return c { assumptions = x  })          
+             >>= \x -> return c { assumptions = x  })
       <|> (sectionParser "ASSUMPTIONS" exprParser
              >>= \x -> return c { assumptions = x  })
       <|> (sectionParser "ASSERT" exprParser
-             >>= \x -> return c { invariants = x   })          
+             >>= \x -> return c { invariants = x   })
       <|> (sectionParser "INVARIANTS"  exprParser
              >>= \x -> return c { invariants = x   })
       <|> (sectionParser "GUARANTEE"  exprParser
-             >>= \x -> return c { guarantees = x   })          
+             >>= \x -> return c { guarantees = x   })
       <|> (sectionParser "GUARANTEES"  exprParser
              >>= \x -> return c { guarantees = x   })
 
@@ -197,7 +197,7 @@ componentParser = do
     sectionParser x p = do
       keyword x
       xs <- br $ sepBy (nonEmptyParser p) $ rOp ";"
-      return $ catMaybes xs          
+      return $ catMaybes xs
 
     nonEmptyParser p =
       liftM return p <|> return Nothing
@@ -208,5 +208,4 @@ componentParser = do
     (~~) = whiteSpace tokenparser
     keyword = void . reserved tokenparser
 
------------------------------------------------------------------------------    
-    
+-----------------------------------------------------------------------------

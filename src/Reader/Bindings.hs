@@ -3,76 +3,84 @@
 -- Module      :  Reader.Bindings
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Extracts the static expression bindings from the specification.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Bindings
-    ( specBindings
-    ) where
+  ( specBindings
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Utils
-    ( strictSort
-    , imLookup
-    )
+  ( strictSort
+  , imLookup
+  )
 
 import Data.Types
-    ( SignalDecType(..)
-    )  
-    
+  ( SignalDecType(..)
+  )
+
 import Data.Binding
-    ( Binding
-    , BindExpr(..)  
-    )
-    
+  ( Binding
+  , BindExpr(..)
+  )
+
 import Data.Expression
-    ( Expr(..)
-    , Expr'(..)
-    , SrcPos(..)
-    , ExprPos(..)
-    , subExpressions
-    )  
+  ( Expr(..)
+  , Expr'(..)
+  , SrcPos(..)
+  , ExprPos(..)
+  , subExpressions
+  )
 
 import Reader.Data
-    ( Specification(..)
-    , ExpressionTable
-    , NameTable
-    , PositionTable
-    , ArgumentTable 
-    )
-    
+  ( Specification(..)
+  , ExpressionTable
+  , NameTable
+  , PositionTable
+  , ArgumentTable
+  )
+
 import Reader.Error
-    ( Error
-    , errArgArity
-    , errConditional
-    , errCircularDep  
-    ) 
+  ( Error
+  , errArgArity
+  , errConditional
+  , errCircularDep
+  )
 
 import Data.Graph
-    ( buildG      
-    , scc 
-    )
-    
+  ( buildG
+  , scc
+  )
+
 import Data.Tree
-    ( flatten
-    )
-    
+  ( flatten
+  )
+
 import Data.Maybe
-    ( fromJust
-    )
-    
+  ( fromJust
+  )
+
 import Control.Monad.State
-    ( StateT(..)
-    , execStateT
-    , put
-    , get
-    , when  
-    )  
+  ( StateT(..)
+  , execStateT
+  , put
+  , get
+  , when
+  )
 
 import qualified Data.IntMap.Strict as IM
+  ( IntMap
+  , map
+  , insert
+  , toList
+  , null
+  , minViewWithKey
+  , maxViewWithKey
+  )
 
 -----------------------------------------------------------------------------
 
@@ -89,7 +97,7 @@ data ST = ST
   , tName :: NameTable
   , tPos :: PositionTable
   , tArgs :: ArgumentTable
-  , tAry :: ArityTable  
+  , tAry :: ArityTable
   }
 
 -----------------------------------------------------------------------------
@@ -113,9 +121,9 @@ specBindings spec = do
          , tArgs = arguments spec
          , tAry = IM.map length $ arguments spec
          }
-      
+
   a' <- execStateT (specificationBindings spec) a
-  
+
   checkCircularDeps spec
     { bindings = tBinding a'
     , dependencies = IM.map deps $ tBinding a'
@@ -133,7 +141,7 @@ specificationBindings s = do
   mapM_ signalBinding $ outputs s
   mapM_ exprBindings $ initially s
   mapM_ exprBindings $ preset s
-  mapM_ exprBindings $ requirements s  
+  mapM_ exprBindings $ requirements s
   mapM_ exprBindings $ invariants s
   mapM_ exprBindings $ assumptions s
   mapM_ exprBindings $ guarantees s
@@ -156,7 +164,7 @@ binding b = do
   mapM_ exprBindings $ bVal b
 
 -----------------------------------------------------------------------------
-        
+
 exprBindings
   :: BindingsBuilder (Expr Int)
 
@@ -168,7 +176,7 @@ exprBindings e = case expr e of
   BlnRAnd xs x  -> mapM_ conditional xs >> exprBindings x
   BlnROr xs x   -> mapM_ conditional xs >> exprBindings x
   BaseId x      -> checkArity x 0
-  BaseFml xs x  -> checkArity x (length xs)      
+  BaseFml xs x  -> checkArity x (length xs)
   BaseBus x y   -> checkArity y 0 >> exprBindings x
   _             -> mapM_ exprBindings $ subExpressions e
 
@@ -180,7 +188,7 @@ exprBindings e = case expr e of
         let m = imLookup x $ tName a
             p = imLookup x $ tPos a
         in errArgArity m n p $ srcPos e
-    
+
     conditional x = case expr x of
       BlnElem l s -> case expr l of
         BaseId i -> do
@@ -232,20 +240,20 @@ deps
 deps = strictSort . deps' []
   where
     deps' a e = case expr e of
-      BaseFml xs x  -> foldl conditional (x:a) xs 
+      BaseFml xs x  -> foldl conditional (x:a) xs
       BaseId x      -> x:a
       BaseBus x y   -> deps' (y:a) x
-      NumRPlus xs x -> foldl conditional (deps' a x) xs 
-      NumRMul xs x  -> foldl conditional (deps' a x) xs 
+      NumRPlus xs x -> foldl conditional (deps' a x) xs
+      NumRMul xs x  -> foldl conditional (deps' a x) xs
       SetRCup xs x  -> foldl conditional (deps' a x) xs
-      SetRCap xs x  -> foldl conditional (deps' a x) xs       
+      SetRCap xs x  -> foldl conditional (deps' a x) xs
       BlnRAnd xs x  -> foldl conditional (deps' a x) xs
       BlnROr xs x   -> foldl conditional (deps' a x) xs
       Colon x y     -> case expr x of
         Pattern z _ -> deps' (deps' a z) y
         _           -> deps' (deps' a x) y
       _              -> foldl deps' a $ subExpressions e
-      
+
     conditional k x = case expr x of
       BlnElem _ y -> deps' k y
       _           -> deps' k x
@@ -274,8 +282,8 @@ checkCircularDeps s = do
 
   where
     isunary (x,_) = null $ imLookup x $ arguments s
-    
-    check xs = when (length xs > 1) $  
+
+    check xs = when (length xs > 1) $
       let
         p = imLookup (head xs) $ positions s
         ys = map (\i -> (imLookup i $ names s, imLookup i $ positions s)) xs
@@ -287,4 +295,3 @@ checkCircularDeps s = do
       imLookup i $ positions s
 
 -----------------------------------------------------------------------------
-

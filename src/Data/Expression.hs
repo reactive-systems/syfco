@@ -3,9 +3,9 @@
 -- Module      :  Data.Expression
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Data types to store expressions and some helper functions.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Data.Expression
@@ -15,8 +15,9 @@ module Data.Expression
     , ExprPos(..)
     , SrcPos(..)
     , subExpressions
-    , applySub  
+    , applySub
     , prExpr
+    , prPrettyExpr
     ) where
 
 -----------------------------------------------------------------------------
@@ -41,7 +42,7 @@ data Expr a =
 
 -- | An expression is either a basic term or the composition of multiple
 -- sub-expressions using an operator. To obtain a stepwise refinement of the
--- parsed data, an expression does not need to be type consistent ia the 
+-- parsed data, an expression does not need to be type consistent ia the
 -- first place, e.g., techniqually we could add to boolean expressions.
 -- Such behaviour is ruled out later during the type analysis.
 
@@ -49,8 +50,8 @@ data Expr' a =
     BaseWild
   | BaseTrue
   | BaseFalse
-  | BaseOtherwise      
-  | BaseCon Constant    
+  | BaseOtherwise
+  | BaseCon Constant
   | BaseId a
   | BaseBus (Expr a) a
   | BaseFml [Expr a] a
@@ -58,22 +59,22 @@ data Expr' a =
   | NumSMin (Expr a)
   | NumSMax (Expr a)
   | NumSSize (Expr a)
-  | NumSizeOf (Expr a)  
+  | NumSizeOf (Expr a)
   | NumPlus (Expr a) (Expr a)
   | NumRPlus [Expr a] (Expr a)
   | NumMinus (Expr a) (Expr a)
   | NumMul (Expr a) (Expr a)
-  | NumRMul [Expr a] (Expr a)    
+  | NumRMul [Expr a] (Expr a)
   | NumDiv (Expr a) (Expr a)
   | NumMod (Expr a) (Expr a)
 
   | SetExplicit [Expr a]
   | SetRange (Expr a) (Expr a) (Expr a)
   | SetCup (Expr a) (Expr a)
-  | SetRCup [Expr a] (Expr a)    
+  | SetRCup [Expr a] (Expr a)
   | SetCap (Expr a) (Expr a)
-  | SetRCap [Expr a] (Expr a)    
-  | SetMinus (Expr a) (Expr a)    
+  | SetRCap [Expr a] (Expr a)
+  | SetMinus (Expr a) (Expr a)
 
   | BlnEQ (Expr a) (Expr a)
   | BlnNEQ (Expr a) (Expr a)
@@ -84,14 +85,14 @@ data Expr' a =
   | BlnElem (Expr a) (Expr a)
   | BlnNot (Expr a)
   | BlnOr (Expr a) (Expr a)
-  | BlnROr [Expr a] (Expr a)        
+  | BlnROr [Expr a] (Expr a)
   | BlnAnd (Expr a) (Expr a)
-  | BlnRAnd [Expr a] (Expr a)    
+  | BlnRAnd [Expr a] (Expr a)
   | BlnImpl (Expr a) (Expr a)
   | BlnEquiv (Expr a) (Expr a)
-    
+
   | LtlNext (Expr a)
-  | LtlRNext (Expr a) (Expr a)  
+  | LtlRNext (Expr a) (Expr a)
   | LtlGlobally (Expr a)
   | LtlRGlobally (Expr a) (Expr a)
   | LtlFinally (Expr a)
@@ -150,8 +151,8 @@ subExpressions e = case expr e of
   NumSizeOf x      -> [x]
   BlnNot x         -> [x]
   LtlNext x        -> [x]
-  LtlGlobally x    -> [x]  
-  LtlFinally x     -> [x]  
+  LtlGlobally x    -> [x]
+  LtlFinally x     -> [x]
   NumPlus x y      -> [x,y]
   NumMinus x y     -> [x,y]
   NumMul x y       -> [x,y]
@@ -171,7 +172,7 @@ subExpressions e = case expr e of
   BlnAnd x y       -> [x,y]
   BlnImpl x y      -> [x,y]
   BlnEquiv x y     -> [x,y]
-  LtlRNext x y     -> [x,y]  
+  LtlRNext x y     -> [x,y]
   LtlRGlobally x y -> [x,y]
   LtlRFinally x y  -> [x,y]
   LtlUntil x y     -> [x,y]
@@ -181,18 +182,18 @@ subExpressions e = case expr e of
   Pattern x y      -> [x,y]
   SetRange x y z   -> [x,y,z]
   SetExplicit xs   -> xs
-  BaseFml xs _     -> xs    
+  BaseFml xs _     -> xs
   NumRPlus xs x    -> x:xs
-  NumRMul xs x     -> x:xs  
-  SetRCup xs x     -> x:xs  
-  SetRCap xs x     -> x:xs    
+  NumRMul xs x     -> x:xs
+  SetRCup xs x     -> x:xs
+  SetRCap xs x     -> x:xs
   BlnROr xs x      -> x:xs
   BlnRAnd xs x     -> x:xs
 
 -----------------------------------------------------------------------------
 
 -- | Applies function 'f' to the fist level sup-expressions of 'e'.
-  
+
 
 applySub
   :: (Expr a -> Expr a) -> Expr a -> Expr a
@@ -214,7 +215,7 @@ applySub f e =
       LtlNext x        -> LtlNext $ f x
       LtlGlobally x    -> LtlGlobally $ f x
       LtlFinally x     -> LtlFinally  $ f x
-      BaseBus x i      -> BaseBus (f x) i          
+      BaseBus x i      -> BaseBus (f x) i
       NumPlus x y      -> NumPlus (f x) (f y)
       NumMinus x y     -> NumMinus (f x) (f y)
       NumMul x y       -> NumMul (f x) (f y)
@@ -278,7 +279,7 @@ prExpr e = case expr e of
   NumSMin x        -> "(MIN " ++ prExpr x ++ ")"
   NumSMax x        -> "(MAX " ++ prExpr x ++ ")"
   NumSSize x       -> "(SIZE " ++ prExpr x ++ ")"
-  NumSizeOf x      -> "(SIZEOF " ++ prExpr x ++ ")"  
+  NumSizeOf x      -> "(SIZEOF " ++ prExpr x ++ ")"
   BlnNot x         -> "(NOT " ++ prExpr x ++ ")"
   LtlNext x        -> "(X " ++ prExpr x ++ ")"
   LtlGlobally x    -> "(G " ++ prExpr x ++ ")"
@@ -308,8 +309,8 @@ prExpr e = case expr e of
   LtlUntil x y     -> "(U " ++ prExpr x ++ " " ++ prExpr y ++ ")"
   LtlWeak x y      -> "(W " ++ prExpr x ++ " " ++ prExpr y ++ ")"
   LtlRelease x y   -> "(R " ++ prExpr x ++ " " ++ prExpr y ++ ")"
-  Colon x y        -> prExpr x ++ " : " ++ prExpr y 
-  Pattern x y      -> prExpr x ++ " ~ " ++ prExpr y 
+  Colon x y        -> prExpr x ++ " : " ++ prExpr y
+  Pattern x y      -> prExpr x ++ " ~ " ++ prExpr y
   SetRange x y z   -> "(SR " ++ prExpr x ++ " " ++ prExpr y ++ " " ++ prExpr z ++ ")"
   SetExplicit xs   -> "(SET " ++ concatMap (flip (++) " " . prExpr) xs ++ ")"
   NumRPlus xs x    -> "(PLUS[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
@@ -319,4 +320,70 @@ prExpr e = case expr e of
   BlnROr xs x      -> "(OR[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
   BlnRAnd xs x     -> "(AND[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
 
----
+-----------------------------------------------------------------------------
+
+prPrettyExpr
+  :: Expr Int -> String
+
+prPrettyExpr e = case expr e of
+  BaseWild         -> "_"
+  BaseTrue         -> "true"
+  BaseFalse        -> "false"
+  BaseOtherwise    -> "OTHERWISE"
+  BaseCon x        -> "(CON " ++ show x ++ ")"
+  BaseId x         -> "(ID " ++ show x ++ ")"
+  BaseBus x y      -> "(BUS " ++ show y ++ "[" ++ prExpr x ++ "])"
+  BaseFml xs y     -> "(FUN " ++ show y ++ "(" ++
+                      (if null xs then ""
+                       else prExpr (head xs) ++
+                            concatMap ((:) ',' . prExpr) (tail xs)) ++ ")"
+  NumSMin x        -> "(MIN " ++ prExpr x ++ ")"
+  NumSMax x        -> "(MAX " ++ prExpr x ++ ")"
+  NumSSize x       -> "(SIZE " ++ prExpr x ++ ")"
+  NumSizeOf x      -> "(SIZEOF " ++ prExpr x ++ ")"
+  BlnNot x         -> "(NOT " ++ prExpr x ++ ")"
+  LtlNext x        -> "(X " ++ prExpr x ++ ")"
+  LtlGlobally x    -> "(G " ++ prExpr x ++ ")"
+  LtlFinally x     -> "(F " ++ prExpr x ++ ")"
+  NumPlus x y      -> "(PLUS " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  NumMinus x y     -> "(MINUS " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  NumMul x y       -> "(MUL " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  NumDiv x y       -> "(DIV " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  NumMod x y       -> "(MOD " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  SetCup x y       -> case expr x of
+    SetExplicit [] -> prPrettyExpr y
+    _              -> case expr y of
+      SetExplicit [] -> prPrettyExpr x
+      _              -> prPrettyExpr x ++ " ∪ " ++ prPrettyExpr y
+  SetCap x y       -> "(CAP " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  SetMinus x y     -> "(DIFF " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnEQ x y        -> "(EQ " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnNEQ x y       -> "(NEQ " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnGE x y        -> "(GE " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnGEQ x y       -> "(GEQ " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnLE x y        -> "(LE " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnLEQ x y       -> "(LEQ " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnElem x y      -> "(ELEM " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnOr x y        -> "(OR " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnAnd x y       -> "(AND " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnImpl x y      -> "(IMPL " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  BlnEquiv x y     -> "(EQIV " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  LtlRNext x y     -> "(X[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
+  LtlRGlobally x y -> "(G[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
+  LtlRFinally x y  -> "(F[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
+  LtlUntil x y     -> "(U " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  LtlWeak x y      -> "(W " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  LtlRelease x y   -> "(R " ++ prExpr x ++ " " ++ prExpr y ++ ")"
+  Colon x y        -> prExpr x ++ " : " ++ prExpr y
+  Pattern x y      -> prExpr x ++ " ~ " ++ prExpr y
+  SetRange x y z   -> "(SR " ++ prExpr x ++ " " ++ prExpr y ++ " " ++ prExpr z ++ ")"
+  SetExplicit []   -> "∅"
+  SetExplicit xs   -> "{ " ++ concatMap (flip (++) ", " . prExpr) xs ++ "}"
+  NumRPlus xs x    -> "(PLUS[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  NumRMul xs x     -> "(MUL[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  SetRCup xs x     -> "(CUP[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  SetRCap xs x     -> "(CAP[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  BlnROr xs x      -> "(OR[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+  BlnRAnd xs x     -> "(AND[" ++ concatMap (flip (++) " " . prExpr) xs ++ "] " ++ prExpr x ++ ")"
+
+-----------------------------------------------------------------------------

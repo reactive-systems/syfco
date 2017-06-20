@@ -3,10 +3,10 @@
 -- Module      :  Data.Error
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Data structures to wrap all contents, that are needed to print nice
 -- error messages.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Data.Error
@@ -16,31 +16,31 @@ module Data.Error
     , typeError
     , bindingError
     , argsError
-    , conversionError  
+    , conversionError
     , depError
-    , parseError  
+    , parseError
     , prError
-    , prErrPos      
+    , prErrPos
     ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Expression
     ( ExprPos(..)
-    , SrcPos(..)  
+    , SrcPos(..)
     )
 
 import Text.Parsec.Error
     ( ParseError
     )
-    
+
 import System.Exit
     ( exitFailure
     )
-    
+
 import System.IO
     ( hPutStrLn
-    , stderr  
+    , stderr
     )
 
 -----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ data ConvError =
   ConvError
   { title :: String
   , cmsg :: String
-  }  
+  }
 
 -----------------------------------------------------------------------------
 
@@ -129,7 +129,7 @@ syntaxError pos msg = Left $ ErrSyntax $ SyntaxError pos [msg]
 runtimeError
   :: ExprPos -> String -> Either Error a
 
-runtimeError pos msg = Left $ ErrRunT $ RunTimeError pos [msg]    
+runtimeError pos msg = Left $ ErrRunT $ RunTimeError pos [msg]
 
 -----------------------------------------------------------------------------
 
@@ -143,7 +143,7 @@ typeError pos msg = Left $ ErrType $ TypeError pos [msg]
 
 -----------------------------------------------------------------------------
 
--- | Use this error constructor, if some identifier binding related 
+-- | Use this error constructor, if some identifier binding related
 -- misbehavior is detected.
 
 bindingError
@@ -213,7 +213,7 @@ prError err = do
       ErrRunT x   -> prMeta "Runtime Error" (errRPos x) (errRMsgs x)
       ErrConv x   -> "\"Conversion Error\": " ++ title x ++ "\n" ++ cmsg x
       ErrArgs x   -> "\"Error\" " ++ message x
-      ErrParse x  -> show x      
+      ErrParse x  -> show x
 
 -----------------------------------------------------------------------------
 
@@ -229,7 +229,7 @@ prErrPos pos =
     el = srcLine $ srcEnd pos
     ec = srcColumn $ srcEnd pos
   in
-    "line " ++ show bl ++ "," ++ 
+    "line " ++ show bl ++ "," ++
     "column " ++ show bc ++
     if bl == el
     then " - " ++ show ec

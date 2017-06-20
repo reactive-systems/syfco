@@ -3,81 +3,166 @@
 -- Module      :  Reader.InferType
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Infers and checks types of all bound expressions.
--- 
+--
+-----------------------------------------------------------------------------
+
+
+{- Notes:
+
+* rewrite type check
+
+** two phases: genereric deriving; derive types only from the
+expression structure. However, do not use the embedding to derive concrete
+types. Then, in the second phase: check types accuring to their usage
+
+* first produce typecheck procedure. With a complete typetable at hand, type
+checking will be straightforward.
+
+* type inference:
+- get list of all top level expresions ordered by their dependencies.
+- derive the type of the subexpression: for every function application safe
+ state before, then derive subtypes. If the type is derived, typecheck
+ the subexpression. After returning from functions, restore their original
+ type which is saved in the call strack during the recursive decension.
+
+
+-}
+-----------------------------------------------------------------------------
+
+{-# LANGUAGE
+
+    LambdaCase,
+    TupleSections,
+    RecordWildCards,
+    MultiWayIf,
+    ViewPatterns
+
+  #-}
+
 -----------------------------------------------------------------------------
 
 module Reader.InferType
-    ( inferTypes
-    ) where
+  ( inferTypes
+  ) where
 
 -----------------------------------------------------------------------------
 
+import Prelude hiding ((!))
+
+import Control.Arrow
+  ( (>>>)
+  )
+
 import Utils
-    ( imLookup
-    )
+  ( imLookup
+  )
+
+import Data.Graph
+  ( Graph
+  , buildG
+  , transposeG
+  , topSort
+  )
+
+import qualified Data.Set as S
+  ( fromList
+  , toList
+  , difference
+  )
 
 import Data.Enum
-    ( EnumDefinition(..)
-    )  
-    
+  ( EnumDefinition(..)
+  )
+
 import Data.Types
-    ( IdType(..)
-    , SignalType(..)
-    , SignalDecType(..)      
-    )
-    
+  ( IdType(..)
+  , SignalType(..)
+  , SignalDecType(..)
+  )
+
 import Data.Binding
-    ( BindExpr(..)  
-    )
-    
+  ( Binding
+  , BindExpr(..)
+  )
+
 import Data.Expression
-    ( Expr(..)
-    , Expr'(..)
-    , ExprPos  
-    )  
+  ( Expr(..)
+  , Expr'(..)
+  , ExprPos
+  )
 
 import Reader.Data
-    ( TypeTable
-    , ExpressionTable  
-    , ArgumentTable
-    , Specification(..)  
-    )
-      
+  ( TypeTable
+  , ExpressionTable
+  , ArgumentTable
+  , Specification(..)
+  )
+
 import Reader.Error
-    ( Error
-    , errExpect
-    , errRange
-    , errPattern  
-    )  
+  ( Error
+  , errExpect
+  , errRange
+  , errPattern
+  , errNoPFuns
+  , errArgArity
+  )
 
 import Data.Maybe
-    ( fromJust
-    )
-    
+  ( fromJust
+  )
+
 import Data.Either
-    ( partitionEithers
-    )
-    
+  ( partitionEithers
+  )
+
 import Control.Monad.State
-    ( StateT(..)
-    , execStateT
-    , get
-    , put
-    , liftM  
-    , when  
-    )
+  ( StateT(..)
+  , execStateT
+  , get
+  , put
+  , liftM
+  , when
+  )
 
 import Control.Exception
-    ( assert
-    )  
+  ( assert
+  )
+
+import Data.IntMap.Strict
+  ( (!)
+  )
 
 import qualified Data.IntMap.Strict as IM
+  ( insert
+  , null
+  , fromList
+  , map
+  , empty
+  , toList
+  , mapWithKey
+  , maxViewWithKey
+  , findMax
+  )
+
+import  Data.IntMap.Strict
+  ( IntMap
+  )
+
+import Debug.Trace
 
 -----------------------------------------------------------------------------
 
 type TypeChecker a = a -> StateT ST (Either Error) ()
+
+type TC a = StateT ST (Either Error) a
+
+type ExprType = IdType
+
+type ID = Int
+
+type Expression = Expr ID
 
 -----------------------------------------------------------------------------
 
@@ -85,6 +170,7 @@ data ST = ST
   { tCount :: Int
   , tTypes :: TypeTable
   , targs :: ArgumentTable
+  , spec :: Specification
   }
 
 -----------------------------------------------------------------------------
@@ -98,25 +184,46 @@ inferTypes
 
 inferTypes s =
   let
+    -- assign arbitrary type to each element
+    tt1 :: TypeTable
     tt1 = IM.mapWithKey (\i _ -> TPoly i) $ names s
+
+    -- set enum types
     tt2 = foldl updEnumType tt1 $ enumerations s
+    -- set the signal types
     tt3 = foldl (updSignalType STInput) tt2 $ inputs s
     tt4 = foldl (updSignalType STOutput) tt3 $ outputs s
+    -- set the parameter types
     tt5 = foldl (updType TNumber) tt4 $ map bIdent $ parameters s
-    maxkey = 
+    -- get the maximal count
+    maxkey =
       if IM.null $ names s then 1 else
         fst $ fst $ fromJust $ IM.maxViewWithKey $ names s
+    -- constuct preliminary type table
     ts = map fst $ IM.toList tt5
   in do
-    tt6 <- execStateT (inferLtl s ts) $ ST (maxkey + 1) tt5 (arguments s)
-    return $ s { types = tTypes tt6 }
+    --
+    tt <- execStateT
+           inferTypeSpec
+           (ST
+             ((+1) $ fst $ IM.findMax $ names s)
+             (IM.mapWithKey (\i _ -> TPoly i) $ names s)
+             (arguments s)
+             s
+           )
+
+    return $ s { types = tTypes tt }
+
+    -- construct updated type table
+--    tt6 <- execStateT (inferLtl s ts) $ ST (maxkey + 1) tt5 (arguments s)
+--    return $ s { types = tTypes tt6 }
 
   where
     updType t a i = IM.insert i t a
 
     updEnumType a x =
       foldl (updType (TEnum (imLookup (eName x) $ names s) (eName x))) a $
-      map (\(y,_,_) -> y) $ eValues x    
+      map (\(y,_,_) -> y) $ eValues x
 
     updSignalType t a x = case x of
       SDSingle (y,_)     -> IM.insert y (TSignal t) a
@@ -126,23 +233,562 @@ inferTypes s =
 
 -----------------------------------------------------------------------------
 
+inferTypeSpec
+  :: TC ()
+
+inferTypeSpec = do
+  s @ Specification {..} <- liftM spec get
+
+  let
+    -- get ID map
+    im =
+      IM.fromList
+        $ (map (\x -> (bIdent x, Left x)) parameters) ++
+          (map (\x -> (bIdent x, Right x)) definitions)
+
+    -- get the parameter ids
+    ps :: [ID]
+    ps = map bIdent parameters
+
+    -- get the definition ids
+    ds :: [ID]
+    ds = map bIdent definitions
+
+    -- create list of edges
+    es :: [(ID, ID)]
+    es = concatMap (\x -> map (x,) $ deps s x) (ps ++ ds)
+
+    -- create the depencency graph
+    g :: Graph
+    g = buildG (minimum $ ps ++ ds, maximum $ ps ++ ds) es
+
+    -- bindings ordered by their dependencies
+    os :: [Either (BindExpr ID) (BindExpr ID)]
+    os = map (im !) $ topSort $ transposeG g
+
+  -- fix the bindings types
+  mapM_ typeCheckBinding os
+
+
+  -- unify joined polymorphic types
+  --unifyPolymorphic
+
+  -- type-check bus-parameters
+  mapM_ typeCheckBusParameter inputs
+  mapM_ typeCheckBusParameter outputs
+
+  -- type-check LTL formulas
+  mapM_ (flip typeCheck TLtl) initially
+  mapM_ (flip typeCheck TLtl) preset
+  mapM_ (flip typeCheck TLtl) requirements
+  mapM_ (flip typeCheck TLtl) assumptions
+  mapM_ (flip typeCheck TLtl) invariants
+  mapM_ (flip typeCheck TLtl) guarantees
+
+  where
+    deps
+      :: Specification -> Int -> [Int]
+
+    deps s x =
+      let
+        dS = S.fromList $ dependencies s ! x
+        aS = S.fromList $ arguments s ! x
+      in
+        S.toList $ S.difference dS aS
+
+-----------------------------------------------------------------------------
+
+typeCheckBinding
+  :: Either (BindExpr ID) (BindExpr ID) -> TC ()
+
+typeCheckBinding = \case
+  Left x  -> typeCheckParameter $ bIdent x
+  Right x -> typeCheckDefinition $ bIdent x
+
+-----------------------------------------------------------------------------
+
+typeCheckParameter
+  :: ID -> TC ()
+
+typeCheckParameter i = do
+  Specification {..} <- liftM spec get
+
+  let
+    n :: Int
+    n = length $ arguments ! i
+
+  if
+    | n > 0     -> errNoPFuns n $ positions ! i
+    | otherwise -> typeCheck (bindings ! i) $ TSet TNumber
+
+-----------------------------------------------------------------------------
+
+typeCheckDefinition
+  :: ID -> TC ()
+
+typeCheckDefinition i = do
+  e <- liftM ((! i) . bindings . spec) get
+  t <- inferFromExpr e
+  typeCheck e t
+
+-----------------------------------------------------------------------------
+
+typeCheckBusParameter
+  :: SignalDecType ID -> TC ()
+
+typeCheckBusParameter = \case
+  SDBus _ e -> typeCheck e TNumber
+  _         -> return ()
+
+-----------------------------------------------------------------------------
+
+typeCheck
+  :: Expression -> ExprType -> TC ()
+
+typeCheck e = \case
+  -- check signal types
+  TSignal x           -> typeChIdF e $ TSignal x
+
+  -- check normal bus types
+  TBus x              -> typeChIdF e $ TBus x
+
+  -- check typed bus types
+  TTypedBus x y z     -> typeChIdF e $ TTypedBus x y z
+
+  -- check for empty sets
+  TEmptySet -> case expr e of
+    SetExplicit []    -> return ()
+    SetExplicit (x:_) -> typeErrES e x
+    SetCup x y        -> typeChck2 x y TEmptySet
+    SetCap x y        -> typeChck2 x y TEmptySet
+    SetMinus x y      -> typeChck2 x y TEmptySet
+    SetRCup _ x       -> typeCheck x TEmptySet
+    SetRCap _ x       -> typeCheck x TEmptySet
+    _                 -> typeChIdF e TEmptySet
+
+  -- check set types
+  TSet t -> case expr e of
+    SetExplicit xs    -> typeChSEx t xs
+    SetRange x y z    -> typeChSRg x y z
+    SetCup x y        -> typeChck2 x y $ TSet t
+    SetRCup xs x      -> typeChckO xs x $ TSet t
+    SetCap x y        -> typeChck2 x y $ TSet t
+    SetRCap xs x      -> typeChckO xs x $ TSet t
+    SetMinus x y      -> typeChck2 x y $ TSet t
+    _                 -> typeChIdF e $ TSet t
+
+  -- check numerical types
+  TNumber -> case expr e of
+    BaseCon {}        -> return ()
+    NumSMin xs        -> typeCheck xs $ TSet TNumber
+    NumSMax xs        -> typeCheck xs $ TSet TNumber
+    NumSSize x        -> typeChckS x
+    NumSizeOf b       -> typeCheck b $ TBus STGeneric
+    NumPlus x y       -> typeChck2 x y TNumber
+    NumRPlus xs x     -> typeChckO xs x TNumber
+    NumMinus x y      -> typeChck2 x y TNumber
+    NumMul x y        -> typeChck2 x y TNumber
+    NumRMul xs x      -> typeChckO xs x TNumber
+    NumDiv x y        -> typeChck2 x y TNumber
+    NumMod x y        -> typeChck2 x y TNumber
+    _                 -> typeChIdF e TNumber
+
+  -- check boolean types
+  TBoolean -> case expr e of
+    BaseTrue          -> return ()
+    BaseFalse         -> return ()
+    BlnElem x xs      -> typeChElm x xs
+    BlnEQ x y         -> typeChck2 x y TNumber
+    BlnNEQ x y        -> typeChck2 x y TNumber
+    BlnGE x y         -> typeChck2 x y TNumber
+    BlnGEQ x y        -> typeChck2 x y TNumber
+    BlnLE x y         -> typeChck2 x y TNumber
+    BlnLEQ x y        -> typeChck2 x y TNumber
+    BlnNot x          -> typeCheck x TBoolean
+    BlnOr x y         -> typeChck2 x y TBoolean
+    BlnAnd x y        -> typeChck2 x y TBoolean
+    BlnImpl x y       -> typeChck2 x y TBoolean
+    BlnEquiv x y      -> typeChck2 x y TBoolean
+    BlnROr xs x       -> typeChckO xs x TBoolean
+    BlnRAnd xs x      -> typeChckO xs x TBoolean
+    _                 -> typeChIdF e TBoolean
+
+  -- check LTL formula types
+  TLtl -> case expr e of
+    BaseTrue          -> return ()
+    BaseFalse         -> return ()
+    BlnEQ x y         -> typeCheck e TBoolean
+    BlnNEQ x y        -> typeCheck e TBoolean
+    BlnGE x y         -> typeCheck e TBoolean
+    BlnGEQ x y        -> typeCheck e TBoolean
+    BlnLE x y         -> typeCheck e TBoolean
+    BlnLEQ x y        -> typeCheck e TBoolean
+    BlnElem x xs      -> typeCheck e TBoolean
+    BlnNot x          -> typeCheck e TBoolean
+    BlnOr x y         -> typeCheck e TBoolean
+    BlnROr xs x       -> typeCheck e TBoolean
+    BlnAnd x y        -> typeCheck e TBoolean
+    BlnRAnd xs y      -> typeCheck e TBoolean
+    BlnImpl x y       -> typeCheck e TBoolean
+    BlnEquiv x y      -> typeCheck e TBoolean
+    LtlNext x         -> typeCheck x TLtl
+    LtlRNext x y      -> typeChckR x y
+    LtlGlobally x     -> typeCheck x TLtl
+    LtlRGlobally x y  -> typeChckR x y
+    LtlFinally x      -> typeCheck x TLtl
+    LtlRFinally x y   -> typeChckR x y
+    LtlUntil x y      -> typeChck2 x y TLtl
+    LtlWeak x y       -> typeChck2 x y TLtl
+    LtlRelease x y    -> typeChck2 x y TLtl
+    _                 -> typeChIdF e TLtl
+
+  TEnum t x           -> error "todo"
+
+  TPattern            -> error "todo"
+
+  TPoly i -> inferFromExpr e >>= \case
+    TPoly j -> equalPolyType i j
+    t       -> updatePolyType i t
+
+-----------------------------------------------------------------------------
+
+typeChIdF
+  :: Expression -> ExprType -> TC ()
+
+typeChIdF e t = case expr e of
+  BaseId i     -> typeCheckId e t i
+  BaseFml xs f -> typeCheckFml e t xs f
+  BaseBus x b  -> undefined
+  x            -> error "TODO: error"
+
+-----------------------------------------------------------------------------
+
+typeCheckId
+  :: Expression -> ExprType -> Int -> TC ()
+
+typeCheckId e t i = do
+  -- higher order functions are not supported
+  as <- liftM ((! i) . arguments . spec) get
+
+  when (not $ null as) $
+    error "TODO: error no higher order"
+
+  tt <- liftM tTypes get
+  m t (tt ! i)
+
+  where
+    m :: ExprType -> ExprType -> StateT ST (Either Error) ()
+
+    m (TSignal STGeneric) (TSignal _)         = return ()
+    m (TSignal _)         (TSignal STGeneric) = return ()
+    m (TBus STGeneric)    (TBus _)            = return ()
+    m (TBus _)            (TBus STGeneric)    = return ()
+    m (TEnum _ _)         _                   = error "TODO"
+    m (TTypedBus _ _ _)   _                   = error "TODO"
+    m (TEmptySet)         (TSet _)            = return ()
+    m (TSet s)            (TEmptySet)         = updType i t
+    m (TSet s)            (TSet s')           = m s s'
+    m (TPoly p')          (TPoly p)           = equalPolyType p p'
+    m (TPoly _)           _                   = return ()
+    m t                   (TPoly p)           = updatePolyType p t
+    m t                   t'
+      | t == t'    = return ()
+      | otherwise = do
+          tt <- liftM tTypes get
+          errExpect t (tt ! i) $ srcPos e
+
+-----------------------------------------------------------------------------
+
+typeCheckFml
+  :: Expression -> ExprType -> [Expression] -> Int -> TC ()
+
+typeCheckFml e t xs f = do
+  -- check argument expression types
+  mapM_ typeCheckArg xs
+  -- get argument expression types
+  ts <- mapM inferFromExpr xs
+  -- save current type table
+  tt <- liftM tTypes get
+  -- get arguments
+  as <- liftM ((! f) . arguments . spec) get
+
+  -- check argument arity
+  when (length as /= length xs) $
+    errArgArity (show $ length xs) (length as) undefined undefined
+
+  -- instantiate arguments with argument types
+  mapM_ (uncurry updType) $ zip as ts
+
+  -- get resulting type
+  rt <- liftM ((! f) . tTypes) get
+
+  -- restore argument types
+  mapM_ (resetType tt) as
+
+  when (rt /= t) $
+    errExpect t rt $ srcPos e
+
+  -- TODO: check expression building overflow
+  -- f(x) = { f(x) }
+
+-----------------------------------------------------------------------------
+
+resetType
+  :: TypeTable -> Int -> TC ()
+
+resetType tt i = do
+  st @ ST {..} <- get
+  put st { tTypes = IM.insert i (tt ! i) tTypes }
+
+-----------------------------------------------------------------------------
+
+typeCheckArg
+  :: Expression -> TC ()
+
+typeCheckArg e = do
+  t <- inferFromExpr e
+  typeCheck e t
+
+-----------------------------------------------------------------------------
+
+updType
+  :: Int -> ExprType -> TC ()
+
+updType i t = do
+  st @ ST {..} <- get
+  put st { tTypes = IM.insert i t tTypes }
+
+-----------------------------------------------------------------------------
+
+equalPolyType
+  :: Int -> Int -> TC ()
+
+equalPolyType n m = do
+  st @ ST {..} <- get
+  put st { tTypes = IM.map upd tTypes }
+
+  where
+    upd = \case
+      TPoly x
+        | x == n || x == m -> TPoly $ min n m
+        | otherwise     -> TPoly x
+      x -> x
+
+-----------------------------------------------------------------------------
+
+updatePolyType
+  :: Int -> ExprType -> TC ()
+
+updatePolyType n t = do
+  st @ ST {..} <- get
+  put st { tTypes = IM.map upd tTypes }
+
+  where
+    upd = \case
+      TPoly x
+        | x == n     -> t
+        | otherwise -> TPoly x
+      x -> x
+
+-----------------------------------------------------------------------------
+
+typeChck2
+  :: Expression -> Expression -> ExprType -> TC ()
+
+typeChck2 x y t = do
+  typeCheck x t
+  typeCheck y t
+
+-----------------------------------------------------------------------------
+
+typeChSEx
+  :: ExprType -> [Expression] -> TC ()
+
+typeChSEx t =
+  mapM_ (flip typeCheck t)
+
+-----------------------------------------------------------------------------
+
+typeChSRg
+  :: Expression -> Expression -> Expression -> TC ()
+
+typeChSRg x y z = do
+  typeCheck x TNumber
+  typeCheck y TNumber
+  typeCheck z TNumber
+
+-----------------------------------------------------------------------------
+
+typeChckS
+  :: Expression -> StateT ST (Either Error) ()
+
+typeChckS x =
+  get >>= typeCheck x . TSet . TPoly . tCount
+
+-----------------------------------------------------------------------------
+
+typeChElm
+  :: Expression -> Expression -> StateT ST (Either Error) ()
+
+typeChElm x xs = do
+  t <- inferFromExpr x
+  typeCheck x t
+  t' <- inferFromExpr x
+  typeCheck xs $ TSet t'
+
+-----------------------------------------------------------------------------
+
+typeChckR
+  :: Expression -> Expression -> StateT ST (Either Error) ()
+
+typeChckR (expr -> Colon n m) x = do
+  typeCheck n TNumber
+  typeCheck m TNumber
+  typeCheck x TLtl
+
+-----------------------------------------------------------------------------
+
+typeChckO
+  :: [Expression] -> Expression -> ExprType -> StateT ST (Either Error) ()
+
+typeChckO xs y t = do
+  mapM_ typeChckI xs
+  typeCheck y t
+
+-----------------------------------------------------------------------------
+
+typeChckI
+  :: Expression -> StateT ST (Either Error) ()
+
+typeChckI = expr >>> \case
+  BlnElem x xs                 -> typeChElm x xs
+  BlnLE (expr -> BlnLE x y) z   -> typeChSRg x y z
+  BlnLE (expr -> BlnLEQ x y) z  -> typeChSRg x y z
+  BlnLEQ (expr -> BlnLE x y) z  -> typeChSRg x y z
+  BlnLEQ (expr -> BlnLEQ x y) z -> typeChSRg x y z
+  _                            -> assert False undefined
+
+-----------------------------------------------------------------------------
+
+typeErrES
+  :: Expression -> Expression -> StateT ST (Either Error) ()
+
+typeErrES e x = do
+  t <- inferFromExpr x
+  typeCheck x t
+  errExpect TEmptySet (TSet t) $ srcPos e
+
+-----------------------------------------------------------------------------
+
+typeChSBn
+  :: ExprType -> Expression -> Expression -> StateT ST (Either Error) ()
+
+typeChSBn t x y = do
+  typeCheck x $ TSet t
+  typeCheck y $ TSet t
+
+-----------------------------------------------------------------------------
+
+inferFromExpr
+  :: Expression -> StateT ST (Either Error) ExprType
+
+inferFromExpr = expr >>> \case
+  BaseCon {}        -> return TNumber
+  NumSMin {}        -> return TNumber
+  NumSMax {}        -> return TNumber
+  NumSSize {}       -> return TNumber
+  NumSizeOf {}      -> return TNumber
+  NumPlus {}        -> return TNumber
+  NumMinus {}       -> return TNumber
+  NumMul {}         -> return TNumber
+  NumDiv {}         -> return TNumber
+  NumMod {}         -> return TNumber
+  NumRPlus {}       -> return TNumber
+  NumRMul {}        -> return TNumber
+  BaseWild          -> return TPattern
+  BaseOtherwise     -> return TBoolean
+  Pattern {}        -> return TBoolean
+  BaseTrue          -> return TBoolean
+  BaseFalse         -> return TBoolean
+  BlnEQ {}          -> return TBoolean
+  BlnNEQ {}         -> return TBoolean
+  BlnGE {}          -> return TBoolean
+  BlnGEQ {}         -> return TBoolean
+  BlnLE {}          -> return TBoolean
+  BlnLEQ {}         -> return TBoolean
+  BlnNot {}         -> return TBoolean
+  BlnOr {}          -> return TBoolean
+  BlnROr {}         -> return TBoolean
+  BlnAnd {}         -> return TBoolean
+  BlnRAnd {}        -> return TBoolean
+  BlnImpl {}        -> return TBoolean
+  BlnElem {}        -> return TBoolean
+  BlnEquiv {}       -> return TBoolean
+  BaseBus {}        -> return TLtl
+  LtlNext {}        -> return TLtl
+  LtlRNext {}       -> return TLtl
+  LtlGlobally {}    -> return TLtl
+  LtlRGlobally {}   -> return TLtl
+  LtlFinally {}     -> return TLtl
+  LtlRFinally {}    -> return TLtl
+  LtlUntil {}       -> return TLtl
+  LtlWeak {}        -> return TLtl
+  LtlRelease {}     -> return TLtl
+  SetRange {}       -> return $ TSet TNumber
+  SetExplicit []    -> return TEmptySet
+  SetExplicit (x:_) -> liftM TSet $ inferFromExpr x
+  SetCup x y        -> inferSetOp x y
+  SetCap x y        -> inferSetOp x y
+  SetMinus x y      -> inferSetOp x y
+  SetRCap _ x       -> inferFromExpr x
+  SetRCup _ x       -> inferFromExpr x
+  Colon _ x         -> inferFromExpr x
+  BaseId i          -> liftM (imLookup i . tTypes) get
+  BaseFml _ i       -> liftM (imLookup i . tTypes) get
+
+  where
+    inferSetOp x y =
+      inferFromExpr x >>= \case
+        TEmptySet -> inferFromExpr y
+        t         -> return t
+
+{-    inferSetExplicit xs = case xs of
+      []     -> return TEmptySet
+d      [x]    -> liftM TSet $ inferFromExpr x
+      (x:xr) -> do
+        t <- inferFromExpr x
+        case t of
+          TEmptySet -> inferSetExplicit xr
+          t'        -> return $ TSet t'
+-}
+
+-----------------------------------------------------------------------------
+
+
 inferLtl
   :: Specification -> TypeChecker [Int]
 
 inferLtl s xs = do
+  -- get bus parameters
   mapM_ inferBusParameter $ inputs s
-  mapM_ inferBusParameter $ outputs s    
+  mapM_ inferBusParameter $ outputs s
+  -- derive generic types
   let ys = map (\i -> (i,imLookup i $ bindings s)) xs
   mapM_ updateType ys
+  -- process final LTL formulas
   mapM_ (inferFromUsage TLtl) $ initially s
   mapM_ (inferFromUsage TLtl) $ preset s
-  mapM_ (inferFromUsage TLtl) $ requirements s  
+  mapM_ (inferFromUsage TLtl) $ requirements s
   mapM_ (inferFromUsage TLtl) $ assumptions s
   mapM_ (inferFromUsage TLtl) $ invariants s
   mapM_ (inferFromUsage TLtl) $ guarantees s
   checkTypes (arguments s) (bindings s) ys xs
 
   where
+    -- the bus type must be number
+    inferBusParameter
+      :: TypeChecker (SignalDecType Int)
+
     inferBusParameter x = case x of
       SDBus _ e -> inferFromUsage TNumber e
       _         -> return ()
@@ -150,7 +796,7 @@ inferLtl s xs = do
 -----------------------------------------------------------------------------
 
 checkTypes
-  :: ArgumentTable -> ExpressionTable -> [(Int,Expr Int)] -> TypeChecker [Int]
+  :: ArgumentTable -> ExpressionTable -> [(Int,Expression)] -> TypeChecker [Int]
 
 checkTypes as bs ys xs = do
   mapM_ (checkType as) ys
@@ -159,7 +805,7 @@ checkTypes as bs ys xs = do
       (ns,os) = partitionEithers $ zipWith concrete ts xs
   case ns of
     [] -> return ()
-    _  -> inferType as bs os 
+    _  -> inferType as bs os
 
   where
     concrete t i = case t of
@@ -179,7 +825,7 @@ inferType as bs xs = do
 -----------------------------------------------------------------------------
 
 updateType
-  :: TypeChecker (Int,Expr Int)
+  :: TypeChecker (Int,Expression)
 
 updateType (i,e) = do
   tt <- get
@@ -212,7 +858,7 @@ updateType (i,e) = do
 -----------------------------------------------------------------------------
 
 checkType
-  :: ArgumentTable -> TypeChecker (Int, Expr Int) 
+  :: ArgumentTable -> TypeChecker (Int, Expression)
 
 checkType as (i,e) = do
   tt <- get
@@ -226,85 +872,11 @@ checkType as (i,e) = do
       _  -> inferFromUsageFormula (TSet t) e
 
 -----------------------------------------------------------------------------
-  
-inferFromExpr
-  :: Expr Int -> StateT ST (Either Error) IdType
 
-inferFromExpr e = case expr e of
-  BaseOtherwise    -> return TBoolean
-  Pattern _ _      -> return TBoolean
-  BaseWild         -> return TPattern
-  BaseCon _        -> return TNumber
-  NumSMin _        -> return TNumber
-  NumSMax _        -> return TNumber
-  NumSSize _       -> return TNumber
-  NumSizeOf _      -> return TNumber  
-  NumPlus _ _      -> return TNumber
-  NumMinus _ _     -> return TNumber
-  NumMul _ _       -> return TNumber
-  NumDiv _ _       -> return TNumber
-  NumMod _ _       -> return TNumber
-  NumRPlus _ _     -> return TNumber
-  NumRMul _ _      -> return TNumber
-  BaseTrue         -> return TLtl
-  BaseFalse        -> return TLtl
-  BaseBus _ _      -> return TLtl  
-  BlnEQ _ _        -> return TLtl
-  BlnNEQ _ _       -> return TLtl
-  BlnGE _ _        -> return TLtl
-  BlnGEQ _ _       -> return TLtl
-  BlnLE _ _        -> return TLtl
-  BlnLEQ _ _       -> return TLtl
-  BlnNot _         -> return TLtl
-  BlnOr _ _        -> return TLtl
-  BlnROr _ _       -> return TLtl
-  BlnAnd _ _       -> return TLtl
-  BlnRAnd _ _      -> return TLtl
-  BlnImpl _ _      -> return TLtl
-  BlnElem _ _      -> return TLtl
-  BlnEquiv _ _     -> return TLtl
-  LtlNext _        -> return TLtl
-  LtlRNext _ _     -> return TLtl
-  LtlGlobally _    -> return TLtl
-  LtlRGlobally _ _ -> return TLtl
-  LtlFinally _     -> return TLtl
-  LtlRFinally _ _  -> return TLtl
-  LtlUntil _ _     -> return TLtl
-  LtlWeak _ _      -> return TLtl
-  LtlRelease _ _   -> return TLtl
-  SetExplicit xs   -> inferSetExplicit xs
-  SetRange {}      -> return $ TSet TNumber
-  SetCup x y       -> inferSetOp x y
-  SetRCup _ x      -> inferFromExpr x 
-  SetCap x y       -> inferSetOp x y
-  SetRCap _ x      -> inferFromExpr x 
-  SetMinus x y     -> inferSetOp x y  
-  Colon _ x        -> inferFromExpr x
-  BaseId i         -> liftM (imLookup i . tTypes) get
-  BaseFml _ i      -> liftM (imLookup i . tTypes) get
-
-  where
-    inferSetOp x y = do
-      tx <- inferFromExpr x
-      case tx of
-        TEmptySet ->
-          inferFromExpr y
-        _         -> 
-          return tx
-
-    inferSetExplicit xs = case xs of
-      []     -> return TEmptySet
-      [x]    -> liftM TSet $ inferFromExpr x
-      (x:xr) -> do
-        t <- inferFromExpr x
-        case t of
-          TEmptySet -> inferSetExplicit xr
-          t'        -> return $ TSet t'
-
------------------------------------------------------------------------------
+-- | Infers the type of an expression from its context.
 
 inferFromUsage
-  :: IdType -> TypeChecker (Expr Int)
+  :: ExprType -> TypeChecker (Expression)
 
 inferFromUsage t e = case t of
   TPoly j -> do
@@ -321,7 +893,7 @@ inferFromUsage t e = case t of
         put $ tt {
           tTypes = IM.insert j t' $ tTypes tt
           }
-        inferFromUsage t' e 
+        inferFromUsage t' e
   TNumber -> inferFromUsageNum e
   TLtl -> inferFromUsageLtl e
   TBoolean -> inferFromUsageBool e
@@ -338,7 +910,7 @@ inferFromUsage t e = case t of
 -----------------------------------------------------------------------------
 
 inferFromUsageFormula
-  :: IdType -> TypeChecker (Expr Int)
+  :: ExprType -> TypeChecker (Expression)
 
 inferFromUsageFormula t e = case expr e of
   Colon x y -> do
@@ -350,7 +922,7 @@ inferFromUsageFormula t e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageNum
-  :: TypeChecker (Expr Int)
+  :: TypeChecker (Expression)
 
 inferFromUsageNum e = case expr e of
   BaseCon _    -> return ()
@@ -382,7 +954,7 @@ inferFromUsageNum e = case expr e of
   BaseFml as i -> inferFromUsageFml as TNumber (srcPos e) i
   Colon x y    -> do
     inferFromUsage TBoolean x
-    inferFromUsage TNumber y  
+    inferFromUsage TNumber y
   _            -> do
     t <- inferFromExpr e
     errExpect TNumber t $ srcPos e
@@ -390,7 +962,7 @@ inferFromUsageNum e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageBool
-  :: TypeChecker (Expr Int)
+  :: TypeChecker (Expression)
 
 inferFromUsageBool e = case expr e of
   BaseOtherwise -> return ()
@@ -400,7 +972,7 @@ inferFromUsageBool e = case expr e of
     inferFromUsage TLtl z
     inferFromUsage TPattern v
   BlnEQ x y     -> inferFromEquality x y
-  BlnNEQ x y    -> inferFromEquality x y 
+  BlnNEQ x y    -> inferFromEquality x y
   BlnGE x y     -> mapM_ (inferFromUsage TNumber) [x,y]
   BlnGEQ x y    -> mapM_ (inferFromUsage TNumber) [x,y]
   BlnLE x y     -> mapM_ (inferFromUsage TNumber) [x,y]
@@ -418,7 +990,7 @@ inferFromUsageBool e = case expr e of
   BlnRAnd _ x   -> inferFromUsage TBoolean x
   Colon x y     -> do
     inferFromUsage TBoolean x
-    inferFromUsage TBoolean y    
+    inferFromUsage TBoolean y
   _             -> do
     t <- inferFromExpr e
     errExpect TBoolean t $ srcPos e
@@ -426,7 +998,7 @@ inferFromUsageBool e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageLtl
-  :: TypeChecker (Expr Int)
+  :: TypeChecker (Expression)
 
 inferFromUsageLtl e = case expr e of
   BaseTrue           -> return ()
@@ -450,7 +1022,7 @@ inferFromUsageLtl e = case expr e of
   BlnRAnd _ x      -> inferFromUsage TLtl x
   LtlNext x        -> inferFromUsage TLtl x
   LtlGlobally x    -> inferFromUsage TLtl x
-  LtlFinally x     -> inferFromUsage TLtl x  
+  LtlFinally x     -> inferFromUsage TLtl x
   LtlUntil x y     -> mapM_ (inferFromUsage TLtl) [x,y]
   LtlWeak x y      -> mapM_ (inferFromUsage TLtl) [x,y]
   LtlRelease x y   -> mapM_ (inferFromUsage TLtl) [x,y]
@@ -475,7 +1047,7 @@ inferFromUsageLtl e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromEquality
-  :: Expr Int -> TypeChecker (Expr Int)
+  :: Expression -> TypeChecker (Expression)
 
 inferFromEquality x y = do
   t <- inferFromExpr x
@@ -496,12 +1068,12 @@ inferFromEquality x y = do
       BaseId i ->  case imLookup i $ tTypes tt of
         TEnum s t -> Just (s,t,b)
         _         -> Nothing
-      _ -> Nothing      
-        
+      _ -> Nothing
+
 -----------------------------------------------------------------------------
 
 inferFromUsagePattern
-  :: TypeChecker (Expr Int)
+  :: TypeChecker (Expression)
 
 inferFromUsagePattern e = case expr e of
   BaseWild         -> return ()
@@ -514,7 +1086,7 @@ inferFromUsagePattern e = case expr e of
   BlnEquiv x y     -> mapM_ (inferFromUsage TPattern) [x,y]
   LtlNext x        -> inferFromUsage TPattern x
   LtlGlobally x    -> inferFromUsage TPattern x
-  LtlFinally x     -> inferFromUsage TPattern x  
+  LtlFinally x     -> inferFromUsage TPattern x
   LtlUntil x y     -> mapM_ (inferFromUsage TPattern) [x,y]
   LtlWeak x y      -> mapM_ (inferFromUsage TPattern) [x,y]
   LtlRelease x y   -> mapM_ (inferFromUsage TPattern) [x,y]
@@ -527,7 +1099,7 @@ inferFromUsagePattern e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageEmptySet
-  :: TypeChecker (Expr Int)
+  :: TypeChecker (Expression)
 
 inferFromUsageEmptySet e = case expr e of
   SetExplicit _ -> return ()
@@ -544,7 +1116,7 @@ inferFromUsageEmptySet e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageSet
-  :: IdType -> TypeChecker (Expr Int)
+  :: ExprType -> TypeChecker (Expression)
 
 inferFromUsageSet t e = case expr e of
   SetExplicit xs -> mapM_ (inferFromUsage t) xs
@@ -558,7 +1130,7 @@ inferFromUsageSet t e = case expr e of
   BaseFml as i   -> inferFromUsageFml as (TSet t) (srcPos e) i
   Colon x y      -> do
     inferFromUsage TBoolean x
-    inferFromUsage (TSet t) y  
+    inferFromUsage (TSet t) y
   _              -> do
     t' <- inferFromExpr e
     errExpect (TSet t) t' $ srcPos e
@@ -566,7 +1138,7 @@ inferFromUsageSet t e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageSignal
-  :: TypeChecker (Expr Int)
+  :: TypeChecker (Expression)
 
 inferFromUsageSignal e = case expr e of
   BaseId i     -> inferFromUsageId (TSignal STGeneric) (srcPos e) i
@@ -578,11 +1150,11 @@ inferFromUsageSignal e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageBus
-  :: TypeChecker (Expr Int)
+  :: TypeChecker (Expression)
 
 inferFromUsageBus e = case expr e of
   BaseId i     -> inferFromUsageId (TBus STGeneric) (srcPos e) i
-  BaseFml as i -> inferFromUsageFml as (TBus STGeneric) (srcPos e) i  
+  BaseFml as i -> inferFromUsageFml as (TBus STGeneric) (srcPos e) i
   _            -> do
     t <- inferFromExpr e
     errExpect (TBus STGeneric) t $ srcPos e
@@ -590,11 +1162,11 @@ inferFromUsageBus e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageTypedBus
-  :: String -> Int -> TypeChecker (Expr Int)
+  :: String -> Int -> TypeChecker (Expression)
 
 inferFromUsageTypedBus s y e = case expr e of
   BaseId i     -> inferFromUsageId (TTypedBus STGeneric s y) (srcPos e) i
-  BaseFml as i -> inferFromUsageFml as (TTypedBus STGeneric s y) (srcPos e) i    
+  BaseFml as i -> inferFromUsageFml as (TTypedBus STGeneric s y) (srcPos e) i
   _            -> do
     t <- inferFromExpr e
     errExpect (TTypedBus STGeneric s y) t $ srcPos e
@@ -602,19 +1174,19 @@ inferFromUsageTypedBus s y e = case expr e of
 -----------------------------------------------------------------------------
 
 inferFromUsageEnum
-  :: String -> Int -> TypeChecker (Expr Int)
+  :: String -> Int -> TypeChecker (Expression)
 
 inferFromUsageEnum s y e = case expr e of
   BaseId i     -> inferFromUsageId (TEnum s y) (srcPos e) i
-  BaseFml as i -> inferFromUsageFml as (TEnum s y) (srcPos e) i      
+  BaseFml as i -> inferFromUsageFml as (TEnum s y) (srcPos e) i
   _            -> do
     t <- inferFromExpr e
-    errExpect (TEnum s y) t $ srcPos e    
+    errExpect (TEnum s y) t $ srcPos e
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
 
 inferFromUsageRange
-  :: TypeChecker (Expr Int)
+  :: TypeChecker (Expression)
 
 inferFromUsageRange e = case expr e of
   Colon x y -> mapM_ (inferFromUsage TNumber) [x,y]
@@ -622,18 +1194,18 @@ inferFromUsageRange e = case expr e of
     t <- inferFromExpr e
     errRange t $ srcPos e
 
----    
+---
 
 inferFromUsageId
-  :: IdType -> ExprPos -> TypeChecker Int
+  :: ExprType -> ExprPos -> TypeChecker Int
 
 inferFromUsageId t pos i = do
   tt <- get
   let t' = imLookup i $ tTypes tt
-  updIdType id t t' 
+  updExprType id t t'
 
   where
-    updIdType c t1 t2 = case (t1,t2) of
+    updExprType c t1 t2 = case (t1,t2) of
       (TPoly a, TPoly b) -> when (a /= b) $ do
         tt <- get
         put $ tt {
@@ -666,20 +1238,20 @@ inferFromUsageId t pos i = do
           }
       (TBus {}, TEnum {})          -> return ()
       (TBus {}, TTypedBus {})      -> return ()
-      (TBus {}, TSignal {})        -> return ()            
+      (TBus {}, TSignal {})        -> return ()
       (TBus {}, TBus {})           -> return ()
       (TTypedBus {}, TBus {})      -> return ()
       (TTypedBus {}, TEnum {})     -> return ()
-      (TTypedBus {}, TSignal {})   -> return ()            
-      (TTypedBus {}, TTypedBus {}) -> return ()      
-      (TEnum {}, TBus {})          -> return ()      
+      (TTypedBus {}, TSignal {})   -> return ()
+      (TTypedBus {}, TTypedBus {}) -> return ()
+      (TEnum {}, TBus {})          -> return ()
       (TEnum {}, TTypedBus {})     -> return ()
       (TEnum {}, TSignal {})       -> return ()
-      (TEnum {}, TEnum {})         -> return ()            
+      (TEnum {}, TEnum {})         -> return ()
 
       (TSet a, TSet b)   ->
-        updIdType (c . TSet) a b 
-      _                  -> 
+        updExprType (c . TSet) a b
+      _                  ->
         when (t1 /= t2 && ((t1 /= TLtl && noSignal t1) || noSignal t2)) $
           errExpect t1 t2 pos
 
@@ -690,7 +1262,7 @@ inferFromUsageId t pos i = do
 -----------------------------------------------------------------------------
 
 inferFromUsageFml
-  :: [Expr Int] -> IdType -> ExprPos -> TypeChecker Int
+  :: [Expression] -> ExprType -> ExprPos -> TypeChecker Int
 
 inferFromUsageFml as t pos i = do
   inferFromUsageId t pos i

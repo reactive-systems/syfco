@@ -3,49 +3,49 @@
 -- Module      :  Reader.Data
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Common data used by the reader module.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Data
-    ( NameTable
-    , PositionTable
-    , ArgumentTable
-    , ExpressionTable
-    , TypeTable
-    , DependencyTable
-    , Specification(..)
-    ) where
+  ( NameTable
+  , PositionTable
+  , ArgumentTable
+  , ExpressionTable
+  , TypeTable
+  , DependencyTable
+  , Specification(..)
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Types
-    ( SignalDecType
-    )  
+  ( SignalDecType
+  )
 
 import Data.Enum
-    ( EnumDefinition
-    )  
+  ( EnumDefinition
+  )
 
 import Data.Types
-    ( IdType
-    , Semantics
-    , Target
-    )
-    
+  ( IdType
+  , Semantics
+  , Target
+  )
+
 import Data.Expression
-    ( Expr
-    , ExprPos
-    )
-    
+  ( Expr
+  , ExprPos
+  )
+
 import Data.Binding
-    ( Binding
-    )
+  ( Binding
+  )
 
 import  Data.IntMap.Strict
-    ( IntMap
-    )  
+  ( IntMap
+  )
 
 -----------------------------------------------------------------------------
 
@@ -89,82 +89,84 @@ type DependencyTable = IntMap [Int]
 -----------------------------------------------------------------------------
 
 -- | The internal representation of a specification used by the reader
--- module. It includes:
--- 
---     * The title of the specification
--- 
---     * The description of the specification
--- 
---     * The semantics flag of the specification
--- 
---     * The target flag of the specification
--- 
---     * The tag list of the specification
--- 
---     * The list of bindings of an identifier to an
---       expression defined in the PARAMETERS subsection
--- 
---     * The list of bindings of an identifier to any
---       other expression defined in the DEFINITIONS subsection
--- 
---     * The list of input signals
--- 
---     * The list of output signals
--- 
---     * The list of expresssions representing the initial input of
---       the environment
--- 
---     * The list of expresssions representing the initial output of
---       the system
--- 
---     * The list of expresssions representing the globally asserted
---       requirements on the inputs of the specification
--- 
---     * The list of expresssions representing the
---       assumptions of the specification
--- 
---     * The list of expressions representing the
---       invariants of the specification
--- 
---     * The list of expressions representing the
---       guarantees of the specification
--- 
---     * The id to bound expression mapping
--- 
---     * The id to name mapping
--- 
---     * The id to source position mapping
--- 
---     * The id to arguments mapping
--- 
---     * The id to depending ids mapping
--- 
---     * The id to type of the bound expression mapping
+-- module.
 
 data Specification =
   Specification
-  { title :: String
-  , description :: String
-  , semantics :: (Semantics, ExprPos)
-  , target :: (Target, ExprPos)
-  , tags :: [String]
-  , enumerations :: [EnumDefinition Int]  
-  , parameters :: [Binding]
-  , definitions :: [Binding]    
-  , inputs :: [SignalDecType Int]
-  , outputs :: [SignalDecType Int]
-  , initially :: [Expr Int]
-  , preset :: [Expr Int]
-  , requirements :: [Expr Int]            
-  , assumptions :: [Expr Int]
-  , invariants :: [Expr Int]
-  , guarantees :: [Expr Int]
-  , bindings :: ExpressionTable
-  , names :: NameTable
-  , positions :: PositionTable
-  , arguments :: ArgumentTable
-  , dependencies :: DependencyTable  
-  , types :: TypeTable
+  { -- | The title of the specification.
+    title :: (String, ExprPos)
+
+  , -- | The description of the specification.
+   description :: (String, ExprPos)
+
+  , -- | The semantics flag of the specification.
+    semantics :: (Semantics, ExprPos)
+
+  , -- | The target flag of the specification.
+    target :: (Target, ExprPos)
+
+  , -- | The tag list of the specification.
+    tags :: [(String, ExprPos)]
+
+  , -- | The list of defined enumeration types.
+    enumerations :: [EnumDefinition Int]
+
+  , -- | The list of bindings of an identifier to an expression
+    -- defined in the PARAMETERS subsection.
+    parameters :: [Binding]
+
+  , -- | The list of bindings of an identifier to any other expression
+    -- defined in the DEFINITIONS subsection.
+    definitions :: [Binding]
+
+  , -- | The list of input signals.
+    inputs :: [SignalDecType Int]
+
+  , -- | The list of output signals.
+    outputs :: [SignalDecType Int]
+
+  , -- | The list of expresssions representing the initial input of
+    -- the environment.
+    initially :: [Expr Int]
+
+  , -- | The list of expresssions representing the initial output of
+    -- the system.
+    preset :: [Expr Int]
+
+  , -- | The list of expresssions representing the globally asserted
+    -- requirements on the inputs of the specification.
+    requirements :: [Expr Int]
+
+  , -- | The list of expresssions representing the assumptions of the
+    -- specification.
+    assumptions :: [Expr Int]
+
+  , -- | The list of expressions representing the invariants of the
+    -- specification.
+    invariants :: [Expr Int]
+
+  , -- | The list of expressions representing the guarantees of the
+    -- specification.
+    guarantees :: [Expr Int]
+
+  , -- | The id to bounded-expression mapping.
+    bindings :: ExpressionTable
+
+  , -- | The id to name mapping.
+    names :: NameTable
+
+  , -- | The id to source position mapping.
+    positions :: PositionTable
+
+  , -- | The id to arguments mapping.
+    arguments :: ArgumentTable
+
+  , -- | The id to depending ids mapping.
+    dependencies :: DependencyTable
+
+  , -- | The id to type of the bound expression mapping.
+    types :: TypeTable
+
   }
 
 -----------------------------------------------------------------------------

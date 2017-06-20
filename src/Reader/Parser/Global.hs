@@ -3,88 +3,92 @@
 -- Module      :  Reader.Parser.Global
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Parser for the GLOBAl section.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Parser.Global
-    ( globalParser
-    ) where
+  ( globalParser
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Data.List
-    ( find
-    )
-    
+  ( find
+  )
+
 import Data.Enum
-    ( EnumDefinition(..)
-    )
+  ( EnumDefinition(..)
+  )
 
 import Data.Binding
-    ( BindExpr(..)
-    )
-    
+  ( BindExpr(..)
+  )
+
 import Data.Expression
-    ( ExprPos(..)
-    )
-    
+  ( ExprPos(..)
+  )
+
 import Reader.Parser.Data
-    ( globalDef
-    )
-    
+  ( globalDef
+  )
+
 import Reader.Parser.Utils
-    ( identifier
-    , getPos
-    )
-      
+  ( identifier
+  , getPos
+  )
+
 import Reader.Parser.Expression
-    ( exprParser
-    )
+  ( exprParser
+  )
 
 import Data.Either
-    ( partitionEithers
-    )  
+  ( partitionEithers
+  )
 
 import Data.Maybe
-    ( catMaybes
-    )
-    
+  ( catMaybes
+  )
+
 import Control.Monad
-    ( void
-    )  
+  ( void
+  )
 
 import Text.Parsec
-    ( (<|>)
-    , char
-    , oneOf
-    , sepBy
-    , many1
-    , many
-    , count  
-    )
-    
+  ( (<|>)
+  , char
+  , oneOf
+  , sepBy
+  , many1
+  , many
+  , count
+  )
+
 import Text.Parsec.String
-    ( Parser
-    )
-    
+  ( Parser
+  )
+
 import Text.Parsec.Token
-    ( GenLanguageDef(..)
-    , commaSep
-    , reservedNames  
-    , whiteSpace
-    , makeTokenParser
-    , reserved
-    , braces 
-    , reservedOp      
-    )
+  ( GenLanguageDef(..)
+  , commaSep
+  , reservedNames
+  , whiteSpace
+  , makeTokenParser
+  , reserved
+  , braces
+  , reservedOp
+  )
 
 import Control.Exception
-    ( assert
-    )  
+  ( assert
+  )
 
-import qualified Data.Array.IArray as A    
+import qualified Data.Array.IArray as A
+  ( Array
+  , (!)
+  , array
+  )
 
 -----------------------------------------------------------------------------
 
@@ -98,7 +102,7 @@ globalParser = do
   keyword "GLOBAL"
   ch '{'; (~~)
   globalContentParser [] [] []
-        
+
   where
     tokenparser =
       makeTokenParser globalDef
@@ -109,12 +113,12 @@ globalParser = do
           [ "GLOBAL"
           , "PARAMETERS"
           , "DEFINITIONS"
-          , "enum"  
+          , "enum"
           ]
       }
-    
+
     globalContentParser ps gs ns =
-          do { ch '}'; (~~); return (ps,gs,ns) }       
+          do { ch '}'; (~~); return (ps,gs,ns) }
       <|> do { keyword "PARAMETERS"; x <- sectionParser;
                globalContentParser (ps ++ x) gs ns }
       <|> do { keyword "DEFINITIONS"; (x,y) <- sectionEnumParser;
@@ -122,28 +126,28 @@ globalParser = do
 
     sectionParser = do
       xs <- br $ sepBy assignmentParser $ rOp ";"
-      return $ catMaybes xs    
+      return $ catMaybes xs
 
     sectionEnumParser = do
       xs <- br $ sepBy assignmentEnumParser $ rOp ";"
-      return $ partitionEithers $ catMaybes xs    
+      return $ partitionEithers $ catMaybes xs
 
     assignmentParser =
           nonemptyAssignmentParser
       <|> return Nothing
 
     assignmentEnumParser =
-          enumParser 
+          enumParser
       <|> nonemptyAssignmentEnumParser
-      <|> return Nothing      
-    
+      <|> return Nothing
+
     nonemptyAssignmentParser = do
       (x,pos) <- identifier (~~)
       argumentsParser x pos <|> reminderParser x [] pos
 
     nonemptyAssignmentEnumParser = do
       (x,pos) <- identifier (~~)
-      argumentsEnumParser x pos <|> reminderEnumParser x [] pos      
+      argumentsEnumParser x pos <|> reminderEnumParser x [] pos
 
     enumParser = do
       keyword "enum"
@@ -187,7 +191,7 @@ globalParser = do
       | otherwise =
         allValues (map (Left True :) a ++
                    map (Left False :) a) (n-1)
-   
+
     enumVParser = do
       (x,p) <- identifier (~~)
       rOp ":"
@@ -213,9 +217,9 @@ globalParser = do
       in
         (a A.!)
 
-    valueParser = many1 bitParser      
+    valueParser = many1 bitParser
 
-    valueParserL n = count n bitParser          
+    valueParserL n = count n bitParser
 
     valueSepParserL n =
       ch ',' >> (~~) >> valueParserL n
@@ -230,9 +234,9 @@ globalParser = do
       args <- commaSep tokenparser $ identifier (~~)
       ch ')'; p <- getPos; (~~)
       reminderParser x args $ ExprPos (srcBegin pos) p
-      
+
     reminderParser x args pos = do
-      rOp "="            
+      rOp "="
       es <- many1 exprParser
       return $ Just $ BindExpr x args pos es
 
@@ -241,16 +245,16 @@ globalParser = do
       args <- commaSep tokenparser $ identifier (~~)
       ch ')'; p <- getPos; (~~)
       reminderEnumParser x args $ ExprPos (srcBegin pos) p
-      
+
     reminderEnumParser x args pos = do
-      rOp "="            
+      rOp "="
       es <- many1 exprParser
-      return $ Just $ Left $ BindExpr x args pos es      
+      return $ Just $ Left $ BindExpr x args pos es
 
     ch = void . char
     br = braces tokenparser
     rOp = reservedOp tokenparser
     (~~) = whiteSpace tokenparser
-    keyword = void . reserved tokenparser    
+    keyword = void . reserved tokenparser
 
 -----------------------------------------------------------------------------
