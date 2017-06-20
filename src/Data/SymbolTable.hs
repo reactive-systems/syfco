@@ -10,8 +10,9 @@
 
 {-# LANGUAGE
 
-    ViewPatterns,
-    LambdaCase
+    ViewPatterns
+  , LambdaCase
+  , RecordWildCards
 
   #-}
 
@@ -95,23 +96,23 @@ stToCSV lt = do
     mapM_ printEntry $ assocs lt
 
   where
-    printEntry (i,r) = do
+    printEntry (i,r@IdRec{..}) = do
       putStr $ show i
       putStr ";"
-      putStr ("\"" ++ idName r ++ "\"")
+      putStr ("\"" ++ idName ++ "\"")
       putStr ";"
-      putStr $ prExprPos $ idPos r
+      putStr $ prExprPos idPos
       putStr ";"
-      putStr $ commasepxs $ idArgs r
+      putStr $ commasepxs idArgs
       putStr ";"
-      putStr $ prPrettyExpr lt r $ idBindings r
+      putStr $ prPrettyExpr lt r idBindings
       putStr ";"
-      putStr $ prType (idArgs r) $ idType r
+      putStr $ prType idArgs idType
       putStr ";"
-      putStr $ commasepxs $ idDeps r
+      putStr $ commasepxs idDeps
       putStrLn ";"
 
-    commasepxs xs = case xs of
+    commasepxs = \case
       (x:xr) -> show x ++ concatMap ((:) ',') (map show xr)
       []     -> ""
 

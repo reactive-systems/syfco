@@ -97,7 +97,7 @@ data Specification =
     title :: (String, ExprPos)
 
   , -- | The description of the specification.
-   description :: (String, ExprPos)
+    description :: (String, ExprPos)
 
   , -- | The semantics flag of the specification.
     semantics :: (Semantics, ExprPos)

@@ -8,36 +8,39 @@
 --
 -----------------------------------------------------------------------------
 
+{- TODO NOTES:
 
-{- Notes:
+ * rewrite type check
 
-* rewrite type check
+ ** two phases: genereric deriving; derive types only from the
+    expression structure. However, do not use the embedding to derive
+    concrete types. Then, in the second phase: check types according to
+    their usage
 
-** two phases: genereric deriving; derive types only from the
-expression structure. However, do not use the embedding to derive concrete
-types. Then, in the second phase: check types accuring to their usage
+ * first produce typecheck procedure. With a complete typetable at
+   hand, type checking will be straightforward.
 
-* first produce typecheck procedure. With a complete typetable at hand, type
-checking will be straightforward.
+ * type inference:
 
-* type inference:
-- get list of all top level expresions ordered by their dependencies.
-- derive the type of the subexpression: for every function application safe
- state before, then derive subtypes. If the type is derived, typecheck
- the subexpression. After returning from functions, restore their original
- type which is saved in the call strack during the recursive decension.
+ ** get list of all top level expresions ordered by their dependencies.
 
+ ** derive the type of the subexpression: for every function
+    application safe state before, then derive subtypes. If the type is
+    derived, typecheck the subexpression. After returning from functions,
+    restore their original type which is saved in the call strack during
+    the recursive decension.
 
 -}
+
 -----------------------------------------------------------------------------
 
 {-# LANGUAGE
 
-    LambdaCase,
-    TupleSections,
-    RecordWildCards,
-    MultiWayIf,
-    ViewPatterns
+    LambdaCase
+  , TupleSections
+  , RecordWildCards
+  , MultiWayIf
+  , ViewPatterns
 
   #-}
 
@@ -107,6 +110,7 @@ import Reader.Error
   , errPattern
   , errNoPFuns
   , errArgArity
+  , errNoHigher
   )
 
 import Data.Maybe
@@ -182,23 +186,23 @@ data ST = ST
 inferTypes
   :: Specification -> Either Error Specification
 
-inferTypes s =
+inferTypes s@Specification{..} =
   let
     -- assign arbitrary type to each element
     tt1 :: TypeTable
-    tt1 = IM.mapWithKey (\i _ -> TPoly i) $ names s
+    tt1 = IM.mapWithKey (\i _ -> TPoly i) names
 
     -- set enum types
-    tt2 = foldl updEnumType tt1 $ enumerations s
+    tt2 = foldl updEnumType tt1 enumerations
     -- set the signal types
-    tt3 = foldl (updSignalType STInput) tt2 $ inputs s
-    tt4 = foldl (updSignalType STOutput) tt3 $ outputs s
+    tt3 = foldl (updSignalType STInput) tt2 inputs
+    tt4 = foldl (updSignalType STOutput) tt3 outputs
     -- set the parameter types
-    tt5 = foldl (updType TNumber) tt4 $ map bIdent $ parameters s
+    tt5 = foldl (updType TNumber) tt4 $ map bIdent parameters
     -- get the maximal count
     maxkey =
-      if IM.null $ names s then 1 else
-        fst $ fst $ fromJust $ IM.maxViewWithKey $ names s
+      if IM.null $ names then 1 else
+        fst $ fst $ fromJust $ IM.maxViewWithKey names
     -- constuct preliminary type table
     ts = map fst $ IM.toList tt5
   in do
@@ -206,9 +210,9 @@ inferTypes s =
     tt <- execStateT
            inferTypeSpec
            (ST
-             ((+1) $ fst $ IM.findMax $ names s)
-             (IM.mapWithKey (\i _ -> TPoly i) $ names s)
-             (arguments s)
+             ((+1) $ fst $ IM.findMax names)
+             (IM.mapWithKey (\i _ -> TPoly i) names)
+             arguments
              s
            )
 
@@ -222,23 +226,26 @@ inferTypes s =
     updType t a i = IM.insert i t a
 
     updEnumType a x =
-      foldl (updType (TEnum (imLookup (eName x) $ names s) (eName x))) a $
+      foldl (updType (TEnum (imLookup (eName x) names) (eName x))) a $
       map (\(y,_,_) -> y) $ eValues x
 
     updSignalType t a x = case x of
       SDSingle (y,_)     -> IM.insert y (TSignal t) a
       SDBus (y,_) _      -> IM.insert y (TBus t) a
       SDEnum (y,_) (z,_) ->
-        IM.insert y (TTypedBus t (imLookup z $ names s) z) a
+        IM.insert y (TTypedBus t (imLookup z names) z) a
 
 -----------------------------------------------------------------------------
 
-inferTypeSpec
-  :: TC ()
+-- | Returns the list of bindings, which is ordered accoring to the
+-- respective dependencies of the entries. The result is a list of
+-- @Either@s, where @Left@ entries corresponds to parameter bindings
+-- and @Right@ entries to definition bindings.
 
-inferTypeSpec = do
-  s @ Specification {..} <- liftM spec get
+depOrderedBindings
+  :: Specification -> [Either (BindExpr ID) (BindExpr ID)]
 
+depOrderedBindings Specification{..} =
   let
     -- get ID map
     im =
@@ -256,18 +263,34 @@ inferTypeSpec = do
 
     -- create list of edges
     es :: [(ID, ID)]
-    es = concatMap (\x -> map (x,) $ deps s x) (ps ++ ds)
+    es = concatMap (\x -> map (x,) $ deps x) (ps ++ ds)
 
     -- create the depencency graph
     g :: Graph
     g = buildG (minimum $ ps ++ ds, maximum $ ps ++ ds) es
+  in
+    map (im !) $ topSort $ transposeG g
 
-    -- bindings ordered by their dependencies
-    os :: [Either (BindExpr ID) (BindExpr ID)]
-    os = map (im !) $ topSort $ transposeG g
+  where
+    deps
+      :: Int -> [Int]
+
+    deps x =
+      S.toList $
+      S.difference
+        (S.fromList $ dependencies ! x)
+        (S.fromList $ arguments ! x)
+
+-----------------------------------------------------------------------------
+
+inferTypeSpec
+  :: TC ()
+
+inferTypeSpec = do
+  s@Specification{..} <- liftM spec get
 
   -- fix the bindings types
-  mapM_ typeCheckBinding os
+  mapM_ typeCheckBinding $ depOrderedBindings s
 
 
   -- unify joined polymorphic types
@@ -285,17 +308,6 @@ inferTypeSpec = do
   mapM_ (flip typeCheck TLtl) invariants
   mapM_ (flip typeCheck TLtl) guarantees
 
-  where
-    deps
-      :: Specification -> Int -> [Int]
-
-    deps s x =
-      let
-        dS = S.fromList $ dependencies s ! x
-        aS = S.fromList $ arguments s ! x
-      in
-        S.toList $ S.difference dS aS
-
 -----------------------------------------------------------------------------
 
 typeCheckBinding
@@ -311,7 +323,7 @@ typeCheckParameter
   :: ID -> TC ()
 
 typeCheckParameter i = do
-  Specification {..} <- liftM spec get
+  Specification{..} <- liftM spec get
 
   let
     n :: Int
@@ -328,8 +340,9 @@ typeCheckDefinition
 
 typeCheckDefinition i = do
   e <- liftM ((! i) . bindings . spec) get
-  t <- inferFromExpr e
-  typeCheck e t
+  TSet t <- inferFromExpr e
+  updType i t
+  typeCheck e (TSet t)
 
 -----------------------------------------------------------------------------
 
@@ -351,6 +364,9 @@ typeCheck e = \case
 
   -- check normal bus types
   TBus x              -> typeChIdF e $ TBus x
+
+  -- check enum bus types
+  TEnum t x           -> typeChIdF e $ TEnum t x
 
   -- check typed bus types
   TTypedBus x y z     -> typeChIdF e $ TTypedBus x y z
@@ -397,6 +413,8 @@ typeCheck e = \case
   TBoolean -> case expr e of
     BaseTrue          -> return ()
     BaseFalse         -> return ()
+    BaseOtherwise     -> return ()
+    Pattern x y       -> typeChckP e
     BlnElem x xs      -> typeChElm x xs
     BlnEQ x y         -> typeChck2 x y TNumber
     BlnNEQ x y        -> typeChck2 x y TNumber
@@ -442,9 +460,34 @@ typeCheck e = \case
     LtlRelease x y    -> typeChck2 x y TLtl
     _                 -> typeChIdF e TLtl
 
-  TEnum t x           -> error "todo"
-
-  TPattern            -> error "todo"
+  TPattern -> case expr e of
+    BaseTrue          -> return ()
+    BaseFalse         -> return ()
+    BaseWild          -> return ()
+    BlnEQ x y         -> typeCheck e TPattern
+    BlnNEQ x y        -> typeCheck e TPattern
+    BlnGE x y         -> typeCheck e TPattern
+    BlnGEQ x y        -> typeCheck e TPattern
+    BlnLE x y         -> typeCheck e TPattern
+    BlnLEQ x y        -> typeCheck e TPattern
+    BlnElem x xs      -> typeCheck e TPattern
+    BlnNot x          -> typeCheck e TPattern
+    BlnOr x y         -> typeCheck e TPattern
+    BlnROr xs x       -> typeCheck e TPattern
+    BlnAnd x y        -> typeCheck e TPattern
+    BlnRAnd xs y      -> typeCheck e TPattern
+    BlnImpl x y       -> typeCheck e TPattern
+    BlnEquiv x y      -> typeCheck e TPattern
+    LtlNext x         -> typeCheck x TPattern
+    LtlRNext x y      -> typeChckU x y
+    LtlGlobally x     -> typeCheck x TPattern
+    LtlRGlobally x y  -> typeChckU x y
+    LtlFinally x      -> typeCheck x TPattern
+    LtlRFinally x y   -> typeChckU x y
+    LtlUntil x y      -> typeChck2 x y TPattern
+    LtlWeak x y       -> typeChck2 x y TPattern
+    LtlRelease x y    -> typeChck2 x y TPattern
+    _                 -> typeChIdF e TLtl
 
   TPoly i -> inferFromExpr e >>= \case
     TPoly j -> equalPolyType i j
@@ -458,7 +501,10 @@ typeChIdF
 typeChIdF e t = case expr e of
   BaseId i     -> typeCheckId e t i
   BaseFml xs f -> typeCheckFml e t xs f
-  BaseBus x b  -> undefined
+  BaseBus x b  -> error "todo"
+  Colon x y    -> do
+    typeCheck x TBoolean
+    typeCheck y t
   x            -> error "TODO: error"
 
 -----------------------------------------------------------------------------
@@ -470,32 +516,32 @@ typeCheckId e t i = do
   -- higher order functions are not supported
   as <- liftM ((! i) . arguments . spec) get
 
-  when (not $ null as) $
-    error "TODO: error no higher order"
+  when (not $ null as) $ do
+    Specification{..} <- liftM spec get
+    errNoHigher (names ! i) $ srcPos e
 
   tt <- liftM tTypes get
-  m t (tt ! i)
+  ck t (tt ! i)
 
   where
-    m :: ExprType -> ExprType -> StateT ST (Either Error) ()
+    ck :: ExprType -> ExprType -> StateT ST (Either Error) ()
 
-    m (TSignal STGeneric) (TSignal _)         = return ()
-    m (TSignal _)         (TSignal STGeneric) = return ()
-    m (TBus STGeneric)    (TBus _)            = return ()
-    m (TBus _)            (TBus STGeneric)    = return ()
-    m (TEnum _ _)         _                   = error "TODO"
-    m (TTypedBus _ _ _)   _                   = error "TODO"
-    m (TEmptySet)         (TSet _)            = return ()
-    m (TSet s)            (TEmptySet)         = updType i t
-    m (TSet s)            (TSet s')           = m s s'
-    m (TPoly p')          (TPoly p)           = equalPolyType p p'
-    m (TPoly _)           _                   = return ()
-    m t                   (TPoly p)           = updatePolyType p t
-    m t                   t'
+    ck (TSignal STGeneric) (TSignal _)         = return ()
+    ck (TSignal _)         (TSignal STGeneric) = return ()
+    ck (TBus STGeneric)    (TBus _)            = return ()
+    ck (TBus _)            (TBus STGeneric)    = return ()
+    ck (TEnum m x)         (TTypedBus _ n y)   = ck (TEnum m x) (TEnum n y)
+    ck (TTypedBus _ m x)   (TEnum n y)         = ck (TEnum m x) (TEnum n y)
+    ck (TTypedBus _ m x)   (TTypedBus _ n y)   = ck (TEnum m x) (TEnum n y)
+    ck (TEmptySet)         (TSet _)            = return ()
+    ck (TSet s)            (TEmptySet)         = updType i t
+    ck (TSet s)            (TSet s')           = ck s s'
+    ck (TPoly p')          (TPoly p)           = equalPolyType p p'
+    ck (TPoly _)           _                   = return ()
+    ck t                   (TPoly p)           = updatePolyType p t
+    ck t                   t'
       | t == t'    = return ()
-      | otherwise = do
-          tt <- liftM tTypes get
-          errExpect t (tt ! i) $ srcPos e
+      | otherwise = errExpect t t' $ srcPos e
 
 -----------------------------------------------------------------------------
 
@@ -645,6 +691,25 @@ typeChckR (expr -> Colon n m) x = do
   typeCheck n TNumber
   typeCheck m TNumber
   typeCheck x TLtl
+
+-----------------------------------------------------------------------------
+
+typeChckU
+  :: Expression -> Expression -> StateT ST (Either Error) ()
+
+typeChckU (expr -> Colon n m) x = do
+  typeCheck n TNumber
+  typeCheck m TNumber
+  typeCheck x TPattern
+
+-----------------------------------------------------------------------------
+
+typeChckP
+  :: Expression -> StateT ST (Either Error) ()
+
+typeChckP (expr -> Pattern x y) = do
+  typeCheck x TLtl
+  typeCheck y TPattern
 
 -----------------------------------------------------------------------------
 

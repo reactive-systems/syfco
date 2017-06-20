@@ -21,6 +21,7 @@ module Reader.Error
   , errExpect
   , errRange
   , errNoPFuns
+  , errNoHigher
   ) where
 
 -----------------------------------------------------------------------------
@@ -176,5 +177,17 @@ errRange x pos =
   let msg = "expecting: range expression\n" ++
             "but found: " ++ show x ++ " expression"
   in StateT $ \_ -> typeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that inidactes the use higher order functions.
+
+errNoHigher
+  :: String -> ExprPos -> StateT a (Either Error) b
+
+errNoHigher n y =
+  let msg = "function passed as an argument: " ++ show n ++ "\n" ++
+            "higher order functions not supported"
+  in StateT $ \_ -> typeError y msg
 
 -----------------------------------------------------------------------------

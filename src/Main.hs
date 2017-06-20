@@ -60,8 +60,12 @@ import Data.Maybe
   , fromJust
   )
 
+import Data.SymbolTable
+  ( stToCSV
+  )
+
 import Data.Specification
-  ( Specification
+  ( Specification(..)
   )
 
 import System.Environment
@@ -130,13 +134,16 @@ readContent
 readContent c (content,file) = case readSpecification content of
   Left err -> prError err
   Right s
-    | check c       ->
-        case writeSpecification c s of
+    | check c       -> do
+        stToCSV $ symboltable s
+        putStrLn ""
+
+{-case writeSpecification c s of
           Left err -> prError err
           Right _  ->
             case file of
               Nothing -> putStrLn "valid"
-              Just f  -> putStrLn $ "valid: " ++ f
+              Just f  -> putStrLn $ "valid: " ++ f-}
     | cGR c       ->
         case detectGR c s of
           Left v -> case v of
