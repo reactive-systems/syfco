@@ -355,11 +355,16 @@ evalSignals c s = do
   ov <- evalStateT (mapM getV os) stf
 
   return (
-    map (repap (atSymbol c) (primeSymbol c)) $ concat iv,
-    map (repap (atSymbol c) (primeSymbol c)) $ concat ov
+    map (lower . repap (atSymbol c) (primeSymbol c)) $ concat iv,
+    map (lower . repap (atSymbol c) (primeSymbol c)) $ concat ov
     )
 
   where
+    lower x =
+      if needsLower (outputFormat c)
+      then map toLower x
+      else x
+    
     getId v = case v of
       SDSingle (i,_) -> i
       SDBus (i,_) _  -> i
