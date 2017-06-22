@@ -22,6 +22,7 @@ module Reader.Error
   , errRange
   , errNoPFuns
   , errNoHigher
+  , errEquality
   ) where
 
 -----------------------------------------------------------------------------
@@ -189,5 +190,17 @@ errNoHigher n y =
   let msg = "function passed as an argument: " ++ show n ++ "\n" ++
             "higher order functions not supported"
   in StateT $ \_ -> typeError y msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that incicates a wrongly typed subexpression.
+
+errEquality
+  :: IdType -> ExprPos -> StateT a (Either Error) b
+
+errEquality x pos =
+  let msg = "expecting numerical or enum comparison\n" ++
+            "but found: " ++ show x ++ " expression"
+  in StateT $ \_ -> typeError pos msg
 
 -----------------------------------------------------------------------------

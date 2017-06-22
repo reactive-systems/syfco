@@ -58,6 +58,10 @@ import Control.Arrow
   ( (>>>)
   )
 
+import Control.Monad
+  ( foldM
+  )
+
 import Utils
   ( imLookup
   )
@@ -72,6 +76,8 @@ import Data.Graph
 import qualified Data.Set as S
   ( fromList
   , toList
+  , insert
+  , intersection
   , difference
   )
 
@@ -111,6 +117,7 @@ import Reader.Error
   , errNoPFuns
   , errArgArity
   , errNoHigher
+  , errEquality
   )
 
 import Data.Maybe
@@ -175,6 +182,7 @@ data ST = ST
   , tTypes :: TypeTable
   , targs :: ArgumentTable
   , spec :: Specification
+  , curBinding :: ID
   }
 
 -----------------------------------------------------------------------------
@@ -211,9 +219,10 @@ inferTypes s@Specification{..} =
            inferTypeSpec
            (ST
              ((+1) $ fst $ IM.findMax names)
-             (IM.mapWithKey (\i _ -> TPoly i) names)
+             tt5 --(IM.mapWithKey (\i _ -> TPoly i) names)
              arguments
              s
+             (-1)
            )
 
     return $ s { types = tTypes tt }
@@ -261,25 +270,39 @@ depOrderedBindings Specification{..} =
     ds :: [ID]
     ds = map bIdent definitions
 
-    -- create list of edges
-    es :: [(ID, ID)]
-    es = concatMap (\x -> map (x,) $ deps x) (ps ++ ds)
-
-    -- create the depencency graph
-    g :: Graph
-    g = buildG (minimum $ ps ++ ds, maximum $ ps ++ ds) es
+    -- list of all bindings ids
+    xs :: [ID]
+    xs = ps ++ ds
   in
-    map (im !) $ topSort $ transposeG g
+    if null xs
+    then []
+    else
+      let
+        -- create list of edges
+        es :: [(ID, ID)]
+        es = concatMap (\x -> map (x,) $ deps xs x) xs
+
+        -- create the depencency graph
+        g :: Graph
+        g = buildG (minimum xs, maximum xs) es
+      in
+        map (im !) $
+--        S.toList $
+--        S.intersection (S.fromList xs) $
+--        S.fromList $
+        filter (`elem` xs) $
+        topSort $
+        transposeG g
 
   where
     deps
-      :: Int -> [Int]
+      :: [Int] -> Int -> [Int]
 
-    deps x =
+    deps xs x =
       S.toList $
-      S.difference
+      S.intersection
         (S.fromList $ dependencies ! x)
-        (S.fromList $ arguments ! x)
+        (S.fromList xs)
 
 -----------------------------------------------------------------------------
 
@@ -289,9 +312,14 @@ inferTypeSpec
 inferTypeSpec = do
   s@Specification{..} <- liftM spec get
 
+--  let xs = depOrderedBindings s
+
+--  let ys = map ((names !) . bIdent . g) xs
+
+--  traceM (show ys)
+
   -- fix the bindings types
   mapM_ typeCheckBinding $ depOrderedBindings s
-
 
   -- unify joined polymorphic types
   --unifyPolymorphic
@@ -307,6 +335,10 @@ inferTypeSpec = do
   mapM_ (flip typeCheck TLtl) assumptions
   mapM_ (flip typeCheck TLtl) invariants
   mapM_ (flip typeCheck TLtl) guarantees
+
+  where
+    g (Left x) = x
+    g (Right x) = x
 
 -----------------------------------------------------------------------------
 
@@ -339,10 +371,24 @@ typeCheckDefinition
   :: ID -> TC ()
 
 typeCheckDefinition i = do
+  -- set the current binding to detect recursive function definitions
+  st <- get
+  put st { curBinding = i }
+
   e <- liftM ((! i) . bindings . spec) get
-  TSet t <- inferFromExpr e
-  updType i t
-  typeCheck e (TSet t)
+  inferFromExpr e >>= \case
+    TSet TBoolean -> do
+      TSet t' <- inferFromBoolExpr e
+      updType i t'
+      typeCheck e (TSet t')
+      st <- get
+      put st { curBinding = -1 }
+    TSet t -> do
+      updType i t
+      typeCheck e (TSet t)
+      st <- get
+      put st { curBinding = -1 }
+    _ -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -416,8 +462,8 @@ typeCheck e = \case
     BaseOtherwise     -> return ()
     Pattern x y       -> typeChckP e
     BlnElem x xs      -> typeChElm x xs
-    BlnEQ x y         -> typeChck2 x y TNumber
-    BlnNEQ x y        -> typeChck2 x y TNumber
+    BlnEQ x y         -> typeChEqB x y
+    BlnNEQ x y        -> typeChEqB x y
     BlnGE x y         -> typeChck2 x y TNumber
     BlnGEQ x y        -> typeChck2 x y TNumber
     BlnLE x y         -> typeChck2 x y TNumber
@@ -435,20 +481,20 @@ typeCheck e = \case
   TLtl -> case expr e of
     BaseTrue          -> return ()
     BaseFalse         -> return ()
-    BlnEQ x y         -> typeCheck e TBoolean
-    BlnNEQ x y        -> typeCheck e TBoolean
-    BlnGE x y         -> typeCheck e TBoolean
-    BlnGEQ x y        -> typeCheck e TBoolean
-    BlnLE x y         -> typeCheck e TBoolean
-    BlnLEQ x y        -> typeCheck e TBoolean
-    BlnElem x xs      -> typeCheck e TBoolean
-    BlnNot x          -> typeCheck e TBoolean
-    BlnOr x y         -> typeCheck e TBoolean
-    BlnROr xs x       -> typeCheck e TBoolean
-    BlnAnd x y        -> typeCheck e TBoolean
-    BlnRAnd xs y      -> typeCheck e TBoolean
-    BlnImpl x y       -> typeCheck e TBoolean
-    BlnEquiv x y      -> typeCheck e TBoolean
+    BlnElem x xs      -> typeChElm x xs
+    BlnEQ x y         -> typeChEqL x y
+    BlnNEQ x y        -> typeChEqL x y
+    BlnGE x y         -> typeChck2 x y TNumber
+    BlnGEQ x y        -> typeChck2 x y TNumber
+    BlnLE x y         -> typeChck2 x y TNumber
+    BlnLEQ x y        -> typeChck2 x y TNumber
+    BlnNot x          -> typeCheck x TLtl
+    BlnOr x y         -> typeChck2 x y TLtl
+    BlnAnd x y        -> typeChck2 x y TLtl
+    BlnImpl x y       -> typeChck2 x y TLtl
+    BlnEquiv x y      -> typeChck2 x y TLtl
+    BlnROr xs x       -> typeChckO xs x TLtl
+    BlnRAnd xs x      -> typeChckO xs x TLtl
     LtlNext x         -> typeCheck x TLtl
     LtlRNext x y      -> typeChckR x y
     LtlGlobally x     -> typeCheck x TLtl
@@ -464,20 +510,20 @@ typeCheck e = \case
     BaseTrue          -> return ()
     BaseFalse         -> return ()
     BaseWild          -> return ()
-    BlnEQ x y         -> typeCheck e TPattern
-    BlnNEQ x y        -> typeCheck e TPattern
-    BlnGE x y         -> typeCheck e TPattern
-    BlnGEQ x y        -> typeCheck e TPattern
-    BlnLE x y         -> typeCheck e TPattern
-    BlnLEQ x y        -> typeCheck e TPattern
-    BlnElem x xs      -> typeCheck e TPattern
-    BlnNot x          -> typeCheck e TPattern
-    BlnOr x y         -> typeCheck e TPattern
-    BlnROr xs x       -> typeCheck e TPattern
-    BlnAnd x y        -> typeCheck e TPattern
-    BlnRAnd xs y      -> typeCheck e TPattern
-    BlnImpl x y       -> typeCheck e TPattern
-    BlnEquiv x y      -> typeCheck e TPattern
+    BlnElem x xs      -> typeChElm x xs
+    BlnEQ x y         -> typeChck2 x y TNumber
+    BlnNEQ x y        -> typeChck2 x y TNumber
+    BlnGE x y         -> typeChck2 x y TNumber
+    BlnGEQ x y        -> typeChck2 x y TNumber
+    BlnLE x y         -> typeChck2 x y TNumber
+    BlnLEQ x y        -> typeChck2 x y TNumber
+    BlnNot x          -> typeCheck x TPattern
+    BlnOr x y         -> typeChck2 x y TPattern
+    BlnAnd x y        -> typeChck2 x y TPattern
+    BlnImpl x y       -> typeChck2 x y TPattern
+    BlnEquiv x y      -> typeChck2 x y TPattern
+    BlnROr xs x       -> typeChckO xs x TPattern
+    BlnRAnd xs x      -> typeChckO xs x TPattern
     LtlNext x         -> typeCheck x TPattern
     LtlRNext x y      -> typeChckU x y
     LtlGlobally x     -> typeCheck x TPattern
@@ -487,11 +533,18 @@ typeCheck e = \case
     LtlUntil x y      -> typeChck2 x y TPattern
     LtlWeak x y       -> typeChck2 x y TPattern
     LtlRelease x y    -> typeChck2 x y TPattern
-    _                 -> typeChIdF e TLtl
+    _                 -> typeChIdF e TPattern
 
   TPoly i -> inferFromExpr e >>= \case
-    TPoly j -> equalPolyType i j
-    t       -> updatePolyType i t
+    TPoly j
+      | i == j     -> typeChIdF e (TPoly i)
+      | otherwise -> do
+          equalPolyType i j
+          t <- inferFromExpr e
+          typeCheck e t
+    t       -> do
+      updatePolyType i t
+      typeCheck e t
 
 -----------------------------------------------------------------------------
 
@@ -501,11 +554,41 @@ typeChIdF
 typeChIdF e t = case expr e of
   BaseId i     -> typeCheckId e t i
   BaseFml xs f -> typeCheckFml e t xs f
-  BaseBus x b  -> error "todo"
+  BaseBus x b  -> typeCheckBus e t x b
   Colon x y    -> do
     typeCheck x TBoolean
     typeCheck y t
-  x            -> error "TODO: error"
+  x            -> do
+    TSet t' <- inferFromExpr e
+    errExpect t t' $ srcPos e
+
+-----------------------------------------------------------------------------
+
+typeCheckBus
+  :: Expression -> ExprType -> Expression -> ID -> TC ()
+
+typeCheckBus e t n b = do
+  typeCheck n TNumber
+  t' <- liftM ((! b) . tTypes) get
+
+  case t' of
+    TBus s'          -> case t of
+      TSignal s -> case (s,s') of
+        (STInput, STOutput) -> errExpect t (TSignal s') $ srcPos e
+        (STOutput, STInput) -> errExpect t (TSignal s') $ srcPos e
+        _                 -> return ()
+--      TBoolean  -> return ()
+      TLtl      -> return ()
+      _         -> errExpect t (TSignal s') $ srcPos e
+    TTypedBus s' _ _ -> case t of
+      TSignal s -> case (s,s') of
+        (STInput, STOutput) -> errExpect t (TSignal s') $ srcPos e
+        (STOutput, STInput) -> errExpect t (TSignal s') $ srcPos e
+--      TBoolean  -> return ()
+      TLtl      -> return ()
+      _         -> errExpect t (TSignal s') $ srcPos e
+    TPoly p          -> updatePolyType p (TBus STGeneric)
+    _ -> errExpect t t' $ srcPos e
 
 -----------------------------------------------------------------------------
 
@@ -521,25 +604,33 @@ typeCheckId e t i = do
     errNoHigher (names ! i) $ srcPos e
 
   tt <- liftM tTypes get
-  ck t (tt ! i)
+  validTypes e i t (tt ! i)
 
+-----------------------------------------------------------------------------
+
+validTypes
+  :: Expression -> Int -> ExprType -> ExprType
+      -> StateT ST (Either Error) ()
+
+validTypes e i = vt
   where
-    ck :: ExprType -> ExprType -> StateT ST (Either Error) ()
-
-    ck (TSignal STGeneric) (TSignal _)         = return ()
-    ck (TSignal _)         (TSignal STGeneric) = return ()
-    ck (TBus STGeneric)    (TBus _)            = return ()
-    ck (TBus _)            (TBus STGeneric)    = return ()
-    ck (TEnum m x)         (TTypedBus _ n y)   = ck (TEnum m x) (TEnum n y)
-    ck (TTypedBus _ m x)   (TEnum n y)         = ck (TEnum m x) (TEnum n y)
-    ck (TTypedBus _ m x)   (TTypedBus _ n y)   = ck (TEnum m x) (TEnum n y)
-    ck (TEmptySet)         (TSet _)            = return ()
-    ck (TSet s)            (TEmptySet)         = updType i t
-    ck (TSet s)            (TSet s')           = ck s s'
-    ck (TPoly p')          (TPoly p)           = equalPolyType p p'
-    ck (TPoly _)           _                   = return ()
-    ck t                   (TPoly p)           = updatePolyType p t
-    ck t                   t'
+    vt (TSignal STGeneric) (TSignal _)         = return ()
+    vt (TSignal _)         (TSignal STGeneric) = return ()
+    vt (TBus STGeneric)    (TBus _)            = return ()
+    vt (TBus _)            (TBus STGeneric)    = return ()
+    vt (TEnum m x)         (TTypedBus _ n y)   = vt (TEnum m x) (TEnum n y)
+    vt (TTypedBus _ m x)   (TEnum n y)         = vt (TEnum m x) (TEnum n y)
+    vt (TTypedBus _ m x)   (TTypedBus _ n y)   = vt (TEnum m x) (TEnum n y)
+    vt (TEmptySet)         (TSet _)            = return ()
+    vt (TSet s)            (TEmptySet)         = updType i (TSet s)
+    vt (TSet s)            (TSet s')           = vt s s'
+    vt (TLtl)              (TBoolean)          = return ()
+    vt (TLtl)              (TSignal _)         = return ()
+--    vt (TBoolean)          (TSignal _)         = return ()
+    vt (TPoly p')          (TPoly p)           = equalPolyType p p'
+    vt (TPoly _)           _                   = return ()
+    vt t                   (TPoly p)           = updatePolyType p t
+    vt t                   t'
       | t == t'    = return ()
       | otherwise = errExpect t t' $ srcPos e
 
@@ -549,33 +640,74 @@ typeCheckFml
   :: Expression -> ExprType -> [Expression] -> Int -> TC ()
 
 typeCheckFml e t xs f = do
-  -- check argument expression types
-  mapM_ typeCheckArg xs
-  -- get argument expression types
-  ts <- mapM inferFromExpr xs
-  -- save current type table
-  tt <- liftM tTypes get
-  -- get arguments
+  -- get the position of the definition of f
+  pf <- liftM ((! f) . positions . spec) get
+  -- get athe rguments of f
   as <- liftM ((! f) . arguments . spec) get
+  -- get current type table
+  tt <- liftM tTypes get
+  -- get argument types of f
+  let at = map (tt !) as
 
   -- check argument arity
   when (length as /= length xs) $
-    errArgArity (show $ length xs) (length as) undefined undefined
+    errArgArity (show $ length xs) (length as) pf $ srcPos e
+
+  -- typecheck the arguments
+  mapM_ (uncurry typeCheck) $ zip xs at
+  -- get the result type
+  rt <- liftM ((! f) . tTypes) get
+  -- reset bound types for dependant functions (polymorphism)
+  resetDependencies tt f
+  -- check the compatibility of the result type
+  validTypes e f t rt
+
+
+
+  -- check argument expression types
+--  mapM_ typeCheckArg xs
+  -- get argument expression types
+--  ts <- mapM inferFromExpr xs
+  -- save current type table
+--  tt <- liftM tTypes get
+
 
   -- instantiate arguments with argument types
-  mapM_ (uncurry updType) $ zip as ts
+--  mapM_ (uncurry updType) $ zip as ts
 
-  -- get resulting type
-  rt <- liftM ((! f) . tTypes) get
+
 
   -- restore argument types
-  mapM_ (resetType tt) as
+--  mapM_ (resetType tt) as
 
-  when (rt /= t) $
-    errExpect t rt $ srcPos e
+
+
+--  when (rt /= t) $
+--    error "x" --errExpect t rt $ srcPos e
 
   -- TODO: check expression building overflow
   -- f(x) = { f(x) }
+
+-----------------------------------------------------------------------------
+
+resetDependencies
+  :: TypeTable -> ID -> TC ()
+
+resetDependencies tt x = do
+  i <- liftM curBinding get
+  as <- liftM (S.fromList . (! x) . arguments . spec) get
+  ds <- liftM (S.fromList . (! x) . dependencies . spec) get
+
+  if i == x
+  then
+    mapM_ (resetDependencies tt) $
+    S.toList $
+    S.difference ds $
+    S.insert x as
+  else do
+    resetType tt x
+    mapM_ (resetDependencies tt) $
+      filter (/= x) $ S.toList ds
 
 -----------------------------------------------------------------------------
 
@@ -638,6 +770,47 @@ updatePolyType n t = do
 
 -----------------------------------------------------------------------------
 
+typeChEqL
+  :: Expression -> Expression -> TC ()
+
+typeChEqL x y = inferFromExpr x >>= \case
+  TNumber -> typeChck2 x y TNumber
+  TTypedBus s m i -> inferFromExpr y >>= \case
+    TEnum n j
+      | i == j     -> return ()
+      | otherwise -> errExpect (TEnum m i) (TEnum n j) $ srcPos y
+    t -> errExpect (TEnum m i) t $ srcPos y
+  TEnum n j -> inferFromExpr y >>= \case
+    TTypedBus s m i
+      | i == j     -> return ()
+      | otherwise -> errExpect
+                      (TTypedBus STGeneric n j)
+                      (TTypedBus STGeneric m i)
+                      (srcPos y)
+    t -> errExpect (TTypedBus STGeneric n j) t $ srcPos y
+  TPoly p -> inferFromExpr y >>= \case
+    TNumber         -> updatePolyType p TNumber
+    TEnum n j       -> updatePolyType p (TTypedBus STGeneric n j)
+    TTypedBus _ n j -> updatePolyType p (TEnum n j)
+    TPoly p'        -> equalPolyType p p'
+    t               -> errEquality t $ srcPos y
+  t -> errEquality t $ srcPos x
+
+-----------------------------------------------------------------------------
+
+typeChEqB
+  :: Expression -> Expression -> TC ()
+
+typeChEqB x y = inferFromExpr x >>= \case
+  TNumber -> typeChck2 x y TNumber
+  TPoly p -> inferFromExpr y >>= \case
+    TNumber -> updatePolyType p TNumber
+    TPoly p'-> updatePolyType p TNumber >> updatePolyType p' TNumber
+    t       -> errExpect TNumber t $ srcPos y
+  t       -> errExpect TNumber t $ srcPos x
+
+-----------------------------------------------------------------------------
+
 typeChck2
   :: Expression -> Expression -> ExprType -> TC ()
 
@@ -668,8 +841,11 @@ typeChSRg x y z = do
 typeChckS
   :: Expression -> StateT ST (Either Error) ()
 
-typeChckS x =
-  get >>= typeCheck x . TSet . TPoly . tCount
+typeChckS x = do
+  t <- inferFromExpr x
+  typeCheck x t
+
+--  get >>= typeCheck x . TSet . TPoly . tCount
 
 -----------------------------------------------------------------------------
 
@@ -687,20 +863,28 @@ typeChElm x xs = do
 typeChckR
   :: Expression -> Expression -> StateT ST (Either Error) ()
 
-typeChckR (expr -> Colon n m) x = do
-  typeCheck n TNumber
-  typeCheck m TNumber
-  typeCheck x TLtl
+typeChckR e x = case expr e of
+  Colon n m -> do
+    typeCheck n TNumber
+    typeCheck m TNumber
+    typeCheck x TLtl
+  _ -> do
+    typeCheck e TNumber
+    typeCheck x TLtl
 
 -----------------------------------------------------------------------------
 
 typeChckU
   :: Expression -> Expression -> StateT ST (Either Error) ()
 
-typeChckU (expr -> Colon n m) x = do
-  typeCheck n TNumber
-  typeCheck m TNumber
-  typeCheck x TPattern
+typeChckU e x = case expr e of
+  Colon n m -> do
+    typeCheck n TNumber
+    typeCheck m TNumber
+    typeCheck x TPattern
+  _ -> do
+    typeCheck e TNumber
+    typeCheck x TPattern
 
 -----------------------------------------------------------------------------
 
@@ -757,7 +941,7 @@ typeChSBn t x y = do
 inferFromExpr
   :: Expression -> StateT ST (Either Error) ExprType
 
-inferFromExpr = expr >>> \case
+inferFromExpr e = case expr e of
   BaseCon {}        -> return TNumber
   NumSMin {}        -> return TNumber
   NumSMax {}        -> return TNumber
@@ -773,22 +957,22 @@ inferFromExpr = expr >>> \case
   BaseWild          -> return TPattern
   BaseOtherwise     -> return TBoolean
   Pattern {}        -> return TBoolean
-  BaseTrue          -> return TBoolean
-  BaseFalse         -> return TBoolean
-  BlnEQ {}          -> return TBoolean
-  BlnNEQ {}         -> return TBoolean
-  BlnGE {}          -> return TBoolean
-  BlnGEQ {}         -> return TBoolean
-  BlnLE {}          -> return TBoolean
-  BlnLEQ {}         -> return TBoolean
-  BlnNot {}         -> return TBoolean
-  BlnOr {}          -> return TBoolean
-  BlnROr {}         -> return TBoolean
-  BlnAnd {}         -> return TBoolean
-  BlnRAnd {}        -> return TBoolean
-  BlnImpl {}        -> return TBoolean
-  BlnElem {}        -> return TBoolean
-  BlnEquiv {}       -> return TBoolean
+  BaseTrue          -> inferFromBoolExpr e
+  BaseFalse         -> inferFromBoolExpr e
+  BlnEQ {}          -> inferFromBoolExpr e
+  BlnNEQ {}         -> inferFromBoolExpr e
+  BlnGE {}          -> inferFromBoolExpr e
+  BlnGEQ {}         -> inferFromBoolExpr e
+  BlnLE {}          -> inferFromBoolExpr e
+  BlnLEQ {}         -> inferFromBoolExpr e
+  BlnNot {}         -> inferFromBoolExpr e
+  BlnOr {}          -> inferFromBoolExpr e
+  BlnROr {}         -> inferFromBoolExpr e
+  BlnAnd {}         -> inferFromBoolExpr e
+  BlnRAnd {}        -> inferFromBoolExpr e
+  BlnImpl {}        -> inferFromBoolExpr e
+  BlnElem {}        -> inferFromBoolExpr e
+  BlnEquiv {}       -> inferFromBoolExpr e
   BaseBus {}        -> return TLtl
   LtlNext {}        -> return TLtl
   LtlRNext {}       -> return TLtl
@@ -826,6 +1010,107 @@ d      [x]    -> liftM TSet $ inferFromExpr x
           TEmptySet -> inferSetExplicit xr
           t'        -> return $ TSet t'
 -}
+
+-----------------------------------------------------------------------------
+
+inferFromBoolExpr
+  :: Expression -> StateT ST (Either Error) ExprType
+
+inferFromBoolExpr e = case expr e of
+  SetExplicit xs -> inferFromBoolSet xs
+  SetCup x y     -> inferFromBoolE2 x y
+  SetCap x y     -> inferFromBoolE2 x y
+  SetMinus x y   -> inferFromBoolE2 x y
+  BaseTrue       -> return TBoolean
+  BaseFalse      -> return TBoolean
+  BlnEQ x y      -> inferFromEqExpr x y
+  BlnNEQ x y     -> inferFromEqExpr x y
+  BlnGE {}       -> return TBoolean
+  BlnGEQ {}      -> return TBoolean
+  BlnLE {}       -> return TBoolean
+  BlnLEQ {}      -> return TBoolean
+  BlnElem {}     -> return TBoolean
+  BlnNot x       -> inferFromBoolExpr x
+  BlnOr x y      -> inferFromBoolE2 x y
+  BlnROr _ x     -> inferFromBoolExpr x
+  BlnAnd x y     -> inferFromBoolE2 x y
+  BlnRAnd _ x    -> inferFromBoolExpr x
+  BlnImpl x y    -> inferFromBoolE2 x y
+  BlnEquiv x y   -> inferFromBoolE2 x y
+  BaseId i       -> inferFromBoolId i
+  BaseFml _ i    -> inferFromBoolId i
+  _              -> inferFromExpr e >>= \case
+    TSignal _ -> return TLtl
+    TLtl      -> return TLtl
+    _         -> return TBoolean
+
+  where
+    inferFromEqExpr
+      :: Expression -> Expression -> TC ExprType
+
+    inferFromEqExpr x y = inferFromExpr x >>= \case
+      TTypedBus {} -> return TLtl
+      TEnum {}     -> return TLtl
+      TPoly p      -> inferFromExpr y >>= \case
+        TTypedBus {} -> return TLtl
+        TEnum {}     -> return TLtl
+        TPoly p'     -> return TLtl
+        _            -> return TBoolean
+      _            -> return TBoolean
+
+    inferFromBoolId
+      :: ID -> TC ExprType
+
+    inferFromBoolId i = do
+      liftM (imLookup i . tTypes) get >>= \case
+        TSignal _ -> return TLtl
+        TLtl      -> return TLtl
+        _         -> return TBoolean
+
+    inferFromBoolE2
+      :: Expression -> Expression -> TC ExprType
+
+    inferFromBoolE2 x y = do
+      inferFromBoolExpr x >>= \case
+        TBoolean         -> inferFromBoolExpr y >>= \case
+          TSignal _ -> return TLtl
+          TLtl      -> return TLtl
+          _         -> return TBoolean
+        TSet TBoolean    -> inferFromBoolExpr y >>= \case
+          TSet (TSignal _) -> return $ TSet TLtl
+          TSet TLtl        -> return $ TSet TLtl
+          _                -> return $ TSet TBoolean
+        TSignal {}       -> return TLtl
+        TSet (TSignal _) -> return $ TSet TLtl
+        TLtl             -> return TLtl
+        TSet (TLtl)      -> return $ TSet TLtl
+        TSet _           -> return $ TSet TBoolean
+        _                -> return TBoolean
+
+    inferFromBoolSet
+      :: [Expression] -> TC ExprType
+
+    inferFromBoolSet xs =  do
+      t <- foldM inferFromBoolElement TBoolean xs
+      return $ TSet t
+
+
+    inferFromBoolElement
+      :: ExprType -> Expression -> TC ExprType
+
+    inferFromBoolElement = \case
+      TBoolean -> \e -> do
+        inferFromBoolExpr e >>= \case
+          TSignal _ -> return TLtl
+          TLtl      -> return TLtl
+          _         -> return TBoolean
+      TSignal _ -> const $ return TLtl
+      TLtl      -> const $ return TLtl
+      _         -> const $ return TBoolean
+
+
+
+
 
 -----------------------------------------------------------------------------
 
