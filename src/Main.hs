@@ -135,9 +135,6 @@ readContent c (content,file) = case readSpecification content of
   Left err -> prError err
   Right s
     | check c       -> do
---        stToCSV $ symboltable s
---        putStrLn ""
-
         case writeSpecification c s of
           Left err -> prError err
           Right _  ->

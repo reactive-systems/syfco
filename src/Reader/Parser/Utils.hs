@@ -126,6 +126,6 @@ getPos
 
 getPos = do
   x <- getPosition
-  return $ SrcPos (sourceLine x) (sourceColumn x)
+  return $ SrcPos (sourceLine x) (sourceColumn x - 1)
 
 -----------------------------------------------------------------------------

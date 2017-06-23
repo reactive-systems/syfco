@@ -23,6 +23,7 @@ module Reader.Error
   , errNoPFuns
   , errNoHigher
   , errEquality
+  , errInfinite
   ) where
 
 -----------------------------------------------------------------------------
@@ -201,6 +202,18 @@ errEquality
 errEquality x pos =
   let msg = "expecting numerical or enum comparison\n" ++
             "but found: " ++ show x ++ " expression"
+  in StateT $ \_ -> typeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that incicates the construction of an infinite type
+
+errInfinite
+  :: String -> ExprPos -> StateT a (Either Error) b
+
+errInfinite n pos =
+  let msg = "cannot construct infinite type\n" ++
+            "check the definition of: " ++ n
   in StateT $ \_ -> typeError pos msg
 
 -----------------------------------------------------------------------------

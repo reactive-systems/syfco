@@ -26,14 +26,17 @@ module Reader.InferType
 
 -----------------------------------------------------------------------------
 
-import Prelude hiding ((!))
+import Prelude hiding
+  ((!))
 
 import Control.Arrow
   ( (>>>)
+  , (&&&)
   )
 
 import Control.Monad
-  ( foldM
+  ( (>=>)
+  , foldM
   )
 
 import Utils
@@ -92,6 +95,7 @@ import Reader.Error
   , errArgArity
   , errNoHigher
   , errEquality
+  , errInfinite
   )
 
 import Data.Maybe
@@ -109,33 +113,25 @@ import Control.Monad.State
   , put
   , liftM
   , when
+  , unless
   )
 
 import Control.Exception
   ( assert
   )
 
-import Data.IntMap.Strict
-  ( (!)
-  )
-
 import qualified Data.IntMap.Strict as IM
-  ( insert
-  , null
-  , fromList
-  , map
-  , empty
-  , toList
-  , mapWithKey
-  , maxViewWithKey
-  , findMax
+  ( map
   )
 
-import  Data.IntMap.Strict
+import Data.IntMap.Strict
   ( IntMap
+  , (!)
+  , insert
+  , fromList
+  , findMax
+  , mapWithKey
   )
-
-import Debug.Trace
 
 -----------------------------------------------------------------------------
 
@@ -169,8 +165,8 @@ inferTypes
   :: Specification -> Either Error Specification
 
 inferTypes s@Specification{..} = do
-  let st = ST { tCount = (+1) $ fst $ IM.findMax names
-              , tTypes = IM.mapWithKey (flip $ const TPoly) names
+  let st = ST { tCount = (+1) $ fst $ findMax names
+              , tTypes = mapWithKey (flip $ const TPoly) names
               , targs = arguments
               , spec = s
               , curBinding = -1
@@ -193,9 +189,9 @@ depOrderedBindings Specification{..} =
   let
     -- get ID map
     im =
-      IM.fromList
-        $ (map (\x -> (bIdent x, Left x)) parameters) ++
-          (map (\x -> (bIdent x, Right x)) definitions)
+      fromList $
+        map (bIdent &&& Left) parameters ++
+        map (bIdent &&& Right) definitions
 
     -- get the parameter ids
     ps :: [ID]
@@ -243,7 +239,7 @@ inferTypeSpec
 
 inferTypeSpec = do
   -- get the specification
-  s@Specification{..} <- liftM spec get
+  s@Specification{..} <- spec <$> get
 
   -- set the enumeration types
   mapM_ setEnumType enumerations
@@ -251,7 +247,7 @@ inferTypeSpec = do
   mapM_ (setSignalType STInput) inputs
   mapM_ (setSignalType STOutput) outputs
   -- set the parameter types
-  mapM_ (updType TNumber) $ map bIdent parameters
+  mapM_ (updType TNumber . bIdent) parameters
 
   -- fix and check the binding types
   mapM_ typeCheckBinding $ depOrderedBindings s
@@ -259,12 +255,12 @@ inferTypeSpec = do
   mapM_ typeCheckBusParameter inputs
   mapM_ typeCheckBusParameter outputs
   -- type-check LTL formulas
-  mapM_ (flip typeCheck TLtl) initially
-  mapM_ (flip typeCheck TLtl) preset
-  mapM_ (flip typeCheck TLtl) requirements
-  mapM_ (flip typeCheck TLtl) assumptions
-  mapM_ (flip typeCheck TLtl) invariants
-  mapM_ (flip typeCheck TLtl) guarantees
+  mapM_ (`typeCheck` TLtl) initially
+  mapM_ (`typeCheck` TLtl) preset
+  mapM_ (`typeCheck` TLtl) requirements
+  mapM_ (`typeCheck` TLtl) assumptions
+  mapM_ (`typeCheck` TLtl) invariants
+  mapM_ (`typeCheck` TLtl) guarantees
 
   where
     setSignalType
@@ -274,7 +270,7 @@ inferTypeSpec = do
       SDSingle (x,_)     -> updType (TSignal s) x
       SDBus (x,_) _      -> updType (TBus s) x
       SDEnum (x,_) (y,_) -> do
-        Specification{..} <- liftM spec get
+        Specification{..} <- spec <$> get
         updType (TTypedBus s (imLookup y names) y) x
 
 
@@ -282,11 +278,12 @@ inferTypeSpec = do
       :: EnumDefinition ID -> TC ()
 
     setEnumType e = do
-      Specification{..} <- liftM spec get
+      Specification{..} <- spec <$> get
 
       mapM_
-        (updType (TEnum (imLookup (eName e) names) $ eName e))
-        (map (\(y,_,_) -> y) $ eValues e)
+        (updType (TEnum (imLookup (eName e) names) $ eName e)
+          . (\(y,_,_) -> y))
+        (eValues e)
 
 -----------------------------------------------------------------------------
 
@@ -303,7 +300,7 @@ typeCheckParameter
   :: ID -> TC ()
 
 typeCheckParameter i = do
-  Specification{..} <- liftM spec get
+  Specification{..} <- spec <$> get
 
   let
     n :: Int
@@ -323,17 +320,11 @@ typeCheckDefinition i = do
   setCur i
 
   -- get the expression bound the the identifier
-  e <- liftM ((! i) . bindings . spec) get
+  e <- ((! i) . bindings . spec) <$> get
 
-  -- get the type of the expression
-  TSet t <- inferFromExpr e >>= \case
-    TSet TBoolean -> inferFromBoolExpr e
-    t'            -> return t'
+  -- tyepcheck and infer types
+  check e 10
 
-  -- update the type in the type table
-  updType t i
-  -- typecheck the expression
-  typeCheck e $ TSet t
   -- reset the recursion indicator
   setCur (-1)
 
@@ -343,7 +334,39 @@ typeCheckDefinition i = do
 
     setCur c = do
       st <- get
-      put st { curBinding = c }
+      put st
+        { curBinding = c
+        }
+
+
+    inferBinding
+      :: Expression -> TC ExprType
+
+    inferBinding e = inferFromExpr e >>= \case
+      TSet TBoolean -> inferFromBoolExpr e
+      t'            -> return t'
+
+
+    check
+      :: Expression -> Int -> TC ()
+
+    check e n = do
+      -- get the type of the expression
+      TSet t <- inferBinding e
+      -- update the type in the type table
+      updType t i
+      -- typecheck the expression
+      typeCheck e $ TSet t
+
+      if n > 0
+      then check e (n-1)
+      else do
+        TSet t' <- inferBinding e
+
+        when (t /= t') $ do
+          n <- ((! i) . names . spec) <$> get
+          p <- ((! i) . positions . spec) <$> get
+          errInfinite n p
 
 -----------------------------------------------------------------------------
 
@@ -518,7 +541,7 @@ typeCheckBus
 typeCheckBus t n b p = do
   typeCheck n TNumber
 
-  liftM ((! b) . tTypes) get >>= \case
+  ((! b) . tTypes) <$> get >>= \case
     TBus s'          -> case t of
       TSignal s -> case (s,s') of
         (STInput, STOutput) -> errExpect t (TSignal s') p
@@ -543,14 +566,14 @@ typeCheckId
 
 typeCheckId t i p = do
   -- get the arguments of the identifier
-  as <- liftM ((! i) . arguments . spec) get
+  as <- ((! i) . arguments . spec) <$> get
 
   -- higher order functions are not supported
-  when (not $ null as) $ do
-    Specification{..} <- liftM spec get
+  unless (null as) $ do
+    Specification{..} <- spec <$> get
     errNoHigher (names ! i) p
 
-  tt <- liftM tTypes get
+  tt <- tTypes <$> get
   validTypes p i t (tt ! i)
 
 -----------------------------------------------------------------------------
@@ -568,11 +591,11 @@ validTypes p i = vt
     vt (TEnum m x)         (TTypedBus _ n y)   = vt (TEnum m x) $ TEnum n y
     vt (TTypedBus _ m x)   (TEnum n y)         = vt (TEnum m x) $ TEnum n y
     vt (TTypedBus _ m x)   (TTypedBus _ n y)   = vt (TEnum m x) $ TEnum n y
-    vt (TEmptySet)         (TSet _)            = return ()
-    vt (TSet s)            (TEmptySet)         = updType (TSet s) i
+    vt TEmptySet           (TSet _)            = return ()
+    vt (TSet s)            TEmptySet           = updType (TSet s) i
     vt (TSet s)            (TSet s')           = vt s s'
-    vt (TLtl)              (TBoolean)          = return ()
-    vt (TLtl)              (TSignal _)         = return ()
+    vt TLtl                TBoolean            = return ()
+    vt TLtl                (TSignal _)         = return ()
     vt (TPoly p')          (TPoly p)           = equalPolyType p p'
     vt (TPoly _)           _                   = return ()
     vt t                   (TPoly p)           = updatePolyType p t
@@ -587,11 +610,11 @@ typeCheckFml
 
 typeCheckFml t xs f p = do
   -- get the position of the definition of f
-  pf <- liftM ((! f) . positions . spec) get
+  pf <- ((! f) . positions . spec) <$> get
   -- get athe rguments of f
-  as <- liftM ((! f) . arguments . spec) get
+  as <- ((! f) . arguments . spec) <$> get
   -- get current type table
-  tt <- liftM tTypes get
+  tt <- tTypes <$> get
   -- get argument types of f
   let at = map (tt !) as
 
@@ -602,14 +625,11 @@ typeCheckFml t xs f p = do
   -- typecheck the arguments
   mapM_ (uncurry typeCheck) $ zip xs at
   -- get the result type
-  rt <- liftM ((! f) . tTypes) get
+  rt <- ((! f) . tTypes) <$> get
   -- reset bound types for dependant functions (polymorphism)
   resetDependencies tt f
   -- check the compatibility of the result type
   validTypes p f t rt
-
-  -- TODO: check expression building overflow
-  -- f(x) = { f(x) }
 
 -----------------------------------------------------------------------------
 
@@ -617,9 +637,9 @@ resetDependencies
   :: TypeTable -> ID -> TC ()
 
 resetDependencies tt x = do
-  i <- liftM curBinding get
-  as <- liftM (S.fromList . (! x) . arguments . spec) get
-  ds <- liftM (S.fromList . (! x) . dependencies . spec) get
+  i <- curBinding <$> get
+  as <- (S.fromList . (! x) . arguments . spec) <$> get
+  ds <- (S.fromList . (! x) . dependencies . spec) <$> get
 
   if i == x
   then
@@ -639,7 +659,7 @@ resetType
 
 resetType tt i = do
   st@ST{..} <- get
-  put st { tTypes = IM.insert i (tt ! i) tTypes }
+  put st { tTypes = insert i (tt ! i) tTypes }
 
 -----------------------------------------------------------------------------
 
@@ -648,7 +668,7 @@ updType
 
 updType t i = do
   st@ST{..} <- get
-  put st { tTypes = IM.insert i t tTypes }
+  put st { tTypes = insert i t tTypes }
 
 -----------------------------------------------------------------------------
 
@@ -738,7 +758,7 @@ typeChSEx
   :: ExprType -> [Expression] -> TC ()
 
 typeChSEx t =
-  mapM_ (flip typeCheck t)
+  mapM_ (`typeCheck` t)
 
 -----------------------------------------------------------------------------
 
@@ -755,7 +775,7 @@ typeChSRg x y z = do
 typeChckS
   :: Expression -> TC ()
 
-typeChckS x = do
+typeChckS x =
   inferFromExpr x >>= typeCheck x
 
 -----------------------------------------------------------------------------
@@ -894,15 +914,15 @@ inferFromExpr e = case expr e of
   LtlRelease {}     -> return TLtl
   SetRange {}       -> return $ TSet TNumber
   SetExplicit []    -> return TEmptySet
-  SetExplicit (x:_) -> liftM TSet $ inferFromExpr x
+  SetExplicit (x:_) -> TSet <$> inferFromExpr x
   SetCup x y        -> inferSetOp x y
   SetCap x y        -> inferSetOp x y
   SetMinus x y      -> inferSetOp x y
   SetRCap _ x       -> inferFromExpr x
   SetRCup _ x       -> inferFromExpr x
   Colon _ x         -> inferFromExpr x
-  BaseId i          -> liftM (imLookup i . tTypes) get
-  BaseFml _ i       -> liftM (imLookup i . tTypes) get
+  BaseId i          -> (imLookup i . tTypes) <$> get
+  BaseFml _ i       -> (imLookup i . tTypes) <$> get
 
   where
     inferSetOp x y =
@@ -960,8 +980,8 @@ inferFromBoolExpr e = case expr e of
     inferFromBoolId
       :: ID -> TC ExprType
 
-    inferFromBoolId i = do
-      liftM (imLookup i . tTypes) get >>= \case
+    inferFromBoolId i =
+      (imLookup i . tTypes) <$> get >>= \case
         TSignal _ -> return TLtl
         TLtl      -> return TLtl
         _         -> return TBoolean
@@ -969,7 +989,7 @@ inferFromBoolExpr e = case expr e of
     inferFromBoolE2
       :: Expression -> Expression -> TC ExprType
 
-    inferFromBoolE2 x y = do
+    inferFromBoolE2 x y =
       inferFromBoolExpr x >>= \case
         TBoolean         -> inferFromBoolExpr y >>= \case
           TSignal _ -> return TLtl
@@ -982,7 +1002,7 @@ inferFromBoolExpr e = case expr e of
         TSignal {}       -> return TLtl
         TSet (TSignal _) -> return $ TSet TLtl
         TLtl             -> return TLtl
-        TSet (TLtl)      -> return $ TSet TLtl
+        TSet TLtl        -> return $ TSet TLtl
         TSet _           -> return $ TSet TBoolean
         _                -> return TBoolean
 
@@ -990,14 +1010,14 @@ inferFromBoolExpr e = case expr e of
       :: [Expression] -> TC ExprType
 
     inferFromBoolSet =
-      liftM TSet . foldM inferFromBoolElement TBoolean
+      fmap TSet . foldM inferFromBoolElement TBoolean
 
     inferFromBoolElement
       :: ExprType -> Expression -> TC ExprType
 
     inferFromBoolElement = \case
-      TBoolean -> \e -> do
-        inferFromBoolExpr e >>= \case
+      TBoolean ->
+        inferFromBoolExpr >=> \case
           TSignal _ -> return TLtl
           TLtl      -> return TLtl
           _         -> return TBoolean

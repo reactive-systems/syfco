@@ -123,9 +123,9 @@ stToCSV lt = do
         el = srcLine $ srcEnd pos
         ec = srcColumn $ srcEnd pos
       in
-        "(" ++ show bl ++ "," ++ show (bc - 1) ++
+        "(" ++ show bl ++ "," ++ show bc ++
         if bl == el then
-          "-" ++ show (ec - 2) ++ ")"
+          "-" ++ show ec ++ ")"
         else
           show el ++ ":" ++ show ec ++ ")"
 
