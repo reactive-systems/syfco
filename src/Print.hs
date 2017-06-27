@@ -1,27 +1,30 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Detection
+-- Module      :  Print
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 --
--- Detection of different fragements of LTL
+-- Print class to create a machine readable string from a type instance.
 --
 -----------------------------------------------------------------------------
 
-module Detection
-  ( GRFormula(..)
-  , Refusal
-  , detectGR
-  , checkGR
+module Print
+  ( Print(..)
   ) where
 
 -----------------------------------------------------------------------------
 
-import Detection.GeneralizedReactivity
-  ( GRFormula(..)
-  , Refusal
-  , detectGR
-  , checkGR
-  )
+-- | The @Print@ class supports conversion to 'String' via the
+-- 'toString' function.
+
+class Print a where
+  toString :: a -> String
+
+-----------------------------------------------------------------------------
+
+instance Print Bool where
+  toString b
+    | b         = "true"
+    | otherwise = "false"
 
 -----------------------------------------------------------------------------

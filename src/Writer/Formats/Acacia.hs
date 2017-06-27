@@ -3,9 +3,9 @@
 -- Module      :  Writer.Formats.Acacia
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Transforms a specification to the Acacia+ format.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Writer.Formats.Acacia where
@@ -39,9 +39,9 @@ opConfig = OperatorConfig
   , opOr       = BinaryOp "+"   3 AssocLeft
   , opImplies  = BinaryOp "->"  3 AssocLeft
   , opEquiv    = BinaryOp "<->" 3 AssocLeft
-  , opNext     = UnaryOp  "X"   1 
-  , opFinally  = UnaryOp  "F"   1 
-  , opGlobally = UnaryOp  "G"   1 
+  , opNext     = UnaryOp  "X"   1
+  , opFinally  = UnaryOp  "F"   1
+  , opGlobally = UnaryOp  "G"   1
   , opUntil    = BinaryOp "U"   2 AssocLeft
   , opRelease  = BinaryOpUnsupported
   , opWeak     = BinaryOpUnsupported
@@ -57,7 +57,7 @@ writeFormat
 writeFormat c s = do
   (es1,ss1,rs1,as1,is1,gs1) <-
     eval c s
-    
+
   as2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) $
          case ss1 of
            [] -> filter (/= FFalse) $ es1 ++ map fGlobally rs1 ++ as1
@@ -67,31 +67,30 @@ writeFormat c s = do
 
   is2 <- mapM (simplify (adjust c opConfig) . fGlobally . adjustAtomic) is1
   gs2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) (gs1 ++ ss1)
-    
+
   let
     as3 = map (printFormula opConfig (outputMode c)) as2
     is3 = map (printFormula opConfig (outputMode c)) is2
     gs3 = map (printFormula opConfig (outputMode c)) gs2
-  
+
     as4 = map (\x -> "assume " ++ x ++ ";") as3
     is4 = map (++ ";") is3
     gs4 = map (++ ";") gs3
 
     xs = case as4 ++ is4 ++ gs4 of
       [] -> []
-      ys -> map (++ "\n") (init ys) ++ [last ys]
+      ys -> map (++ "\n") $ filter nonempty $ (init ys) ++ [last ys]
 
   return $ concat xs
 
   where
+    nonempty = any (\x -> x /= ' ' && x /= '\t')
+
     adjustAtomic fml = case fml of
       Not (Atomic (Output x)) -> Atomic (Output ("(" ++ x ++ "=0)"))
       Not (Atomic (Input x))  -> Atomic (Input ("(" ++ x ++ "=0)"))
-      Atomic (Output x)       -> Atomic (Output ("(" ++ x ++ "=1)"))            
+      Atomic (Output x)       -> Atomic (Output ("(" ++ x ++ "=1)"))
       Atomic (Input x)        -> Atomic (Input ("(" ++ x ++ "=1)"))
       _                       -> applySub adjustAtomic fml
-    
+
 -----------------------------------------------------------------------------
-
-
-

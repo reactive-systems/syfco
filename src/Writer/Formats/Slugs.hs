@@ -14,6 +14,7 @@ module Writer.Formats.Slugs where
 
 import Config
 
+import Data.Error
 import Data.LTL
 import Data.List
 import Writer.Eval
@@ -43,7 +44,7 @@ writeFormat c s =
           case find (== '\'') $ concat (iv ++ ov) of
             Nothing -> printSlugs gr
             Just _  ->
-              argsError $
+              cfgError $
                 "The specification contains primes, which cannot be used " ++
                 "inside Slugs signal names.\nThey can be replaced " ++
                 "by changing the default value of the \"-ps\" option."

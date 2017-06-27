@@ -3,9 +3,9 @@
 -- Module      :  Writer.Formats.Full
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Returns a specification in full TLSF.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Writer.Formats.Full where
@@ -25,7 +25,7 @@ import Data.Array as A
 
 -----------------------------------------------------------------------------
 
--- | Replaces a list of positions in a given string. 
+-- | Replaces a list of positions in a given string.
 
 replaces
   :: [(ExprPos, String)] -> String -> String
@@ -43,7 +43,7 @@ replaces xs str =
 
   where
     rep a x = case a of
-      (i, v, [], xr) 
+      (i, v, [], xr)
         | i < v     -> (i+1, v, [], xr)
         | otherwise -> (i+1, v, [], x:xr)
       (i, v, (s,e,z):yr, xr)
@@ -63,8 +63,8 @@ replaces xs str =
         a = A.array (1,length ls) $ reverse zs
       in
        -- return a mapping that maps a position to the index
-       \pos -> a ! srcLine pos + srcColumn pos                       
-      
+       \pos -> a ! srcLine pos + srcColumn pos
+
 -----------------------------------------------------------------------------
 
 -- | Full TLSF writer.
@@ -79,7 +79,7 @@ writeFormat c s = do
   where
     parToRep (str,v) =
       case findParam str of
-        Nothing -> argsError $ "Specification has no parameter: " ++ str 
+        Nothing -> cfgError $ "Specification has no parameter: " ++ str
         Just p  -> return (p, show v)
 
     findParam str =

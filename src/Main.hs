@@ -8,7 +8,11 @@
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE
+
+    MultiWayIf
+
+  #-}
 
 -----------------------------------------------------------------------------
 
@@ -17,6 +21,8 @@ module Main
   ) where
 
 -----------------------------------------------------------------------------
+
+import Syfco
 
 import Info
   ( prTitle
@@ -32,40 +38,16 @@ import Info
   , prHelp
   , prReadme
   , prReadmeMd
+  , prError
   )
 
-import Config
-  ( Configuration(..)
-  , parseArguments
-  , printableConfig
-  )
-
-import Reader
-  ( readSpecification
-  )
-
-import Writer
-  ( WriteFormat(..)
-  , writeSpecification
-  , partition
-  )
-
-import Data.Error
-  ( prError
-  , argsError
+import Arguments
+  ( parseArguments
   )
 
 import Data.Maybe
   ( isJust
   , fromJust
-  )
-
-import Data.SymbolTable
-  ( stToCSV
-  )
-
-import Data.Specification
-  ( Specification(..)
   )
 
 import System.Environment
@@ -89,11 +71,6 @@ import GHC.IO.Encoding
   , setFileSystemEncoding
   , setForeignEncoding
   , utf8
-  )
-
-import Detection
-  ( GRFormula(..)
-  , detectGR
   )
 
 -----------------------------------------------------------------------------
@@ -122,7 +99,7 @@ readContents
 
 readContents c = do
   mapM_ (writeConfiguration c) $ saveConfig c
-  when (not (null (inputFile c)) || fromStdin c) $ do
+  when (not (null (inputFiles c)) || fromStdin c) $ do
     contents <- readInput c
     mapM_ (readContent c) contents
 
@@ -132,33 +109,28 @@ readContent
   :: Configuration -> (String,Maybe String) -> IO ()
 
 readContent c (content,file) = case readSpecification content of
-  Left err -> prError err
+  Left err -> prError $ show err
   Right s
     | check c       -> do
         case writeSpecification c s of
-          Left err -> prError err
+          Left err -> prError $ show err
           Right _  ->
             case file of
               Nothing -> putStrLn "valid"
               Just f  -> putStrLn $ "valid: " ++ f
     | cGR c       ->
-        case detectGR c s of
-          Left v -> case v of
-            Left err -> prError err
-            Right rf -> do
-              case file of
-                Nothing ->
-                  putStrLn "NOT in the Generalized Reacitvity fragment"
-                Just f  ->
-                  putStrLn $ "NOT in the Generalized Reactivity fragment: "
-                             ++ f
-              putStrLn "------------------"
-              putStrLn rf
-          Right v    -> case file of
+        case checkGR s of
+          Left err   -> prError $ show err
+          Right (-1) -> case file of
             Nothing ->
-              putStrLn $ "IN GR(" ++ show (level v) ++ ")"
+              putStrLn "NOT in the Generalized Reacitvity fragment"
+            Just f  ->
+              putStrLn $ "NOT in the Generalized Reactivity fragment: " ++ f
+          Right x    -> case file of
+            Nothing ->
+              putStrLn $ "IN GR(" ++ show x ++ ")"
             Just f  -> do
-              putStrLn $ "IN GR(" ++ show (level v) ++ "): " ++ f
+              putStrLn $ "IN GR(" ++ show x ++ "): " ++ f
     | pTitle c      -> prTitle s
     | pDesc c       -> prDescription s
     | pSemantics c  -> prSemantics s
@@ -175,7 +147,7 @@ readContent c (content,file) = case readSpecification content of
 readInput
   :: Configuration -> IO [(String,Maybe String)]
 
-readInput c = case inputFile c of
+readInput c = case inputFiles c of
   [] -> do
     x <- getContents
     return [(x,Nothing)]
@@ -184,9 +156,8 @@ readInput c = case inputFile c of
     if exists then do
       r <- readFile f
       return (r,Just f)
-    else case argsError $ "File does not exist: " ++ f of
-      Left err -> prError err
-      _        -> assert False undefined) xs
+    else
+      prError $ "File does not exist: " ++ f) xs
 
 -----------------------------------------------------------------------------
 
@@ -194,7 +165,7 @@ writeOutput
   :: Configuration -> Specification -> IO ()
 
 writeOutput c s = case writeSpecification c s of
-  Left err -> prError err
+  Left err -> prError $ show err
   Right wc -> do
     case outputFile c of
       Nothing -> putStrLn wc
@@ -204,9 +175,9 @@ writeOutput c s = case writeSpecification c s of
         UNBEAST -> writeFile (rmSuffix f ++ ".xml") wc
         _       -> writeFile f wc
 
-    when (isJust $ partFile c) $ do
-      part <- partition c s
-      writeFile (fromJust $ partFile c) part
+    when (isJust $ partFile c) $ case writePartition c s of
+      Left err -> prError $ show err
+      Right f  -> writeFile (fromJust $ partFile c) f
 
   where
     rmSuffix path = case reverse path of
@@ -217,11 +188,10 @@ writeOutput c s = case writeSpecification c s of
 
 -----------------------------------------------------------------------------
 
-
 writeConfiguration
   :: Configuration -> FilePath -> IO ()
 
 writeConfiguration c file =
-  writeFile file $  printableConfig c
+  writeFile file $ writeCfg c
 
 -----------------------------------------------------------------------------

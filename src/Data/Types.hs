@@ -10,7 +10,7 @@
 
 {-# LANGUAGE
 
-    DeriveGeneric
+    LambdaCase
 
   #-}
 
@@ -26,16 +26,16 @@ module Data.Types
 
 -----------------------------------------------------------------------------
 
-import GHC.Generics
-  ( Generic
+import Print
+  ( Print(..)
   )
 
-import Generics.Deriving.Enum
-  ( GEnum
+import Parse
+  ( Parse(..)
   )
 
-import Data.Utils
-  ( MachinePrintable(..)
+import Data.Error
+  ( conversionError
   )
 
 import Data.Expression
@@ -49,19 +49,31 @@ import Data.Expression
 
 data Target =
     TargetMealy
+    -- ^ Mealy machine target
   | TargetMoore
-  deriving (Generic, Eq)
+    -- ^ Moore machine target
+  deriving (Eq, Ord)
 
 -----------------------------------------------------------------------------
 
--- | MachinePrintable instance for Target.
+-- | Machine readable instance for Target.
 
-instance GEnum Target
-
-instance MachinePrintable Target where
-  mprint t = case t of
+instance Print Target where
+  toString = \case
     TargetMealy -> "mealy"
     TargetMoore -> "moore"
+
+-----------------------------------------------------------------------------
+
+-- | Target parser.
+
+instance Parse Target where
+  fromString = \case
+    "mealy" -> return TargetMealy
+    "moore" -> return TargetMoore
+    str     -> conversionError
+                "Target Parser"
+                ("Conversion failed: " ++ str)
 
 -----------------------------------------------------------------------------
 
@@ -69,23 +81,39 @@ instance MachinePrintable Target where
 
 data Semantics =
     SemanticsMealy
+    -- ^ Standard Mealy machine semantics.
   | SemanticsMoore
+    -- ^ Standard Moore machine semantics.
   | SemanticsStrictMealy
+    -- ^ Mealy machine semantics with strict envionment assumptions.
   | SemanticsStrictMoore
-  deriving (Show, Eq, Generic)
+    -- ^ Moore machine semantics with strict envionment assumptions.
+  deriving (Eq, Ord)
 
 -----------------------------------------------------------------------------
 
--- | MachinePrintable instance for Semantics.
+-- | Machine readable instance for Semantics.
 
-instance GEnum Semantics
-
-instance MachinePrintable Semantics where
-  mprint s = case s of
-    SemanticsMealy -> "mealy"
-    SemanticsMoore -> "moore"
+instance Print Semantics where
+  toString = \case
+    SemanticsMealy       -> "mealy"
+    SemanticsMoore       -> "moore"
     SemanticsStrictMealy -> "mealy,strict"
     SemanticsStrictMoore -> "moore,strict"
+
+-----------------------------------------------------------------------------
+
+-- | Semantics parser.
+
+instance Parse Semantics where
+  fromString = \case
+    "mealy"        -> return SemanticsMealy
+    "moore"        -> return SemanticsMoore
+    "mealy,strict" -> return SemanticsStrictMealy
+    "moore,strict" -> return SemanticsStrictMoore
+    str            -> conversionError
+                       "Semantics Parser"
+                       ("Conversion failed: " ++ str)
 
 -----------------------------------------------------------------------------
 

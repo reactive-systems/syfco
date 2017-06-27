@@ -3,28 +3,28 @@
 -- Module      :  Writer
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- The module provides the different writers, linked via
 -- 'writeSpecification'.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Writer
     ( WriteFormat(..)
     , writeSpecification
-    , partition  
+    , writePartition
     ) where
 
 -----------------------------------------------------------------------------
 
 import Config
     ( Configuration(..)
-    )  
+    )
 
 import Data.Error
     ( Error
     )
-    
+
 import Data.Specification
     ( Specification
     )
@@ -34,23 +34,23 @@ import Writer.Utils
     )
 
 import Writer.Error
-    ( prError  
+    ( prError
     )
 
 import Writer.Eval
     ( evalSignals
-    )      
-    
+    )
+
 import Writer.Formats
     ( WriteFormat(..)
     , needsLower
     )
-    
+
 import Control.Monad
     ( when
     )
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
 
 import qualified Writer.Formats.Utf8 as Utf8
 import qualified Writer.Formats.Wring as Wring
@@ -73,13 +73,13 @@ import qualified Writer.Formats.Bosy as Bosy
 -- | Creates the contents of a standard partioning file from the lists
 -- of input and output signals.
 
-partition
-  :: Configuration -> Specification -> IO String
+writePartition
+  :: Configuration -> Specification -> Either Error String
 
-partition c s = case evalSignals c s of
-    Left err      -> prError err
+writePartition c s = case evalSignals c s of
+    Left err      -> Left err
     Right (is,os) ->
-      return $ 
+      return $
         ".inputs" ++ concatMap (' ' :) is ++ "\n" ++
         ".outputs" ++ concatMap (' ' :) os ++ "\n"
 
@@ -93,7 +93,7 @@ writeSpecification
 writeSpecification c s = do
   when (needsLower (outputFormat c)) $
     checkLower (show $ outputFormat c) s
-  
+
   case outputFormat c of
     UTF8        -> Utf8.writeFormat c s
     BASIC       -> Basic.writeFormat c s
@@ -110,7 +110,5 @@ writeSpecification c s = do
     PSL         -> Psl.writeFormat c s
     SMV         -> Smv.writeFormat c s
     BOSY        -> Bosy.writeFormat c s
-  
------------------------------------------------------------------------------
 
-  
+-----------------------------------------------------------------------------

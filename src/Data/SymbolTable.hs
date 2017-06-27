@@ -21,7 +21,7 @@
 module Data.SymbolTable
     ( SymbolTable
     , IdRec(..)
-    , stToCSV
+    , st2csv
     ) where
 
 -----------------------------------------------------------------------------
@@ -60,6 +60,8 @@ type SymbolTable = Array Int IdRec
 
 -----------------------------------------------------------------------------
 
+-- | Data type representing a single entry  in the symbol table.
+
 data IdRec =
 
   IdRec
@@ -88,29 +90,32 @@ data IdRec =
 
 -- | Prints a symbol table in the CVS format (for debugging purposes only).
 
-stToCSV
-  :: SymbolTable -> IO ()
+st2csv
+  :: SymbolTable -> String
 
-stToCSV lt = do
-    putStrLn "Id;Name;Position;Arguments;Bindings;Type;Dependencies;"
-    mapM_ printEntry $ assocs lt
+st2csv lt =
+ "Id;Name;Position;Arguments;Type;Dependencies;\n"
+--    putStrLn "Id;Name;Position;Arguments;Bindings;Type;Dependencies;"
+ ++ (unlines $ map printEntry $ assocs lt)
 
   where
-    printEntry (i,r@IdRec{..}) = do
-      putStr $ show i
-      putStr ";"
-      putStr ("\"" ++ idName ++ "\"")
-      putStr ";"
-      putStr $ prExprPos idPos
-      putStr ";"
-      putStr $ commasepxs idArgs
-      putStr ";"
-      putStr $ prPrettyExpr lt r idBindings
-      putStr ";"
-      putStr $ prType idArgs idType
-      putStr ";"
-      putStr $ commasepxs idDeps
-      putStrLn ";"
+    printEntry (i,r@IdRec{..}) =
+      concat
+        [ show i
+        , ";"
+        , "\"" ++ idName ++ "\""
+        , ";"
+        , prExprPos idPos
+        , ";"
+        , commasepxs idArgs
+        , ";"
+--        , prPrettyExpr lt r idBindings
+--        , ";"
+        , prType idArgs idType
+        , ";"
+        , commasepxs idDeps
+        , ";"
+        ]
 
     commasepxs = \case
       (x:xr) -> show x ++ concatMap ((:) ',') (map show xr)

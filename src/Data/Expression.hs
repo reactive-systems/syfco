@@ -322,6 +322,11 @@ prExpr e = case expr e of
 
 -----------------------------------------------------------------------------
 
+-- | Some debugging function to give a very well readable version of
+-- the expression.  In constrast to @show@, this function drops all
+-- position information in the resulting output (for debugging
+-- purposes only).
+
 prPrettyExpr
   :: Expr Int -> String
 
