@@ -1,7 +1,7 @@
 name:                syfco
-version:             1.0.0.19
-synopsis:            A library and tool for reading, manipulating and transforming synthesis specifications.
-description:         Synthesis Format Conversion Tool / Library
+version:             1.0.0.20
+synopsis:            Synthesis Format Conversion Tool / Library
+description:         Library and tool for reading, manipulating and transforming synthesis specifications.
 license:             MIT
 license-file:        LICENSE
 author:              Felix Klein <klein@react.uni-saarland.de>
