@@ -9,46 +9,59 @@
 --
 -----------------------------------------------------------------------------
 
-module Writer
-    ( WriteFormat(..)
-    , writeSpecification
-    , writePartition
-    ) where
+{-# LANGUAGE
+
+    FlexibleContexts
+  , RecordWildCards
+
+  #-}
 
 -----------------------------------------------------------------------------
 
+module Writer
+  ( WriteFormat(..)
+  , apply
+  , partition
+  ) where
+
+-----------------------------------------------------------------------------
+
+import Data.Convertible
+  ( convert
+  )
+
 import Config
-    ( Configuration(..)
-    )
+  ( Configuration(..)
+  )
 
 import Data.Error
-    ( Error
-    )
+  ( Error
+  )
 
 import Data.Specification
-    ( Specification
-    )
+  ( Specification
+  )
 
 import Writer.Utils
-    ( checkLower
-    )
+  ( checkLower
+  )
 
 import Writer.Error
-    ( prError
-    )
+  ( prError
+  )
 
 import Writer.Eval
-    ( evalSignals
-    )
+  ( evalSignals
+  )
 
 import Writer.Formats
-    ( WriteFormat(..)
-    , needsLower
-    )
+  ( WriteFormat(..)
+  , needsLower
+  )
 
 import Control.Monad
-    ( when
-    )
+  ( when
+  )
 
 -----------------------------------------------------------------------------
 
@@ -70,31 +83,33 @@ import qualified Writer.Formats.Bosy as Bosy
 
 -----------------------------------------------------------------------------
 
--- | Creates the contents of a standard partioning file from the lists
+-- | Creates the content of a partioning file from the lists
 -- of input and output signals.
 
-writePartition
+partition
   :: Configuration -> Specification -> Either Error String
 
-writePartition c s = case evalSignals c s of
-    Left err      -> Left err
-    Right (is,os) ->
-      return $
-        ".inputs" ++ concatMap (' ' :) is ++ "\n" ++
-        ".outputs" ++ concatMap (' ' :) os ++ "\n"
+partition c s = case evalSignals c s of
+  Left err      -> Left err
+  Right (is,os) ->
+    return $ unlines
+      [ ".inputs" ++ concatMap (' ' :) is
+      , ".outputs" ++ concatMap (' ' :) os
+      ]
 
 -----------------------------------------------------------------------------
 
--- | Unifying function to write a given specification to the desired format.
+-- | Applies the parameters of in the configuration and turns the given
+-- specification into the desired target format.
 
-writeSpecification
+apply
   :: Configuration -> Specification -> Either Error String
 
-writeSpecification c s = do
-  when (needsLower (outputFormat c)) $
-    checkLower (show $ outputFormat c) s
+apply c@Configuration{..} s = do
+  when (needsLower outputFormat) $
+    checkLower (convert outputFormat) s
 
-  case outputFormat c of
+  case outputFormat of
     UTF8        -> Utf8.writeFormat c s
     BASIC       -> Basic.writeFormat c s
     FULL        -> Full.writeFormat c s

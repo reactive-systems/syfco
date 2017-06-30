@@ -11,6 +11,7 @@
 {-# LANGUAGE
 
     LambdaCase
+  , RecordWildCards
 
   #-}
 
@@ -23,6 +24,16 @@ module Arguments
 -----------------------------------------------------------------------------
 
 import Syfco
+  ( Configuration(..)
+  , WriteMode(..)
+  , defaultCfg
+  , verify
+  , update
+  )
+
+import Data.Convertible
+  ( safeConvert
+  )
 
 import Info
   ( prError
@@ -35,14 +46,6 @@ import System.Directory
 import Control.Monad
   ( void
   , unless
-  )
-
-import Print
-  ( Print(..)
-  )
-
-import Parse
-  ( Parse(..)
   )
 
 import Text.Parsec.String
@@ -96,12 +99,12 @@ parseArguments
 parseArguments args = do
   c <- traverse defaultCfg args
 
-  case checkCfg c of
+  case verify c of
     Left err -> prError $ show err
     _        -> return c
 
   where
-    traverse c xs = case xs of
+    traverse c = \case
       x:y:xr -> do
         r <- parseArgument c x (Just y)
         case r of
@@ -125,7 +128,7 @@ parseArguments args = do
         Just file -> do
           exists <- doesFileExist file
           unless exists $ argsError $ "File does not exist: " ++ file
-          fmap (readCfg c) (readFile file) >>= \case
+          fmap (update c) (readFile file) >>= \case
             Left err -> error "todo"
             Right c' -> return $ Single c'
         Nothing   -> argsError "\"-r\": No configuration file"
@@ -140,7 +143,7 @@ parseArguments args = do
         Nothing -> argsError "\"--write-config\": Missing file path"
         _       -> parseArgument c "-w" next
       "-f"                       -> case next of
-        Just x  -> case fromString x of
+        Just x  -> case safeConvert x of
           Left err -> prError $ show err
           Right y -> return $ Single $ c { outputFormat = y }
         Nothing ->
@@ -179,7 +182,7 @@ parseArguments args = do
         Nothing -> argsError "\"--at-symbol\": No symbol replacement given"
       "-in"                      -> return $ None $ c { fromStdin = True }
       "-os"                      -> case next of
-        Just x  -> case fromString x of
+        Just x  -> case safeConvert x of
           Left err -> prError $ show err
           Right y  -> return $ Single $ c { owSemantics = Just y }
         Nothing -> argsError "\"-os\": No semantics given"
@@ -187,7 +190,7 @@ parseArguments args = do
         Nothing -> argsError "\"--overwrite-semantics\": No semantics given"
         _       -> parseArgument c "-os" next
       "-ot"                      -> case next of
-        Just x  -> case fromString x of
+        Just x  -> case safeConvert x of
           Left err -> prError $ show err
           Right y  -> return $ Single $ c { owTarget = Just y }
         Nothing -> argsError "\"-ot\": No target given"

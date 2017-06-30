@@ -28,6 +28,21 @@ module Info
 -----------------------------------------------------------------------------
 
 import Syfco
+  ( Configuration(..)
+  , Semantics(..)
+  , Target(..)
+  , Specification
+  , defaultCfg
+  , title
+  , description
+  , semantics
+  , target
+  , tags
+  , parameters
+  , inputs
+  , outputs
+  , version
+  )
 
 import Data.Array
   ( (!)
@@ -35,10 +50,6 @@ import Data.Array
 
 import Control.Monad
   ( unless
-  )
-
-import Data.Char
-  ( toLower
   )
 
 import System.Exit

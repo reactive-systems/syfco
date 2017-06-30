@@ -11,6 +11,9 @@
 {-# LANGUAGE
 
     LambdaCase
+  , MultiParamTypeClasses
+  , TypeSynonymInstances
+  , FlexibleInstances
 
   #-}
 
@@ -26,16 +29,9 @@ module Data.Types
 
 -----------------------------------------------------------------------------
 
-import Print
-  ( Print(..)
-  )
-
-import Parse
-  ( Parse(..)
-  )
-
-import Data.Error
-  ( conversionError
+import Data.Convertible
+  ( Convertible(..)
+  , ConvertError(..)
   )
 
 import Data.Expression
@@ -56,24 +52,23 @@ data Target =
 
 -----------------------------------------------------------------------------
 
--- | Machine readable instance for Target.
-
-instance Print Target where
-  toString = \case
+instance Convertible Target String where
+  safeConvert = return . \case
     TargetMealy -> "mealy"
     TargetMoore -> "moore"
 
 -----------------------------------------------------------------------------
 
--- | Target parser.
-
-instance Parse Target where
-  fromString = \case
+instance Convertible String Target where
+  safeConvert = \case
     "mealy" -> return TargetMealy
     "moore" -> return TargetMoore
-    str     -> conversionError
-                "Target Parser"
-                ("Conversion failed: " ++ str)
+    str     -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "Target"
+      , convErrorMessage = "Unknown target"
+      }
 
 -----------------------------------------------------------------------------
 
@@ -92,10 +87,8 @@ data Semantics =
 
 -----------------------------------------------------------------------------
 
--- | Machine readable instance for Semantics.
-
-instance Print Semantics where
-  toString = \case
+instance Convertible Semantics String where
+  safeConvert = return . \case
     SemanticsMealy       -> "mealy"
     SemanticsMoore       -> "moore"
     SemanticsStrictMealy -> "mealy,strict"
@@ -103,17 +96,18 @@ instance Print Semantics where
 
 -----------------------------------------------------------------------------
 
--- | Semantics parser.
-
-instance Parse Semantics where
-  fromString = \case
+instance Convertible String Semantics where
+  safeConvert = \case
     "mealy"        -> return SemanticsMealy
     "moore"        -> return SemanticsMoore
     "mealy,strict" -> return SemanticsStrictMealy
     "moore,strict" -> return SemanticsStrictMoore
-    str            -> conversionError
-                       "Semantics Parser"
-                       ("Conversion failed: " ++ str)
+    str            -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "Semantics"
+      , convErrorMessage = "Unknown semantics"
+      }
 
 -----------------------------------------------------------------------------
 

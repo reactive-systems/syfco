@@ -11,6 +11,9 @@
 {-# LANGUAGE
 
     LambdaCase
+  , MultiParamTypeClasses
+  , TypeSynonymInstances
+  , FlexibleInstances
 
   #-}
 
@@ -27,16 +30,9 @@ module Writer.Data
 
 -----------------------------------------------------------------------------
 
-import Print
-  ( Print(..)
-  )
-
-import Parse
-  ( Parse(..)
-  )
-
-import Data.Error
-  ( conversionError
+import Data.Convertible
+  ( Convertible(..)
+  , ConvertError(..)
   )
 
 -----------------------------------------------------------------------------
@@ -53,25 +49,23 @@ data WriteMode =
 
 -----------------------------------------------------------------------------
 
--- | Machine readable names of the modes used by the command line or
--- configuration files. The name of each format has to be unique.
-
-instance Print WriteMode where
-  toString = \case
+instance Convertible WriteMode String where
+  safeConvert = return . \case
     Pretty -> "pretty"
     Fully  -> "fully"
 
 -----------------------------------------------------------------------------
 
--- | Mode parser.
-
-instance Parse WriteMode where
-  fromString = \case
+instance Convertible String WriteMode where
+  safeConvert = \case
     "pretty" -> return Pretty
     "fully"  -> return Fully
-    str      -> conversionError
-                 "WriteMode Parser"
-                  ("Conversion failed: " ++ str)
+    str      -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "WriteMode"
+      , convErrorMessage = "Unknown mode"
+      }
 
 -----------------------------------------------------------------------------
 

@@ -23,6 +23,18 @@ module Main
 -----------------------------------------------------------------------------
 
 import Syfco
+  ( Configuration(..)
+  , WriteFormat(..)
+  , Specification
+  , fromTLSF
+  , apply
+  , partition
+  , checkGR
+  )
+
+import Data.Convertible
+  ( convert
+  )
 
 import Info
   ( prTitle
@@ -60,10 +72,6 @@ import System.Directory
 
 import Control.Monad
   ( when
-  )
-
-import Control.Exception
-  ( assert
   )
 
 import GHC.IO.Encoding
@@ -108,11 +116,11 @@ readContents c = do
 readContent
   :: Configuration -> (String,Maybe String) -> IO ()
 
-readContent c (content,file) = case readSpecification content of
+readContent c (content,file) = case fromTLSF content of
   Left err -> prError $ show err
   Right s
     | check c       -> do
-        case writeSpecification c s of
+        case apply c s of
           Left err -> prError $ show err
           Right _  ->
             case file of
@@ -164,7 +172,7 @@ readInput c = case inputFiles c of
 writeOutput
   :: Configuration -> Specification -> IO ()
 
-writeOutput c s = case writeSpecification c s of
+writeOutput c s = case apply c s of
   Left err -> prError $ show err
   Right wc -> do
     case outputFile c of
@@ -175,7 +183,7 @@ writeOutput c s = case writeSpecification c s of
         UNBEAST -> writeFile (rmSuffix f ++ ".xml") wc
         _       -> writeFile f wc
 
-    when (isJust $ partFile c) $ case writePartition c s of
+    when (isJust $ partFile c) $ case partition c s of
       Left err -> prError $ show err
       Right f  -> writeFile (fromJust $ partFile c) f
 
@@ -192,6 +200,6 @@ writeConfiguration
   :: Configuration -> FilePath -> IO ()
 
 writeConfiguration c file =
-  writeFile file $ writeCfg c
+  writeFile file $ convert c
 
 -----------------------------------------------------------------------------

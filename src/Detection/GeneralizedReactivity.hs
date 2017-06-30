@@ -127,9 +127,9 @@ data TFml =
 
 -----------------------------------------------------------------------------
 
--- | Checks whether a given specification is part of the Generalized
--- Reactivity fragment. If it is the case, the reactivity level is
--- returned, while otherwise the check returns @-1@.
+-- | Checks whether a given specification is in the Generalized
+-- Reactivity fragment. If this is the case, the reactivity level is
+-- returned. Otherwise, the check returns "@-1@".
 
 checkGR
   :: Specification -> Either Error Int

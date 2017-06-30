@@ -11,6 +11,9 @@
 {-# LANGUAGE
 
     LambdaCase
+  , MultiParamTypeClasses
+  , TypeSynonymInstances
+  , FlexibleInstances
 
   #-}
 
@@ -23,21 +26,13 @@ module Writer.Formats
 
 -----------------------------------------------------------------------------
 
-import Print
-  ( Print(..)
-  )
-
-import Parse
-  ( Parse(..)
+import Data.Convertible
+  ( Convertible(..)
+  , ConvertError(..)
   )
 
 import Data.List
   ( find
-  )
-
-import Data.Error
-  ( Error
-  , conversionError
   )
 
 -----------------------------------------------------------------------------
@@ -102,11 +97,8 @@ instance Show WriteFormat where
 
 -----------------------------------------------------------------------------
 
--- | Machine readable names of the formats used by the command line or
--- configuration files. The name of each format has to be unique.
-
-instance Print WriteFormat where
-  toString = \case
+instance Convertible WriteFormat String where
+  safeConvert = return . \case
     UTF8        -> "utf8"
     WRING       -> "wring"
     PROMELA     -> "promela"
@@ -125,10 +117,8 @@ instance Print WriteFormat where
 
 -----------------------------------------------------------------------------
 
--- | Format parser.
-
-instance Parse WriteFormat where
-  fromString = \case
+instance Convertible String WriteFormat where
+  safeConvert = \case
     "utf8"         -> return UTF8
     "wring"        -> return WRING
     "promela"      -> return PROMELA
@@ -144,9 +134,12 @@ instance Parse WriteFormat where
     "psl"          -> return PSL
     "smv"          -> return SMV
     "bosy"         -> return BOSY
-    str            -> conversionError
-                       "WriteFormat Parser"
-                       ("Conversion failed: " ++ str)
+    str            -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "WriteFormat"
+      , convErrorMessage = "Unknown format"
+      }
 
 -----------------------------------------------------------------------------
 

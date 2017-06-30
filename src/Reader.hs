@@ -17,7 +17,7 @@
 -----------------------------------------------------------------------------
 
 module Reader
-  ( readSpecification
+  ( fromTLSF
   ) where
 
 -----------------------------------------------------------------------------
@@ -90,13 +90,12 @@ import Debug.Trace
 
 -----------------------------------------------------------------------------
 
--- | Reads a specification from a string to the internal 'Specification'
--- data structure.
+-- | Parses a specification in TLSF.
 
-readSpecification
+fromTLSF
   :: String -> Either Error Specification
 
-readSpecification str =
+fromTLSF str =
   -- parse the input
   parse str >>=
 

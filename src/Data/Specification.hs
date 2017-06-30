@@ -54,22 +54,22 @@ type Expression = Expr Int
 
 data Specification =
   Specification
-    { -- | Source of the specification file.
+    { -- | Returns the TSLF source of a specification.
       source :: String
 
-    , -- | Title of the specification.
+    , -- | Returns the title of a specification.
       title :: String
 
-    , -- | Description of the specification.
+    , -- | Returns the description of a specification.
       description :: String
 
-    , -- | Semantics flag of the specification.
+    , -- | Returns the semantics of a specification.
       semantics :: Semantics
 
-    , -- | Target flag of the specification.
+    , -- | Returns the target flag of a specification.
       target :: Target
 
-    , -- | Tag list of the specification.
+    , -- | Returns the tag list of a specification.
       tags :: [String]
 
     , -- | Positions of the tags in the tags list. Each expression

@@ -70,7 +70,8 @@ name = "SyFCo"
 
 -----------------------------------------------------------------------------
 
--- | Returns the version string if build with cabal or stack.
+-- | Returns the build version of the library. Requires the library to
+-- be built with cabal or stack.
 
 version = case P.version of
   Version [0,0,0,0] [] -> "no version information available"

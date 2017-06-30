@@ -27,9 +27,8 @@ module Syfco
   , Error
     -- * Configurations
   , defaultCfg
-  , readCfg
-  , writeCfg
-  , checkCfg
+  , update
+  , verify
     -- * Specifcations
   , source
   , title
@@ -41,9 +40,9 @@ module Syfco
   , inputs
   , outputs
   , symboltable
-  , readSpecification
-  , writeSpecification
-  , writePartition
+  , fromTLSF
+  , partition
+  , apply
     -- * Fragment Detection
   , checkGR
     -- * Meta Information
@@ -64,9 +63,8 @@ import Data.Error
 import Config
   ( Configuration(..)
   , defaultCfg
-  , readCfg
-  , writeCfg
-  , checkCfg
+  , update
+  , verify
   )
 
 import Writer.Data
@@ -75,8 +73,8 @@ import Writer.Data
 
 import Writer
   ( WriteFormat(..)
-  , writeSpecification
-  , writePartition
+  , apply
+  , partition
   )
 
 import Data.Specification
@@ -95,7 +93,7 @@ import qualified Data.Specification as S
   )
 
 import Reader
-  ( readSpecification
+  ( fromTLSF
   )
 
 import Detection
@@ -131,7 +129,7 @@ import Data.Info
 
 -----------------------------------------------------------------------------
 
--- | The parameters of the given specification.
+-- | Returns the parameters of a specification.
 
 parameters
   :: Specification -> [String]
@@ -141,7 +139,8 @@ parameters s =
 
 -----------------------------------------------------------------------------
 
--- | The input signals of the given specification.
+-- | Returns the input signals of a specification using the format as
+-- implied by the given configuration.
 
 inputs
   :: Configuration -> Specification -> Either Error [String]
@@ -153,7 +152,8 @@ inputs c s = case eval c s of
 
 -----------------------------------------------------------------------------
 
--- | The input signals of the given specification.
+-- | Returns the ouputs signals of a specification using the format as
+-- implied by the given configuration.
 
 outputs
   :: Configuration -> Specification -> Either Error [String]
@@ -165,7 +165,7 @@ outputs c s = case eval c s of
 
 -----------------------------------------------------------------------------
 
--- | Returns the symbol table of the specification as CSV file.
+-- | Returns the symbol table of a specification in CSV format.
 
 symboltable
   :: Specification -> String

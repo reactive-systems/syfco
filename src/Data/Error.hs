@@ -54,7 +54,7 @@ import System.IO
 
 -----------------------------------------------------------------------------
 
--- | Unifying data structure.
+-- | Internal representation of an error.
 
 data Error =
     ErrType TypeError
