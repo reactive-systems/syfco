@@ -3,66 +3,77 @@
 -- Module      :  Reader.Abstraction
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Abstracts from identifier names to integer IDs.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Abstraction
-    ( abstract
-    ) where
+  ( abstract
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Types
-    ( SignalDecType(..)
-    )  
+  ( SignalDecType(..)
+  )
 
 import Data.Enum
-    ( EnumDefinition(..)
-    ) 
+  ( EnumDefinition(..)
+  )
 
 import Data.Binding
-    ( BindExpr(..)
-    )
-    
+  ( BindExpr(..)
+  )
+
 import Data.Expression
-    ( Expr(..)
-    , Expr'(..)
-    , ExprPos  
-    )  
+  ( Expr(..)
+  , Expr'(..)
+  , ExprPos
+  )
 
 import Reader.Data
-    ( NameTable
-    , PositionTable
-    , ArgumentTable
-    , Specification(..)  
-    )
-    
+  ( NameTable
+  , PositionTable
+  , ArgumentTable
+  , Specification(..)
+  )
+
 import Reader.Error
-    ( Error
-    , errUnknown
-    , errConflict
-    , errPattern  
-    )  
+  ( Error
+  , errUnknown
+  , errConflict
+  , errPattern
+  )
 
 import Data.Maybe
-    ( mapMaybe
-    )
-    
+  ( mapMaybe
+  )
+
 import Control.Monad.State
-    ( StateT(..)
-    , evalStateT
-    , get
-    , put
-    , void
-    )
+  ( StateT(..)
+  , evalStateT
+  , get
+  , put
+  , void
+  )
 
 import qualified Reader.Parser.Data as PD
+  ( Specification(..)
+  )
 
 import qualified Data.IntMap.Strict as IM
+  ( empty
+  , insert
+  , lookup
+  )
 
 import qualified Data.StringMap as SM
+  ( StringMap
+  , empty
+  , insert
+  , lookup
+  )
 
 -----------------------------------------------------------------------------
 
@@ -75,7 +86,7 @@ data ST = ST
   , tIndex :: SM.StringMap
   , tName :: NameTable
   , tPos :: PositionTable
-  , tArgs :: ArgumentTable  
+  , tArgs :: ArgumentTable
   }
 
 -----------------------------------------------------------------------------
@@ -88,7 +99,7 @@ data ST = ST
 abstract
   :: PD.Specification -> Either Error Specification
 
-abstract spec = 
+abstract spec =
   evalStateT (abstractSpec spec)
     ST { count = 1
        , tIndex = SM.empty
@@ -96,8 +107,8 @@ abstract spec =
        , tPos = IM.empty
        , tArgs = IM.empty
        }
-    
------------------------------------------------------------------------------    
+
+-----------------------------------------------------------------------------
 
 abstractSpec
   :: Abstractor PD.Specification Specification
@@ -111,7 +122,7 @@ abstractSpec s = do
 
   let
     (ig,ib,ie) = foldl classify ([],[],[]) $ PD.inputs s
-    (og,ob,oe) = foldl classify ([],[],[]) $ PD.outputs s      
+    (og,ob,oe) = foldl classify ([],[],[]) $ PD.outputs s
 
   a <- get
   ms <- mapM abstractEnum $ PD.enumerations s
@@ -137,7 +148,7 @@ abstractSpec s = do
     os =
       map SDSingle og' ++
       map (uncurry SDBus) ob' ++
-      map (uncurry SDEnum) oe''      
+      map (uncurry SDEnum) oe''
 
   es <- mapM abstractExpr $ PD.initially s
   ss <- mapM abstractExpr $ PD.preset s
@@ -167,7 +178,7 @@ abstractSpec s = do
       SDSingle y -> (y:a,b,c)
       SDBus y z  -> (a,(y,z):b,c)
       SDEnum y z -> (a,b,(y,z):c)
-    
+
     abstractTypedBus (n,m) = do
       a <- add n
       return (a,m)
@@ -196,7 +207,7 @@ abstractBus ((s,p),e) = do
   e' <- abstractExpr e
   return ((i,p'),e')
 
------------------------------------------------------------------------------     
+-----------------------------------------------------------------------------
 
 abstractEnum
   :: Abstractor (EnumDefinition String) (EnumDefinition Int)
@@ -204,7 +215,7 @@ abstractEnum
 abstractEnum b = do
   (n,p) <- add (eName b, ePos b)
   vs <- mapM abstractEnumV $ eValues b
-    
+
   return EnumDefinition
     { eName = n
     , eSize = eSize b
@@ -238,15 +249,15 @@ abstractBind b = do
   put $ a' {
     tIndex = tIndex a,
     tArgs = IM.insert i (map fst as) $ tArgs a'
-    }  
-    
+    }
+
   return BindExpr
     { bIdent = i
     , bArgs = as
-    , bPos = bPos b              
+    , bPos = bPos b
     , bVal = es
     }
-  
+
 -----------------------------------------------------------------------------
 
 add
@@ -261,7 +272,7 @@ add (i,pos) = do
         , tIndex = SM.insert i (count a) $ tIndex a
         , tName = IM.insert (count a) i $ tName a
         , tPos = IM.insert (count a) pos $ tPos a
-        , tArgs = IM.insert (count a) [] $ tArgs a         
+        , tArgs = IM.insert (count a) [] $ tArgs a
         }
       return (count a,pos)
     Just j ->
@@ -294,10 +305,10 @@ abstractExpr e = case expr e of
   NumSMin x        -> lift' NumSMin x
   NumSMax x        -> lift' NumSMax x
   NumSSize x       -> lift' NumSSize x
-  NumSizeOf x      -> lift' NumSizeOf x  
+  NumSizeOf x      -> lift' NumSizeOf x
   LtlNext x        -> lift' LtlNext x
   LtlGlobally x    -> lift' LtlGlobally x
-  LtlFinally x     -> lift' LtlFinally x  
+  LtlFinally x     -> lift' LtlFinally x
   NumPlus x y      -> lift2' NumPlus x y
   NumMinus x y     -> lift2' NumMinus x y
   NumMul x y       -> lift2' NumMul x y
@@ -316,19 +327,19 @@ abstractExpr e = case expr e of
   BlnOr x y        -> lift2' BlnOr x y
   BlnAnd x y       -> lift2' BlnAnd x y
   BlnImpl x y      -> lift2' BlnImpl x y
-  BlnEquiv x y     -> lift2' BlnEquiv x y        
+  BlnEquiv x y     -> lift2' BlnEquiv x y
   LtlRNext x y     -> lift2' LtlRNext x y
   LtlRGlobally x y -> lift2' LtlRGlobally x y
   LtlRFinally x y  -> lift2' LtlRFinally x y
-  LtlUntil x y     -> lift2' LtlUntil x y            
+  LtlUntil x y     -> lift2' LtlUntil x y
   LtlWeak x y      -> lift2' LtlWeak x y
-  LtlRelease x y   -> lift2' LtlRelease x y  
-  NumRPlus xs x    -> cond NumRPlus xs x 
-  NumRMul xs x     -> cond NumRMul xs x 
-  SetRCup xs x     -> cond SetRCup xs x 
-  SetRCap xs x     -> cond SetRCap xs x 
-  BlnROr xs x      -> cond BlnROr xs x 
-  BlnRAnd xs x     -> cond BlnRAnd xs x 
+  LtlRelease x y   -> lift2' LtlRelease x y
+  NumRPlus xs x    -> cond NumRPlus xs x
+  NumRMul xs x     -> cond NumRMul xs x
+  SetRCup xs x     -> cond SetRCup xs x
+  SetRCap xs x     -> cond SetRCap xs x
+  BlnROr xs x      -> cond BlnROr xs x
+  BlnRAnd xs x     -> cond BlnRAnd xs x
   BaseId x         -> do
     (x',p) <- check (x,srcPos e)
     return $ Expr (BaseId x') p
@@ -352,13 +363,13 @@ abstractExpr e = case expr e of
     Pattern x y -> do
       a <- get
       x' <- abstractExpr x
-      getPatternIds y 
+      getPatternIds y
       y' <- abstractExpr y
       z' <- abstractExpr z
       a' <- get
       put $ a' { tIndex = tIndex a }
       return $ Expr (Colon (Expr (Pattern x' y') (srcPos v)) z') (srcPos e)
-    _ -> lift2' Colon v z 
+    _ -> lift2' Colon v z
   Pattern x y      -> lift2' Pattern x y
 
   where
@@ -368,12 +379,12 @@ abstractExpr e = case expr e of
 
     lift2' c x y = do
       x' <- abstractExpr x
-      y' <- abstractExpr y      
+      y' <- abstractExpr y
       return $ Expr (c x' y') (srcPos e)
-    
+
     cond c xs x = do
       a <- get
-      _ <- mapM add $ mapMaybe getId xs
+      mapM_ add $ mapMaybe getId xs
       xs' <- mapM abstractExpr xs
       x' <- abstractExpr x
       a' <- get
@@ -381,16 +392,16 @@ abstractExpr e = case expr e of
       return $ Expr (c xs' x') (srcPos e)
 
     getId x = case expr x of
-      BlnElem y _ -> isid y 
-      BlnLE n _   -> range n 
+      BlnElem y _ -> isid y
+      BlnLE n _   -> range n
       BlnLEQ n _  -> range n
       _          -> Nothing
 
     range n = case expr n of
-      BlnLE _ m  -> isid m 
-      BlnLEQ _ m -> isid m 
+      BlnLE _ m  -> isid m
+      BlnLEQ _ m -> isid m
       _          -> Nothing
-      
+
     isid m = case expr m of
       BaseId i -> Just (i,srcPos m)
       _        -> Nothing
@@ -400,7 +411,7 @@ abstractExpr e = case expr e of
       BaseTrue         -> return ()
       BaseFalse        -> return ()
       BaseOtherwise    -> return ()
-      BaseId i         -> void $ add (i,srcPos z)      
+      BaseId i         -> void $ add (i,srcPos z)
       BlnNot x         -> getPatternIds x
       BlnOr x y        -> mapM_ getPatternIds [x,y]
       BlnAnd x y       -> mapM_ getPatternIds [x,y]
@@ -414,7 +425,7 @@ abstractExpr e = case expr e of
       LtlRFinally _ x  -> getPatternIds x
       LtlUntil x y     -> mapM_ getPatternIds [x,y]
       LtlWeak x y      -> mapM_ getPatternIds [x,y]
-      LtlRelease x y   -> mapM_ getPatternIds [x,y]      
+      LtlRelease x y   -> mapM_ getPatternIds [x,y]
       _                -> errPattern $ srcPos z
 
 -----------------------------------------------------------------------------

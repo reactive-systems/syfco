@@ -21,6 +21,10 @@ import Data.Expression
 
 -----------------------------------------------------------------------------
 
+-- | An enumeration definiton consists of a name, the number of
+-- entries, the values associated with each entry, the position, a list
+-- of entries not explicitly listed and ?.
+
 data EnumDefinition a =
   EnumDefinition
   { eName :: a
@@ -32,6 +36,9 @@ data EnumDefinition a =
   } 
 
 -----------------------------------------------------------------------------
+
+-- | An @EnumId@ contains all information to uniqely identify an
+-- enumaration.
 
 data EnumId a =
   EnumId

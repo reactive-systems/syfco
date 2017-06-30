@@ -8,7 +8,14 @@
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE
+
+    LambdaCase
+  , MultiParamTypeClasses
+  , TypeSynonymInstances
+  , FlexibleInstances
+
+  #-}
 
 -----------------------------------------------------------------------------
 
@@ -22,16 +29,9 @@ module Data.Types
 
 -----------------------------------------------------------------------------
 
-import GHC.Generics
-  ( Generic
-  )
-
-import Generics.Deriving.Enum
-  ( GEnum
-  )
-
-import Data.Utils
-  ( MachinePrintable(..)
+import Data.Convertible
+  ( Convertible(..)
+  , ConvertError(..)
   )
 
 import Data.Expression
@@ -45,19 +45,30 @@ import Data.Expression
 
 data Target =
     TargetMealy
+    -- ^ Mealy machine target
   | TargetMoore
-  deriving (Generic, Eq)
+    -- ^ Moore machine target
+  deriving (Eq, Ord)
 
 -----------------------------------------------------------------------------
 
--- | MachinePrintable instance for Target.
-
-instance GEnum Target
-
-instance MachinePrintable Target where
-  mprint t = case t of
+instance Convertible Target String where
+  safeConvert = return . \case
     TargetMealy -> "mealy"
     TargetMoore -> "moore"
+
+-----------------------------------------------------------------------------
+
+instance Convertible String Target where
+  safeConvert = \case
+    "mealy" -> return TargetMealy
+    "moore" -> return TargetMoore
+    str     -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "Target"
+      , convErrorMessage = "Unknown target"
+      }
 
 -----------------------------------------------------------------------------
 
@@ -65,23 +76,38 @@ instance MachinePrintable Target where
 
 data Semantics =
     SemanticsMealy
+    -- ^ Standard Mealy machine semantics.
   | SemanticsMoore
+    -- ^ Standard Moore machine semantics.
   | SemanticsStrictMealy
+    -- ^ Mealy machine semantics with strict envionment assumptions.
   | SemanticsStrictMoore
-  deriving (Show, Eq, Generic)
+    -- ^ Moore machine semantics with strict envionment assumptions.
+  deriving (Eq, Ord)
 
 -----------------------------------------------------------------------------
 
--- | MachinePrintable instance for Semantics.
-
-instance GEnum Semantics
-
-instance MachinePrintable Semantics where
-  mprint s = case s of
-    SemanticsMealy -> "mealy"
-    SemanticsMoore -> "moore"
+instance Convertible Semantics String where
+  safeConvert = return . \case
+    SemanticsMealy       -> "mealy"
+    SemanticsMoore       -> "moore"
     SemanticsStrictMealy -> "mealy,strict"
     SemanticsStrictMoore -> "moore,strict"
+
+-----------------------------------------------------------------------------
+
+instance Convertible String Semantics where
+  safeConvert = \case
+    "mealy"        -> return SemanticsMealy
+    "moore"        -> return SemanticsMoore
+    "mealy,strict" -> return SemanticsStrictMealy
+    "moore,strict" -> return SemanticsStrictMoore
+    str            -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "Semantics"
+      , convErrorMessage = "Unknown semantics"
+      }
 
 -----------------------------------------------------------------------------
 

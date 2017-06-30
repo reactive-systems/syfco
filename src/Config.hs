@@ -8,33 +8,45 @@
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE
+
+    LambdaCase
+  , MultiParamTypeClasses
+  , TypeSynonymInstances
+  , FlexibleInstances
+  , FlexibleContexts
+  , RecordWildCards
+
+  #-}
 
 -----------------------------------------------------------------------------
 
 module Config
   ( Configuration(..)
   , defaultCfg
-  , parseArguments
-  , printableConfig
+  , update
+  , verify
   ) where
 
 -----------------------------------------------------------------------------
+
+import Data.Convertible
+  ( Convertible(..)
+  , ConvertError(..)
+  , safeConvert
+  , convert
+  )
 
 import Data.Char
   ( toLower
   )
 
 import Data.Info
-  ( toolName
-  , toolVersion
+  ( name
+  , version
   , defaultDelimiter
   , defaultPrimeSymbol
   , defaultAtSymbol
-  )
-
-import Data.Utils
-  ( MachinePrintable(..)
   )
 
 import Data.Maybe
@@ -54,8 +66,8 @@ import Data.Types
 import Data.Error
   ( Error
   , prError
-  , argsError
   , parseError
+  , cfgError
   )
 
 import Writer.Formats
@@ -82,14 +94,11 @@ import Control.Monad
   ( void
   , liftM
   , when
+  , unless
   )
 
 import Writer.Data
   ( WriteMode(..)
-  )
-
-import Generics.Deriving.Enum
-  ( GEnum
   )
 
 import Reader.Parser.Info
@@ -124,15 +133,15 @@ import qualified Text.Parsec as P
 
 -----------------------------------------------------------------------------
 
--- | The @Configuartion@ data type contains all flags and settings
--- that can be adjusted via the command line arguments. This includes:
+-- | The data type contains all flags and settings
+-- that can be adjusted to influence the behavior of the library:
 
 data Configuration =
   Configuration
-  { inputFile :: [String]
+  { inputFiles :: [FilePath]
     -- ^ The list of input files containing the specifications.
 
-  , outputFile :: Maybe String
+  , outputFile :: Maybe FilePath
     -- ^ An optional path to the output file, the transformed
     -- specification is written to.
 
@@ -153,8 +162,8 @@ data Configuration =
     -- set.
 
   , busDelimiter :: String
-    -- ^ The delimiter string to seperate the bus index from the b
-    -- signa name.
+    -- ^ The delimiter string to seperate the bus index from the
+    -- signal name.
     --
     --   /(can be changed via a configuration file, use:/ &#160;
     --   @ bus_delimiter = ... @ /)/
@@ -360,62 +369,61 @@ data Configuration =
     -- README.md file should be printed to STDOUT or not.
   , saveConfig :: [FilePath]
     -- ^ List of file paths to store the current configuration.
-  }
+  } deriving (Eq, Ord)
 
 -----------------------------------------------------------------------------
 
--- | The default configuration.
---
+-- |
 -- @
--- inputFile = []
--- outputFile = Nothing
--- outputFormat = FULL
--- outputMode = Pretty
--- partFile = Nothing
--- busDelimiter = "_"
--- primeSymbol = "'"
--- atSymbol = "@"
--- fromStdin = False
--- owSemantics = Nothing
--- owTarget = Nothing
--- owParameter = []
--- simplifyWeak = False
+-- inputFiles     = []
+-- outputFile     = Nothing
+-- outputFormat   = FULL
+-- outputMode     = Pretty
+-- partFile       = Nothing
+-- busDelimiter   = "_"
+-- primeSymbol    = "'"
+-- atSymbol       = "@"
+-- fromStdin      = False
+-- owSemantics    = Nothing
+-- owTarget       = Nothing
+-- owParameter    = []
+-- simplifyWeak   = False
 -- simplifyStrong = False
--- negNormalForm = False
--- pushGlobally = False
--- pushFinally = False
--- pushNext = False
--- pullGlobally = False
--- pullFinally = False
--- pullNext = False
--- noWeak = False
--- noRelease = False
--- noFinally = False
--- noGlobally = False
--- noDerived = False
--- cGR = False
--- check = False
--- pTitle = False
--- pDesc = False
--- pSemantics = False
--- pTarget = False
--- pTags = False
--- pParameters = False
--- pInputs = False
--- pOutputs = False
--- pInfo = False
--- pVersion = False
--- pHelp = False
--- pReadme = False
--- pReadmeMd = False
--- saveConfig = []
+-- negNormalForm  = False
+-- pushGlobally   = False
+-- pushFinally    = False
+-- pushNext       = False
+-- pullGlobally   = False
+-- pullFinally    = False
+-- pullNext       = False
+-- noWeak         = False
+-- noRelease      = False
+-- noFinally      = False
+-- noGlobally     = False
+-- noDerived      = False
+-- cGR            = False
+-- check          = False
+-- pTitle         = False
+-- pDesc          = False
+-- pSemantics     = False
+-- pTarget        = False
+-- pTags          = False
+-- pParameters    = False
+-- pInputs        = False
+-- pOutputs       = False
+-- pInfo          = False
+-- pVersion       = False
+-- pHelp          = False
+-- pReadme        = False
+-- pReadmeMd      = False
+-- saveConfig     = []
 -- @
 
 defaultCfg
   :: Configuration
 
 defaultCfg = Configuration
-  { inputFile      = []
+  { inputFiles     = []
   , outputFile     = Nothing
   , outputFormat   = FULL
   , outputMode     = Pretty
@@ -461,277 +469,74 @@ defaultCfg = Configuration
 
 -----------------------------------------------------------------------------
 
-data Args a = None a | Single a
+-- | Verifies that a configuration does not contain invalid parameter
+-- combinations.
 
------------------------------------------------------------------------------
+verify
+  :: Configuration -> Either Error ()
 
--- | Argument parser, which reads the given command line arguments to
--- the internal configuration and checks whether the given
--- combinations are realizable.
-
-parseArguments
-  :: [String] -> IO Configuration
-
-parseArguments args = do
-  c <- traverse defaultCfg args
-  checkConfiguration c
-  return c
-
-  where
-    traverse c xs = case xs of
-      x:y:xr -> do
-        r <- parseArgument c x (Just y)
-        case r of
-          Single c'-> traverse c' xr
-          None c'  -> traverse c' (y:xr)
-      [x]    -> do
-        r <- parseArgument c x Nothing
-        case r of
-          None c'   -> return c'
-          Single c' -> return c'
-      []     -> return c
-
-    parseArgument c arg next = case arg of
-      "-o"                       -> case next of
-        Just x  -> return $ Single $ c { outputFile = Just x }
-        Nothing -> aErr "\"-o\": No output file"
-      "--output"                 -> case next of
-        Nothing -> aErr "\"--output\": No output file"
-        _       -> parseArgument c "-o" next
-      "-r"                       -> case next of
-        Just file -> do
-          exists <- doesFileExist file
-          when (not exists) $ aErr $ "File does not exist: " ++ file
-          readFile file >>= return . parseConfig c >>= \case
-            Left err -> error "todo"
-            Right c' -> return $ Single c'
-        Nothing   -> aErr "\"-r\": No configuration file"
-      "--read-config"            -> case next of
-        Nothing -> aErr "\"--read-config\": No configuration file"
-        _       -> parseArgument c "-r" next
-      "-w"                       -> case next of
-        Just file -> do
-          return $ Single $ c { saveConfig = file : saveConfig c }
-        Nothing   -> aErr "\"-w\": Missing file path"
-      "--write-config"           -> case next of
-        Nothing -> aErr "\"--write-config\": Missing file path"
-        _       -> parseArgument c "-w" next
-      "-f"                       -> case next of
-        Just x  -> case mparse x of
-          Left err -> prError err
-          Right y -> return $ Single $ c { outputFormat = y }
-        Nothing ->
-          aErr "\"-f\": No format given"
-      "--format"                 -> case next of
-        Nothing -> aErr "\"--format\": No format given"
-        _       -> parseArgument c "-f" next
-      "-m"                       -> case next of
-        Just "pretty" -> return $ Single $ c { outputMode = Pretty }
-        Just "fully"  -> return $ Single $ c { outputMode = Fully }
-        Just x        -> aErr ("Unknown mode: " ++ x)
-        Nothing       -> aErr "\"-m\": No mode given"
-      "--mode"                   -> case next of
-        Nothing -> aErr "\"--mode\": no mode given"
-        _       -> parseArgument c "-m" next
-      "-pf"                      -> case next of
-        Just x  -> return $ Single $ c { partFile = Just x }
-        Nothing -> aErr "\"-pf\": No partition file"
-      "-bd"                      -> case next of
-        Just x  -> return $ Single $ c { busDelimiter = x }
-        Nothing -> aErr "\"-bd\": No delimiter given"
-      "--bus-delimiter"          -> case next of
-        Nothing -> aErr "\"--bus-delimiter\": No delimiter given"
-        _       -> parseArgument c "-bd" next
-      "-ps"                      -> case next of
-        Just x  -> return $ Single $ c { primeSymbol = x }
-        Nothing -> aErr "\"-ps\": No symbol replacement given"
-      "--prime-symbol"           -> case next of
-        Just x  -> return $ Single $ c { primeSymbol = x }
-        Nothing -> aErr "\"--prime-symbol\": No symbol replacement given"
-      "-as"                      -> case next of
-        Just x  -> return $ Single $ c { atSymbol = x }
-        Nothing -> aErr "\"-as\": No symbol replacement given"
-      "--at-symbol"              -> case next of
-        Just x  -> return $ Single $ c { atSymbol = x }
-        Nothing -> aErr "\"--at-symbol\": No symbol replacement given"
-      "-in"                      -> return $ None $ c { fromStdin = True }
-      "-os"                      -> case next of
-        Just x  -> case P.parse semanticsParser "Overwrite Semantics Error" x of
-          Left err -> pErr err
-          Right (y,_) -> return $ Single $ c { owSemantics = Just y }
-        Nothing -> aErr "\"-os\": No semantics given"
-      "--overwrite-semantics"    -> case next of
-        Nothing -> aErr "\"--overwrite-semantics\": No semantics given"
-        _       -> parseArgument c "-os" next
-      "-ot"                      -> case next of
-        Just x  -> case P.parse targetParser "Overwrite Target Error" x of
-          Left err -> pErr err
-          Right (y,_) -> return $ Single $ c { owTarget = Just y }
-        Nothing -> aErr "\"-ot\": No target given"
-      "--overwrite-target"       -> case next of
-        Nothing -> aErr "\"--overwrite-target\": No target given"
-        _       -> parseArgument c "-ot" next
-      "-op"                      -> case next of
-        Just x  -> case P.parse parameterParser "Overwrite Parameter Error" x of
-          Left err -> pErr err
-          Right y  -> return $ Single $ c { owParameter = y : owParameter c }
-        Nothing -> aErr "\"-op\": No parameter given"
-      "--overwrite-parameter"    -> case next of
-        Nothing -> aErr "\"--overwrite-parameter\": No parameter given"
-        _       -> parseArgument c "-op" next
-      "-s0"                      -> simple $ c { simplifyWeak = True }
-      "-s1"                      -> simple $ c { simplifyStrong = True }
-      "-nnf"                     -> simple $ c { negNormalForm = True }
-      "-pgi"                     -> simple $ c { pushGlobally = True }
-      "-pfi"                     -> simple $ c { pushFinally = True }
-      "-pxi"                     -> simple $ c { pushNext = True }
-      "-pgo"                     -> simple $ c { pullGlobally = True }
-      "-pfo"                     -> simple $ c { pullFinally = True }
-      "-pxo"                     -> simple $ c { pullNext = True }
-      "-nw"                      -> simple $ c { noWeak = True }
-      "-nr"                      -> simple $ c { noRelease = True }
-      "-nf"                      -> simple $ c { noFinally = True }
-      "-ng"                      -> simple $ c { noGlobally = True }
-      "-nd"                      -> simple $ c { noDerived = True }
-      "-gr"                      -> simple $ (clean c) { cGR = True }
-      "-c"                       -> simple $ (clean c) { check = True }
-      "-t"                       -> simple $ (clean c) { pTitle = True }
-      "-d"                       -> simple $ (clean c) { pDesc = True }
-      "-s"                       -> simple $ (clean c) { pSemantics = True }
-      "-g"                       -> simple $ (clean c) { pTarget = True }
-      "-a"                       -> simple $ (clean c) { pTags = True }
-      "-p"                       -> simple $ (clean c) { pParameters = True }
-      "-ins"                     -> simple $ (clean c) { pInputs = True }
-      "-outs"                    -> simple $ (clean c) { pOutputs = True }
-      "-i"                       -> simple $ (clean c) { pInfo = True }
-      "-v"                       -> simple $ (clean c) { pVersion = True }
-      "-h"                       -> simple $ (clean c) { pHelp = True }
-      "--readme"                 -> simple $ (clean c) { pReadme = True }
-      "--readme.md"              -> simple $ (clean c) { pReadmeMd = True }
-      "--part-file"              -> parseArgument c "-pf" next
-      "--stdin"                  -> parseArgument c "-in" next
-      "--weak-simplify"          -> parseArgument c "-s0" next
-      "--strong-simplify"        -> parseArgument c "-s1" next
-      "--negation-normal-form"   -> parseArgument c "-nnf" next
-      "--push-globally-inwards"  -> parseArgument c "-pgi" next
-      "--push-finally-inwards"   -> parseArgument c "-pfi" next
-      "--push-next-inwards"      -> parseArgument c "-pni" next
-      "--pull-globally-outwards" -> parseArgument c "-pgo" next
-      "--pull-finally-outwards"  -> parseArgument c "-pfo" next
-      "--pull-next-outwards"     -> parseArgument c "-pxo" next
-      "--no-weak-until"          -> parseArgument c "-nw" next
-      "--no-realease"            -> parseArgument c "-nr" next
-      "--no-finally"             -> parseArgument c "-nf" next
-      "--no-globally"            -> parseArgument c "-ng" next
-      "--no-derived"             -> parseArgument c "-nd" next
-      "--generalized-reactivity" -> parseArgument c "-gr" next
-      "--check"                  -> parseArgument c "-c" next
-      "--print-title"            -> parseArgument c "-t" next
-      "--print-description"      -> parseArgument c "-d" next
-      "--print-semantics"        -> parseArgument c "-s" next
-      "--print-target"           -> parseArgument c "-g" next
-      "--print-tags"             -> parseArgument c "-a" next
-      "--print-parameters"       -> parseArgument c "-p" next
-      "--print-input-signals"    -> parseArgument c "-ins" next
-      "--print-output-signals"   -> parseArgument c "-outs" next
-      "--print-info"             -> parseArgument c "-i" next
-      "--version"                -> parseArgument c "-v" next
-      "--help"                   -> parseArgument c "-h" next
-      _                          -> return $ None $ c {
-                                     inputFile = arg : inputFile c
-                                     }
-
-    aErr str =
-      let Left err = argsError str
-      in prError err
-
-    pErr str =
-      let Left err = parseError str
-      in prError err
-
-    clean a = a {
-      check = False,
-      pTitle = False,
-      pDesc = False,
-      pSemantics = False,
-      pTarget = False,
-      pParameters = False,
-      pInfo = False,
-      pVersion = False,
-      pHelp = False,
-      pReadme = False,
-      pReadmeMd = False
-      }
-
-    simple = return . None
-
------------------------------------------------------------------------------
-
-checkConfiguration
-  :: Configuration -> IO ()
-
-checkConfiguration cfg
-  | pHelp cfg || pVersion cfg || pReadme cfg || pReadmeMd cfg =
+verify Configuration{..}
+  | pHelp || pVersion || pReadme || pReadmeMd =
 
       return ()
 
-  | null (inputFile cfg) && not(fromStdin cfg) && null (saveConfig cfg) =
+  | null inputFiles && not fromStdin && null saveConfig =
 
-      error
-        "no input specified"
+      cfgError
+        "No input specified."
 
-  | not (null (inputFile cfg)) && fromStdin cfg =
+  | not (null inputFiles) && fromStdin =
 
-      error
+      cfgError
         "Select either \"-in, --stdin\" or give an input file."
 
-  | pushGlobally cfg && pullGlobally cfg =
+  | pushGlobally && pullGlobally =
 
-      error $
+      cfgError $
         "Select either \"-pgi, --push-globally-inwards\" or " ++
         "\"-pgo, --pull-globally-outwards\"."
 
-  | pushFinally cfg && pullFinally cfg =
+  | pushFinally && pullFinally =
 
-      error $
+      cfgError $
         "Select either \"-pfi, --push-finally-inwards\" or " ++
         "\"-pfo, --pull-finally-outwards\"."
 
-  | pushNext cfg && pullNext cfg =
+  | pushNext && pullNext =
 
-      error $
+      cfgError $
         "Select either \"-pxi, --push-next-inwards\" or " ++
         "\"-pxo, --pull-next-outwards\"."
 
-  | simplifyStrong cfg && (pushGlobally cfg || pushFinally cfg ||
-                           pushNext cfg || noFinally cfg ||
-                           noGlobally cfg || noDerived cfg) =
+  | simplifyStrong && (pushGlobally || pushFinally ||
+                      pushNext  || noFinally ||
+                      noGlobally || noDerived) =
 
-      error $
+      cfgError $
         "The flag 'Advanced Simplifications' cannot be combined " ++
         "with any other non-included transformation."
 
-  | negNormalForm cfg && noRelease cfg && noGlobally cfg && noWeak cfg =
+  | negNormalForm && noRelease && noGlobally && noWeak =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form, no release operators, " ++
         "no globally operators, and no weak until operatators)" ++
         "is impossible to satisfy.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg && noRelease cfg && noDerived cfg =
+  | negNormalForm && noRelease && noDerived =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form, no release operatators, " ++
         "and no derived operators) is impossible to satisfy.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg && noRelease cfg &&
-    (noGlobally cfg || noDerived cfg) && outputFormat cfg == LTLXBA =
+  | negNormalForm && noRelease &&
+    (noGlobally || noDerived) && outputFormat == LTLXBA =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form, no release operators, and " ++
         "no globally / derived operators) " ++
@@ -740,10 +545,10 @@ checkConfiguration cfg
         "the weak until operator.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg && noRelease cfg &&
-    (noGlobally cfg || noDerived cfg) && outputFormat cfg == WRING =
+  | negNormalForm && noRelease &&
+    (noGlobally || noDerived) && outputFormat == WRING =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form, no release operators, and " ++
         "no globally / derived operators) " ++
@@ -752,10 +557,10 @@ checkConfiguration cfg
         "the weak until operator.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg && noRelease cfg &&
-    (noGlobally cfg || noDerived cfg) && outputFormat cfg == LILY =
+  | negNormalForm && noRelease &&
+    (noGlobally || noDerived) && outputFormat == LILY =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form, no release operators, and " ++
         "no globally / derived operators) " ++
@@ -764,10 +569,10 @@ checkConfiguration cfg
         "the weak until operator.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg &&
-    (noGlobally cfg || noDerived cfg) && outputFormat cfg == ACACIA =
+  | negNormalForm &&
+    (noGlobally || noDerived) && outputFormat == ACACIA =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form, no release operators, and " ++
         "no globally / derived operators) " ++
@@ -776,10 +581,10 @@ checkConfiguration cfg
         "the weak until nor the release operator.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg && noRelease cfg &&
-    (noGlobally cfg || noDerived cfg) && outputFormat cfg == SMV =
+  | negNormalForm && noRelease &&
+    (noGlobally || noDerived) && outputFormat == SMV =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form, no release operators, and " ++
         "no globally / derived operators) " ++
@@ -788,9 +593,9 @@ checkConfiguration cfg
         "the weak until operator.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg && noGlobally cfg && outputFormat cfg == PSL =
+  | negNormalForm && noGlobally && outputFormat == PSL =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form and no globally operators)" ++
         "is impossible to satisfy when outputting to the " ++
@@ -798,9 +603,9 @@ checkConfiguration cfg
         "the weak until and the release operator.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg && noDerived cfg && outputFormat cfg == PSL =
+  | negNormalForm && noDerived && outputFormat == PSL =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form and no derived operators)" ++
         "is impossible to satisfy when outputting to the " ++
@@ -808,9 +613,9 @@ checkConfiguration cfg
         "the release operator.\n" ++
         "Remove at least one of these constraints."
 
-  | negNormalForm cfg && noDerived cfg && outputFormat cfg == UNBEAST =
+  | negNormalForm && noDerived && outputFormat == UNBEAST =
 
-      error $
+      cfgError $
         "The given combination of transformations " ++
         "(negation normal form and no derived operators)" ++
         "is impossible to satisfy when outputting to the " ++
@@ -818,15 +623,15 @@ checkConfiguration cfg
         "the release operator.\n" ++
         "Remove at least one of these constraints."
 
-  | outputFormat cfg == FULL &&
-    (isJust (owSemantics cfg) || isJust (owTarget cfg) ||
-     simplifyWeak cfg || simplifyStrong cfg || negNormalForm cfg ||
-     pushGlobally cfg || pushFinally cfg || pushNext cfg ||
-     pullGlobally cfg || pullFinally cfg || pullNext cfg ||
-     noWeak cfg || noRelease cfg || noFinally cfg || noGlobally cfg ||
-     noDerived cfg) =
+  | outputFormat == FULL &&
+    (isJust owSemantics || isJust owTarget ||
+     simplifyWeak || simplifyStrong || negNormalForm ||
+     pushGlobally || pushFinally || pushNext ||
+     pullGlobally || pullFinally || pullNext ||
+     noWeak || noRelease || noFinally || noGlobally ||
+     noDerived) =
 
-      error $
+      cfgError $
         "Applying adaptions is only possible, when transforming to " ++
         "low level backends.\n Returning full TLSF only " ++
         "allows to change parameters."
@@ -834,10 +639,6 @@ checkConfiguration cfg
   | otherwise = return ()
 
   where
-    error str =
-      let Left err = argsError str
-      in prError err
-
     missingQuotes str =
       length str < 2 ||
       head str /= '"' ||
@@ -845,17 +646,16 @@ checkConfiguration cfg
 
 -----------------------------------------------------------------------------
 
--- | Creates a configuration file out of the current configuration.
+-- | Creates the content of a parsable configuration file restricted
+-- to supported configuration file parameters.
 
-printableConfig
-  :: Configuration -> String
-
-printableConfig c = unlines
+instance Convertible Configuration String where
+  safeConvert Configuration{..} = return $ unlines
     [ comment "This configuration file has been automatically " ++
       "generated using"
-    , comment $ toolName ++ " (v" ++ toolVersion ++
+    , comment $ name ++ " (v" ++ version ++
       "). To reload the configuration pass this file to "
-    , comment $ toolName ++ " via '-c <path to config file>'. " ++
+    , comment $ name ++ " via '-c <path to config file>'. " ++
       "Configuration files can be"
     , comment $ "used together with arguments passed via the command " ++
       "line interface."
@@ -873,59 +673,59 @@ printableConfig c = unlines
     , emptyline
     , comment $ "Specifies the format of the generated output file. " ++
       "Use "
-    , comment $ "\"" ++ toolName ++ " --help\" to check for possible " ++
+    , comment $ "\"" ++ name ++ " --help\" to check for possible " ++
       "values."
-    , set "format" $ mprint $ outputFormat c
+    , set "format" $ convert $ outputFormat
     , emptyline
     , comment $ "Specifies the representation mode of the output. " ++
       "Use "
-    , comment $ "\"" ++ toolName ++ " --help\" to check for possible " ++
+    , comment $ "\"" ++ name ++ " --help\" to check for possible " ++
       "values."
-    , set "mode" $ mprint $ outputMode c
+    , set "mode" $ convert $ outputMode
     , emptyline
     , comment $ "Specifies the bus delimiter symbol / string. The " ++
       "value has to be "
     , comment "encapsulated into quotation marks."
-    , set "bus_delimiter" $ "\"" ++ busDelimiter c ++ "\""
+    , set "bus_delimiter" $ "\"" ++ busDelimiter ++ "\""
     , emptyline
     , comment $ "Specifies the output representation of prime " ++
       "symbols. The value "
     , comment "has to be encapsulated into quotation marks."
-    , set "prime_symbol" $ "\"" ++ primeSymbol c ++ "\""
+    , set "prime_symbol" $ "\"" ++ primeSymbol ++ "\""
     , emptyline
     , comment $ "Specifies the output representation of \"@\"-" ++
       "symbols. The value "
     , comment "has to be encapsulated into quotation marks."
-    , set "at_symbol" $ "\"" ++ atSymbol c ++ "\""
+    , set "at_symbol" $ "\"" ++ atSymbol ++ "\""
     , emptyline
     , comment $ "Overwrites the semantics of the input " ++
       "specification. Do not set"
     , comment "to keep the value unchanged."
-    , ifJust (owSemantics c) "overwrite_semantics" mprint
+    , ifJust owSemantics "overwrite_semantics" convert
     , emptyline
     , comment $ "Overwrites the target of the input " ++
       "specification. Do not set"
     , comment "to keep the value unchanged."
-    , ifJust (owTarget c) "overwrite_target" mprint
+    , ifJust owTarget "overwrite_target" convert
     , emptyline
     , comment $ "Either enable or disable weak simplifications on " ++
       "the LTL"
     , comment $ "formula level. Possible values are either \"true\" " ++
       "or \"false\"."
-    , set "weak_simplify"  $ mprint $ simplifyWeak c
+    , set "weak_simplify" $ convert simplifyWeak
     , emptyline
     , comment $ "Either enable or disable strong simplifications on " ++
       "the LTL"
     , comment $ "formula level. Possible values are either \"true\" " ++
       "or \"false\"."
-    , set "strong_simplify" $ mprint $ simplifyStrong c
+    , set "strong_simplify" $ convert simplifyStrong
     , emptyline
     , comment $ "Either enable or disable that the resulting " ++
       "formula is"
     , comment "converted into negation normal form. Possible values " ++
       "are"
     , comment "either \"true\" or \"false\"."
-    , set "negation_normal_form" $ mprint $ negNormalForm c
+    , set "negation_normal_form" $ convert negNormalForm
     , emptyline
     , comment $ "Either enable or disable to push globally operators " ++
       "inwards,"
@@ -934,7 +734,7 @@ printableConfig c = unlines
     , comment "  G (a && b) => (G a) && (G b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "push_globally_inwards" $ mprint $ pushGlobally c
+    , set "push_globally_inwards" $ convert pushGlobally
     , emptyline
     , comment $ "Either enable or disable to push finally operators " ++
       "inwards,"
@@ -943,7 +743,7 @@ printableConfig c = unlines
     , comment "  F (a || b) => (F a) || (F b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "push_finally_inwards" $ mprint $ pushFinally c
+    , set "push_finally_inwards" $ convert pushFinally
     , emptyline
     , comment $ "Either enable or disable to next operators " ++
       "inwards, i.e.,"
@@ -953,7 +753,7 @@ printableConfig c = unlines
     , comment "  X (a || b) => (X a) || (X b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "push_next_inwards" $ mprint $ pushNext c
+    , set "push_next_inwards" $ convert pushNext
     , emptyline
     , comment $ "Either enable or disable to pull globally operators " ++
       "outwards,"
@@ -962,7 +762,7 @@ printableConfig c = unlines
     , comment "  (G a) && (G b) => G (a && b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "pull_globally_outwards" $ mprint $ pullGlobally c
+    , set "pull_globally_outwards" $ convert pullGlobally
     , emptyline
     , comment $ "Either enable or disable to pull finally operators " ++
       "outwards,"
@@ -971,7 +771,7 @@ printableConfig c = unlines
     , comment "  (F a) || (F b) => F (a || b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "pull_finally_outwards" $ mprint $ pullFinally c
+    , set "pull_finally_outwards" $ convert pullFinally
     , emptyline
     , comment $ "Either enable or disable to pull next operators " ++
       "outwards,"
@@ -981,34 +781,34 @@ printableConfig c = unlines
     , comment "  (X a) || (X b) => X (a || b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "pull_next_outwards" $ mprint $ pullNext c
+    , set "pull_next_outwards" $ convert pullNext
     , emptyline
     , comment $ "Either enable or disable to resolve weak until " ++
       "operators."
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "no_weak_until" $ mprint $ noWeak c
+    , set "no_weak_until" $ convert noWeak
     , emptyline
     , comment $ "Either enable or disable to resolve release " ++
       "operators."
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "no_release" $ mprint $ noRelease c
+    , set "no_release" $ convert noRelease
     , emptyline
     , comment $ "Either enable or disable to resolve finally " ++
       "operators."
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "no_finally" $ mprint $ noFinally c
+    , set "no_finally" $ convert noFinally
     , emptyline
     , comment $ "Either enable or disable to resolve globally " ++
       "operators."
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "no_globally" $ mprint $ noGlobally c
+    , set "no_globally" $ convert noGlobally
     , emptyline
     , comment $ "Either enable or disable to resolve derived " ++
       "operators, i.e.,"
     , comment "weak until, finally, globally, ... . Possible " ++
       "values are"
     , comment "either \"true\" or \"false\"."
-    , set "no_derived" $ mprint $ noDerived c
+    , set "no_derived" $ convert noDerived
     , emptyline
     ]
 
@@ -1022,13 +822,17 @@ printableConfig c = unlines
 
 -----------------------------------------------------------------------------
 
-parseConfig
+-- | Parses configuration parameters from the content of a
+-- configuration file and updates the respective entries in the
+-- provided configuration.
+
+update
   :: Configuration -> String -> Either Error Configuration
 
-parseConfig c str =
+update c str =
   case P.parse configParser "Configuration Error" str of
     Left err -> parseError err
-    Right xs  -> return $ foldl (\x f -> f x) c xs
+    Right xs -> return $ foldl (\x f -> f x) c xs
 
 -----------------------------------------------------------------------------
 
@@ -1095,7 +899,7 @@ configParser = (~~) >> many entryParser
       keyword str
       op "="
       v <- identifier tokenparser
-      case mparse v of
+      case safeConvert v of
         Left _  -> parserZero <?> v
         Right m -> return m
 
@@ -1128,14 +932,22 @@ configParser = (~~) >> many entryParser
 
 -----------------------------------------------------------------------------
 
-parameterParser
-  :: Parser (String, Int)
+instance Convertible Bool String where
+  safeConvert = return . \case
+    True  -> "true"
+    False -> "false"
 
-parameterParser = do
-  name <- identifier $ makeTokenParser globalDef
-  void $ char '='
-  x <- many1 digit
-  eof
-  return (name, read x)
+-----------------------------------------------------------------------------
+
+instance Convertible String Bool where
+  safeConvert = \case
+    "true"  -> return True
+    "false" -> return False
+    str     -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "Bool"
+      , convErrorMessage = "Unknown value"
+      }
 
 -----------------------------------------------------------------------------

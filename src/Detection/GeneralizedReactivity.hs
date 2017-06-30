@@ -3,99 +3,101 @@
 -- Module      :  Detection.GeneralizedReactivity
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Detect whether a specification belongs to the Generalized
 -- Reactivity fragment or not.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Detection.GeneralizedReactivity
-    ( GRFormula(..)
-    , Refusal  
-    , detectGR
-    ) where       
+  ( GRFormula(..)
+  , Refusal
+  , detectGR
+  , checkGR
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Simplify
-    ( simplify
-    )  
+  ( simplify
+  )
 
 import Config
-    ( Configuration(..)
-    )
+  ( Configuration(..)
+  , defaultCfg
+  )
 
 import Data.Specification
-    ( Specification(..)
-    )    
+  ( Specification(..)
+  )
 
 import Data.Either
-    ( partitionEithers
-    )
-    
+  ( partitionEithers
+  )
+
 import Data.List
-    ( sortBy
-    , partition
-    , sort
-    , find  
-    )
+  ( sortBy
+  , partition
+  , sort
+  , find
+  )
 
 import Data.Types
-    ( Semantics(..)
-    )  
+  ( Semantics(..)
+  )
 
 import Data.Function
-    ( on
-    )
+  ( on
+  )
 
 import Control.Monad
-    ( unless  
-    )  
-    
+  ( unless
+  )
+
 import Utils
-    ( strictSort
-    , bucketSort  
-    ) 
+  ( strictSort
+  , bucketSort
+  )
 
 import Data.LTL
-    ( Atomic(..)
-    , Formula(..)
-    , fmlOutputs  
-    , subFormulas  
-    , isBooleanFormula
-    , isBooleanNextFormula 
-    , simplePrint  
-    , applySub  
-    , fFinally  
-    , fGlobally  
-    , fNot
-    , fAnd
-    , fOr
-    )  
+  ( Atomic(..)
+  , Formula(..)
+  , fmlOutputs
+  , subFormulas
+  , isBooleanFormula
+  , isBooleanNextFormula
+  , simplePrint
+  , applySub
+  , fFinally
+  , fGlobally
+  , fNot
+  , fAnd
+  , fOr
+  )
 
 import Data.Error
-    ( Error
-    )
+  ( Error
+  )
 
 import Writer.Eval
-    ( eval
-    )
+  ( eval
+  )
 
 import Writer.Utils
-    ( merge
-    )  
+  ( merge
+  )
 
 import Control.Exception
-    ( assert
-    )
+  ( assert
+  )
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
 
 import qualified Data.Map.Strict as M
 
 -----------------------------------------------------------------------------
 
--- | Type of the data structure describing the refusal. 
+-- | Type of the data structure describing the refusal.
 
 type Refusal = String
 
@@ -113,7 +115,7 @@ data GRFormula =
   , liveness :: [([Formula],[Formula])]
   } deriving (Show)
 
------------------------------------------------------------------------------             
+-----------------------------------------------------------------------------
 
 data TFml =
     TTTrue
@@ -121,7 +123,22 @@ data TFml =
   | TAtomic Int
   | TAnd [TFml]
   | TOr [TFml]
-  deriving (Ord, Eq, Show)  
+  deriving (Ord, Eq, Show)
+
+-----------------------------------------------------------------------------
+
+-- | Checks whether a given specification is in the Generalized
+-- Reactivity fragment. If this is the case, the reactivity level is
+-- returned. Otherwise, the check returns "@-1@".
+
+checkGR
+  :: Specification -> Either Error Int
+
+checkGR s = case detectGR defaultCfg s of
+  Right fml -> return $ level fml
+  Left x    -> case x of
+    Left err -> Left err
+    Right _  -> return (-1)
 
 -----------------------------------------------------------------------------
 
@@ -132,7 +149,7 @@ data TFml =
 
 detectGR
   :: Configuration -> Specification -> Either (Either Error Refusal) GRFormula
-                      
+
 detectGR c s = do
   let
     c' = c {
@@ -160,18 +177,18 @@ detectGR c s = do
     Left x                    -> Left $ Left x
     Right y -> case quickCheckGR strict y of
       Just f  -> return f
-      Nothing -> 
+      Nothing ->
         let
           fml = do
             let c'' = c' {
                   negNormalForm = True,
                   simplifyWeak = True
                   }
-                      
-            (es,ss,rs,as,is,gs) <- eval c'' s            
+
+            (es,ss,rs,as,is,gs) <- eval c'' s
             fml' <- merge es ss rs as is gs
-            simplify c'' $ noImplication $ noEquivalence fml' 
-        
+            simplify c'' $ noImplication $ noEquivalence fml'
+
         in case fml of
           Left x  -> Left $ Left x
           Right x -> case transformToGR strict x of
@@ -186,29 +203,29 @@ detectGR c s = do
       rs' <- mapM (simplify x) rs
       as' <- mapM (simplify x) as
       is' <- mapM (simplify x) is
-      gs' <- mapM (simplify x) gs      
+      gs' <- mapM (simplify x) gs
 
       return (es',ss',rs',as',is',gs')
-    
+
     noImplication fml = case fml of
       Implies x y -> let
           x' = noImplication x
           y' = noImplication y
-        in   
+        in
           Or [Not x', y']
       _           ->
-        applySub noImplication fml           
+        applySub noImplication fml
 
     noEquivalence fml = case fml of
-      Equiv x y -> let 
+      Equiv x y -> let
           x' = noEquivalence x
           y' = noEquivalence y
         in
           And [Implies x' y', Implies y' x']
       _         ->
         applySub noEquivalence fml
-        
------------------------------------------------------------------------------        
+
+-----------------------------------------------------------------------------
 
 -- | Transforms an evaluated, but not combined list of formula to GR,
 -- if possible.
@@ -228,7 +245,7 @@ quickCheckGR strict (es,ss,rs,as,is,gs) = do
       zs                     -> zs
 
     (rs',as') = case pullG $ fAnd $ concatMap pullG as of
-      Globally (And xs) : ys -> 
+      Globally (And xs) : ys ->
         let (ls,os) = partitionEithers $ map boolNextInE xs
         in (rs'' ++ ls, map Globally os ++ ys)
       Globally x : ys -> case boolNextIn x of
@@ -243,24 +260,24 @@ quickCheckGR strict (es,ss,rs,as,is,gs) = do
       let
         is'' = case pullG $ fAnd $ concatMap pullG is of
           Globally (And xs) : ys -> xs ++ ys
-          Globally x : ys        -> x : ys          
+          Globally x : ys        -> x : ys
           zs                     -> zs
 
         (is',gs') = case pullG $ fAnd $ concatMap pullG gs of
-          Globally (And xs) : ys -> 
+          Globally (And xs) : ys ->
             let (ls,os) = partitionEithers $ map boolNextFmlE xs
             in (is'' ++ ls, map Globally os ++ ys)
           Globally x : ys -> case boolNextFml x of
             Just ()  -> (x:is'',ys)
-            Nothing -> (is'', Globally x : ys)               
-          zs                     -> (is'',zs)           
+            Nothing -> (is'', Globally x : ys)
+          zs                     -> (is'',zs)
 
       mapM_ boolNextFml is'
 
       case separateStandardLiveness $
            noImplEquiv $ fAnd gs' of
         Right (ls,[]) -> return
-          GRFormula 
+          GRFormula
             { level = length ls
             , initEnv = es
             , initSys = ss
@@ -269,11 +286,11 @@ quickCheckGR strict (es,ss,rs,as,is,gs) = do
             , liveness = ls
             }
         _             -> Nothing
-        
+
     _  -> do
       unless strict Nothing
-      
-      mapM_ boolNextIn rs'      
+
+      mapM_ boolNextIn rs'
 
       let is' = case pullG $ fAnd $ concatMap pullG is of
             Globally (And xs) : ys -> xs ++ ys
@@ -285,7 +302,7 @@ quickCheckGR strict (es,ss,rs,as,is,gs) = do
       case separateStandardLiveness $
            noImplEquiv $ Implies (fAnd as') (fAnd gs) of
         Right ([x],[]) -> return
-          GRFormula 
+          GRFormula
             { level = 1
             , initEnv = es
             , initSys = ss
@@ -311,7 +328,7 @@ quickCheckGR strict (es,ss,rs,as,is,gs) = do
       TTrue       -> return ()
       FFalse      -> return ()
       Atomic _    -> return ()
-      Not x       -> boolFml x 
+      Not x       -> boolFml x
       And xs      -> mapM_ boolFml xs
       Or xs       -> mapM_ boolFml xs
       Implies x y -> mapM_ boolFml [x,y]
@@ -338,13 +355,13 @@ quickCheckGR strict (es,ss,rs,as,is,gs) = do
       TTrue       -> return ()
       FFalse      -> return ()
       Atomic _    -> return ()
-      Not x       -> boolNextFml x      
+      Not x       -> boolNextFml x
       And xs      -> mapM_ boolNextFml xs
       Or xs       -> mapM_ boolNextFml xs
       Implies x y -> mapM_ boolNextFml [x,y]
       Equiv x y   -> mapM_ boolNextFml [x,y]
       Next x      -> boolFml x
-      _           -> Nothing      
+      _           -> Nothing
 
     noImplEquiv fml = case fml of
       TTrue             -> fml
@@ -355,10 +372,10 @@ quickCheckGR strict (es,ss,rs,as,is,gs) = do
       Implies x y       -> fOr [fNot (noImplEquiv x), noImplEquiv y]
       Equiv x y         ->
         let x' = noImplEquiv x
-            y' = noImplEquiv y      
+            y' = noImplEquiv y
         in fOr [fAnd [x',y'], fAnd [fNot x', fNot y']]
-      _                 -> fml     
-      
+      _                 -> fml
+
 
     boolNextFmlE fml = case boolNextFml fml of
       Just ()  -> Left fml
@@ -376,10 +393,10 @@ quickCheckGR strict (es,ss,rs,as,is,gs) = do
       Globally x -> case isG x of
         Left y  -> Left y
         Right y -> Left y
-      _          -> Right f      
-    
+      _          -> Right f
 
------------------------------------------------------------------------------        
+
+-----------------------------------------------------------------------------
 
 -- | Transforms an "evaluated" formula to GR, if possible. If it is
 -- not possible, the reason for the refusal is returend.
@@ -407,8 +424,8 @@ transformToGR strict fml = do
     else separateStandard fr
 
   case rs of
-    [] -> return 
-      GRFormula 
+    [] -> return
+      GRFormula
         { level = length ls
         , initEnv = is
         , initSys = ps
@@ -416,14 +433,14 @@ transformToGR strict fml = do
         , assertSys = gs
         , liveness = ls
         }
-        
+
     _  -> errIncompatible $ map fOr rs
 
 -----------------------------------------------------------------------------
 
 separateStrict
   :: Formula
-  -> Either Refusal ([Formula],[([Formula],[Formula])],[[Formula]])     
+  -> Either Refusal ([Formula],[([Formula],[Formula])],[[Formula]])
 
 separateStrict fml = let
     -- convert to DNF
@@ -456,7 +473,7 @@ separateStrict fml = let
       _   -> assert False undefined
     (ls,rs) <- separateStandardLiveness ff
     return (gs,ls,rs)
-    
+
 
   where
     pullG f = case f of
@@ -494,7 +511,7 @@ separateStrict fml = let
       [Globally x]                       -> (a,b,x:c,d)
       _                                  -> (a,b,c,xs:d)
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
 
 -- | Separation of the invariants and the lifeness constraints under
 -- standard semantics.
@@ -508,7 +525,7 @@ separateStandard fml = do
   let xs = firstLevelCNF $ pullTogether fml
   -- separate singleton globally formulas
   (cG,ys) <- separateGlobally xs
-  -- check for boolean sub-formulas  
+  -- check for boolean sub-formulas
   let (gs,lg) = partition isBooleanNextFormula cG
   -- separate the liveness constriants
   (ls,rs) <- separateStandardLiveness $ fAnd $ map fOr $
@@ -516,9 +533,9 @@ separateStandard fml = do
   -- return all sub-formulas
   return (gs,ls,rs)
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
 
--- | Check that there is no unil operator inside the formula.    
+-- | Check that there is no unil operator inside the formula.
 
 noUntil
   :: Formula -> Either Refusal ()
@@ -528,7 +545,7 @@ noUntil fml = case fml of
   FFalse     -> return ()
   Atomic {}  -> return ()
   Until {}   -> Left $
-    "Generalized Reactivity does not allow until sub-formulas:\n" 
+    "Generalized Reactivity does not allow until sub-formulas:\n"
     ++ "  " ++ simplePrint fml
   Release {} -> assert False undefined
   Weak {}    -> assert False undefined
@@ -540,7 +557,7 @@ noUntil fml = case fml of
 -- or globally operator.
 
 noDirectNext
-  :: Formula -> Either Refusal () 
+  :: Formula -> Either Refusal ()
 
 noDirectNext fml = case fml of
   TTrue       -> return ()
@@ -580,9 +597,9 @@ separateGlobally xs = do
       [Globally (And zs)] -> Left  zs
       [Globally x]        -> Left [x]
       _                   -> Right ys
-      
+
 -----------------------------------------------------------------------------
-      
+
 -- | Separate Finally sub-formulas from the formula, given in CNF or DNF.
 
 separateFinally
@@ -597,7 +614,7 @@ separateFinally xs = do
       [Finally (Or zs)] -> Left  zs
       [Finally x]       -> Left [x]
       _                 -> Right ys
-      
+
 -----------------------------------------------------------------------------
 
 -- | Separate the initial constraints from the formula.
@@ -640,11 +657,11 @@ separateRequirements is fml = do
     "The initial constraints cannot be refined to fit into the "
     ++ "Generalized Reactivity format."
   -- separate singleton finally formulas
-  (cF,fr) <- separateFinally ns 
+  (cF,fr) <- separateFinally ns
   -- check for boolean sub-formulas
   let (fs,lf) = partition isBooleanNextFormula cF
   -- check for inputs under next
-  mapM_ checkInputsUnderNext fs 
+  mapM_ checkInputsUnderNext fs
   -- return the result
   return (map fNot fs, fOr $ map fAnd fr ++ map fFinally lf)
 
@@ -676,7 +693,7 @@ separateStandardLiveness fml =
     zs' = sortBy (compare `on` fst) zs
     -- join them
     ls = foldl join [] zs'
-  in 
+  in
     return (ls, rs)
 
   where
@@ -685,7 +702,7 @@ separateStandardLiveness fml =
     join ((fs,gs):rs) (fs',gs')
       | fs == fs'  = (fs,gs ++ gs'):rs
       | otherwise = (fs',gs'):(fs,gs):rs
-                    
+
     -- classify all sub-formulas that fit into the GR format
     classify ys
       | not (all isFGB ys) = Right ys
@@ -711,7 +728,7 @@ separateStandardLiveness fml =
 
 pullTogether
   :: Formula -> Formula
-    
+
 pullTogether formula = case formula of
   Globally (And ys) -> fAnd $ map (pullTogether . fGlobally) ys
   Globally f        -> fGlobally $ pullUp f
@@ -735,7 +752,7 @@ pullTogether formula = case formula of
         in if all isFinally zs
            then fFinally $ fOr $ map rmF zs
            else fOr zs
-      _       -> applySub pullUp fml          
+      _       -> applySub pullUp fml
 
     isGlobally fml = case fml of
       Globally _ -> True
@@ -753,7 +770,7 @@ pullTogether formula = case formula of
       Finally f -> f
       _         -> fml
 
------------------------------------------------------------------------------            
+-----------------------------------------------------------------------------
 
 -- | Turns the boolean formula of the first level not containing any
 -- temporal operators into DNF. The result is returned as a list of
@@ -774,7 +791,7 @@ firstLevelDNF = firstLevelCNF . swapAndOr
       _      -> f
 
 -----------------------------------------------------------------------------
-    
+
 -- | Turns the boolean formula of the first level not containing any
 -- temporal operators into CNF. The result is returned as a list of
 -- clauses, each consisting of a list of literals, i.e., formulas
@@ -793,9 +810,9 @@ firstLevelCNF formula =
         Just i' -> (M.insert x (i'+1) m,M.insert (i'+1) x b, i)
         Nothing -> (M.insert x (2*i) m, M.insert (2*i) x b, i+2)
     fml' = replaceLevelOneAtoms mm formula
-  in 
+  in
     map (map (bb M.!)) $ fCNF fml'
-    
+
   where
     replaceLevelOneAtoms mm fml = case fml of
       TTrue           -> TTTrue
@@ -808,7 +825,7 @@ firstLevelCNF formula =
       And xs          -> TAnd $ map (replaceLevelOneAtoms mm) xs
       Or xs           -> TOr $ map (replaceLevelOneAtoms mm) xs
       _               -> assert False undefined
-    
+
     levelOneAtoms a fml = case fml of
       TTrue           -> a
       FFalse          -> a
@@ -820,7 +837,7 @@ firstLevelCNF formula =
       And xs          -> foldl levelOneAtoms a xs
       Or xs           -> foldl levelOneAtoms a xs
       _               -> assert False undefined
-    
+
     fCNF fml =
       strictSort $ map strictSort $
       case alreadyCNF $ warp fml of
@@ -833,19 +850,19 @@ firstLevelCNF formula =
     -- swap and/or alternation in the boolean formula tree
 
     swap (x:xr) = foldl joinFml x xr
-    swap []     = assert False undefined    
-    
+    swap []     = assert False undefined
+
     joinFml b = simpleFml . concatMap (\zs -> map (zs ++) b)
 
     simpleFml = filterSupSets . map filternegations
 
     filternegations = filternegations' [] . bucketSort
     filternegations' a xs = case xs of
-      (x : y : xr) 
+      (x : y : xr)
         | x + 1 == y -> []
         | otherwise -> filternegations' (x : a) (y : xr)
       (x : xr) -> filternegations' (x : a) xr
-      [] -> reverse a 
+      [] -> reverse a
 
     -- checks wether the formula is already in CNF and converts
     -- to the list representation, if in CNF. Otherwise the
@@ -854,7 +871,7 @@ firstLevelCNF formula =
     alreadyCNF fml = case fml of
       TTTrue    -> Right []
       TFFalse   -> Right [[]]
-      TAtomic x -> Right [[x]]      
+      TAtomic x -> Right [[x]]
       TAnd xs   -> case partitionEithers $ map pureOr xs of
         ([],zs) -> Right zs
         (ys,zs) -> Left (ys,zs)
@@ -874,7 +891,7 @@ firstLevelCNF formula =
       TAtomic x -> Right x
       _         -> assert False undefined
 
-    -- merge all two level And and Or 
+    -- merge all two level And and Or
     warp fml = case fml of
       TAnd []  -> TTTrue
       TAnd [x] -> warp x
@@ -900,11 +917,11 @@ firstLevelCNF formula =
       TAnd x -> x
       _      -> [fml]
 
-    -- merge two level Or 
+    -- merge two level Or
     warpOr = concatMap wOr
     wOr fml = case fml of
       TOr x -> x
-      _     -> [fml]    
+      _     -> [fml]
 
 -----------------------------------------------------------------------------
 
@@ -939,7 +956,7 @@ filterSupSets xs =
 
 -----------------------------------------------------------------------------
 
--- | Returns an error listing all incompatible sub-formulas.    
+-- | Returns an error listing all incompatible sub-formulas.
 
 errIncompatible
   :: [Formula] -> Either Refusal a

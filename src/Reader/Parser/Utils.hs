@@ -3,58 +3,58 @@
 -- Module      :  Reader.Parser.Utils
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Functions shared among the different parsers.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Parser.Utils
-    ( stringParser
-    , identifier
-    , positionParser
-    , getPos
-    ) where
+  ( stringParser
+  , identifier
+  , positionParser
+  , getPos
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Expression
-    ( ExprPos(..)
-    , SrcPos(..)  
-    )
-    
+  ( ExprPos(..)
+  , SrcPos(..)
+  )
+
 import Reader.Parser.Data
-    ( globalDef
-    )  
+  ( globalDef
+  )
 
 import Control.Monad
-    ( void
-    )
-    
+  ( void
+  )
+
 import Data.Functor.Identity
-    ( Identity
-    )
+  ( Identity
+  )
 
 import Text.Parsec
-    ( ParsecT
-    , Stream      
-    , (<|>)
-    , char
-    , many
-    , anyChar  
-    , noneOf
-    , getPosition
-    , sourceLine
-    , sourceColumn  
-    )
-    
+  ( ParsecT
+  , Stream
+  , (<|>)
+  , char
+  , many
+  , anyChar
+  , noneOf
+  , getPosition
+  , sourceLine
+  , sourceColumn
+  )
+
 import Text.Parsec.String
-    ( Parser
-    )
-    
-import Text.Parsec.Token 
-    ( identStart
-    , identLetter
-    ) 
+  ( Parser
+  )
+
+import Text.Parsec.Token
+  ( identStart
+  , identLetter
+  )
 
 -----------------------------------------------------------------------------
 
@@ -64,13 +64,13 @@ import Text.Parsec.Token
 
 stringParser
   :: Parser String
-     
+
 stringParser = do
     void $ char '"'
     xs <- many character
     void $ char '"'
     return $ concat xs
-    
+
   where
     character =
       escaped <|> nonescaped
@@ -126,6 +126,6 @@ getPos
 
 getPos = do
   x <- getPosition
-  return $ SrcPos (sourceLine x) (sourceColumn x)      
-      
+  return $ SrcPos (sourceLine x) (sourceColumn x - 1)
+
 -----------------------------------------------------------------------------

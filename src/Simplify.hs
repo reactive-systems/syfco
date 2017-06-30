@@ -3,9 +3,9 @@
 -- Module      :  Simplify
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Linear temporal logic formula simplifcations.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Simplify
@@ -17,14 +17,14 @@ module Simplify
 import Config
     ( Configuration(..)
     )
-    
+
 import Data.LTL
     ( Formula(..)
     )
-    
+
 import Data.Error
     ( Error
-    )  
+    )
 
 import Data.Either
     ( partitionEithers
@@ -50,7 +50,7 @@ simplify c f =
     simplify' fml = case fml of
 
       -- Optimization Rules --
-      
+
       Globally TTrue
         | sw || ss || ng || nd                -> TTrue
         | otherwise                        -> Globally TTrue
@@ -154,7 +154,7 @@ simplify c f =
         | otherwise                        -> Globally $ simplify' $ Next x
       Next (Globally x)
         | (hn && not hg) || (lg && not ln && not ss) -> simplify' $ Globally $ Next x
-        | otherwise                        -> Next $ simplify' $ Globally x             
+        | otherwise                        -> Next $ simplify' $ Globally x
       Until TTrue x
         | ss || (sw && not nf && not nd)          -> simplify' $ Finally x
         | otherwise                        -> Until TTrue $ simplify' x
@@ -173,7 +173,7 @@ simplify c f =
         | ss || ln                          -> simplify' $ Next $ Release x y
         | not nr                             -> Release (simplify' $ Next x) $ simplify' $ Next y
         | nnf                              -> simplify' $ Weak (Next y) $ And [Next x, Next y]
-        | otherwise                        -> simplify' $ Not $ Until (Not $ Next x) (Not $ Next y) 
+        | otherwise                        -> simplify' $ Not $ Until (Not $ Next x) (Not $ Next y)
       Next (Release x y)
         | hn                               -> simplify' $ Release (Next x) $ Next y
         | otherwise                        -> Next $ simplify' $ Release x y
@@ -201,13 +201,13 @@ simplify c f =
           z     -> simplify' $ Finally z
       And []
         | sw || ss                          -> TTrue
-        | otherwise                        -> And [] 
+        | otherwise                        -> And []
       And [Next x]
         | sw || ss || ln                     -> simplify' $ Next x
         | otherwise                        -> And [simplify' $ Next x]
       And [Globally x]
         | sw || ss || lg                     -> simplify' $ Globally x
-        | otherwise                        -> And [simplify' $ Globally x]                                       
+        | otherwise                        -> And [simplify' $ Globally x]
       And [x]
         | sw || ss                          -> simplify' x
         | otherwise                        -> And [simplify' x]
@@ -224,7 +224,7 @@ simplify c f =
                            | otherwise -> And []
               [Next x]     | sw || ss   -> Next x
                            | ln        -> Next $ And [x]
-                           | otherwise -> And [Next x]               
+                           | otherwise -> And [Next x]
               [Globally x] | sw || ss   -> Globally x
                            | lg        -> Globally $ And [x]
                            | otherwise -> And [Globally x]
@@ -254,30 +254,30 @@ simplify c f =
         | otherwise                        -> Or [simplify' $ Next x]
       Or [Finally x]
         | sw || ss || lf                     -> simplify' $ Finally x
-        | otherwise                        -> Or [simplify' $ Finally x]                         
+        | otherwise                        -> Or [simplify' $ Finally x]
       Or [x]
         | sw || ss                          -> simplify' x
         | otherwise                        -> Or [simplify' x]
       Or xs
         | not (sw || ss || lf || ln)            -> Or $ map simplify' xs
-        | otherwise                        -> 
+        | otherwise                        ->
           let
             cs | sw || ss   = filter (FFalse /=) $ warpOr $ map simplify' xs
                | otherwise = xs
-          in 
+          in
             if (sw || ss) && (TTrue `elem` cs) then TTrue
             else case cs of
                []          | sw || ss   -> FFalse
                            | otherwise -> Or []
                [Next x]    | sw || ss   -> Next x
                            | ln        -> Next $ Or [x]
-                           | otherwise -> Or [Next x]               
+                           | otherwise -> Or [Next x]
                [Finally x] | sw || ss   -> Finally x
                            | lf        -> Finally $ Or [x]
                            | otherwise -> Or [Finally x]
                [x]         | sw || ss   -> x
                            | otherwise -> Or [x]
-               _                          -> 
+               _                          ->
                  let
                    (ns, ys) | ln || ss   = partitionEithers $ map splitNext cs
                             | otherwise = ([], cs)
@@ -295,7 +295,7 @@ simplify c f =
                    (_,_)     -> Or $ reverse $ (Finally $ Or es) : (Next $ And ns) : reverse zs
 
       -- pass through
-                        
+
       Finally x
         | nf || nd                          -> simplify' $ Until TTrue x
         | otherwise                        -> Finally $ simplify' x
@@ -309,13 +309,13 @@ simplify c f =
       Weak x y
         | nw || nd                          -> simplify' $ Or [Until x y, Globally x]
         | otherwise                        -> Weak (simplify' x) $ simplify' y
-      Equiv x y                            -> Equiv (simplify' x) (simplify' y)              
+      Equiv x y                            -> Equiv (simplify' x) (simplify' y)
       Implies x y                          -> Implies (simplify' x) (simplify' y)
-      Until x y                            -> Until (simplify' x) (simplify' y)      
+      Until x y                            -> Until (simplify' x) (simplify' y)
       Next x                               -> Next (simplify' x)
       Not (Atomic x)                       -> Not (Atomic x)
       Atomic x                             -> Atomic x
-      FFalse                               -> FFalse      
+      FFalse                               -> FFalse
       TTrue                                -> TTrue
 
     fAnd fml = case fml of
@@ -327,7 +327,7 @@ simplify c f =
     fOr fml = case fml of
       Or x -> x
       _    -> [fml]
-      
+
     warpOr = concatMap fOr
 
     splitNext fml = case fml of
@@ -340,14 +340,14 @@ simplify c f =
 
     splitFinally fml = case fml of
       Finally x -> Left x
-      _          -> Right fml      
+      _          -> Right fml
 
     nnf = negNormalForm c
     sw = simplifyWeak c
     ss = simplifyStrong c
     nr = noRelease c
-    nw = noWeak c 
-    ng = noGlobally c 
+    nw = noWeak c
+    ng = noGlobally c
     nf = noFinally c
     lg = pullGlobally c
     hg = pushGlobally c

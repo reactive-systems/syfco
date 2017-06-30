@@ -8,7 +8,14 @@
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE
+
+    LambdaCase
+  , MultiParamTypeClasses
+  , TypeSynonymInstances
+  , FlexibleInstances
+
+  #-}
 
 -----------------------------------------------------------------------------
 
@@ -19,25 +26,13 @@ module Writer.Formats
 
 -----------------------------------------------------------------------------
 
-import Data.Utils
-  ( MachinePrintable(..)
+import Data.Convertible
+  ( Convertible(..)
+  , ConvertError(..)
   )
 
 import Data.List
   ( find
-  )
-
-import Data.Error
-  ( Error
-  , argsError
-  )
-
-import GHC.Generics
-  ( Generic
-  )
-
-import Generics.Deriving.Enum
-  ( GEnum
   )
 
 -----------------------------------------------------------------------------
@@ -46,23 +41,36 @@ import Generics.Deriving.Enum
 
 data WriteFormat =
     UTF8
-  | WRING
-  | PROMELA
-  | UNBEAST
-  | LTLXBA
-  | LILY
-  | ACACIA
-  | ACACIASPECS
-  | BASIC
-  | SLUGS
-  | SLUGSIN
+    -- ^ human readable output using UTF8 symbols
   | FULL
+    -- ^ full format including all extensions
+  | BASIC
+    -- ^ basic format restricted to pure LTL formulas
+  | WRING
+    -- ^ <http://www.ist.tugraz.at/staff/bloem/wring.html>
+  | PROMELA
+    -- ^ <http://spinroot.com/spin/Man/ltl.html>
+  | UNBEAST
+    -- ^ <https://www.react.uni-saarland.de/tools/unbeast>
+  | LTLXBA
+    -- ^ LTL2BA / LTL3BA input format
+  | LILY
+    -- ^ Lily input format
+  | ACACIA
+    -- ^ Acacia / Acacia+ input format
+  | ACACIASPECS
+    -- ^ Acacia input format with spec units
+  | SLUGS
+    -- ^ <https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#structuredslugs>
+  | SLUGSIN
+    -- ^ <https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#slugsin>
   | PSL
+    -- ^ <https://en.wikipedia.org/wiki/Property_Specification_Language>
   | SMV
+    -- ^ SMV file format
   | BOSY
-  deriving (Eq, Generic)
-
-instance GEnum WriteFormat
+    -- ^ <https://github.com/reactive-systems/bosy>
+  deriving (Eq, Ord)
 
 -----------------------------------------------------------------------------
 
@@ -70,7 +78,7 @@ instance GEnum WriteFormat
 -- other special characters.
 
 instance Show WriteFormat where
-  show f = case f of
+  show = \case
     UTF8        -> "Utf8"
     WRING       -> "Wring"
     PROMELA     -> "Promela LTL"
@@ -89,11 +97,8 @@ instance Show WriteFormat where
 
 -----------------------------------------------------------------------------
 
--- | Computer readable names of the formats used via the command line or
--- configuration files. The name of each format has to be unique.
-
-instance MachinePrintable WriteFormat where
-  mprint fmt = case fmt of
+instance Convertible WriteFormat String where
+  safeConvert = return . \case
     UTF8        -> "utf8"
     WRING       -> "wring"
     PROMELA     -> "promela"
@@ -112,11 +117,38 @@ instance MachinePrintable WriteFormat where
 
 -----------------------------------------------------------------------------
 
+instance Convertible String WriteFormat where
+  safeConvert = \case
+    "utf8"         -> return UTF8
+    "wring"        -> return WRING
+    "promela"      -> return PROMELA
+    "unbeast"      -> return UNBEAST
+    "ltlxba"       -> return LTLXBA
+    "lily"         -> return LILY
+    "acacia"       -> return ACACIA
+    "acacia-specs" -> return ACACIASPECS
+    "basic"        -> return BASIC
+    "slugs"        -> return SLUGS
+    "slugsin"      -> return SLUGSIN
+    "full"         -> return FULL
+    "psl"          -> return PSL
+    "smv"          -> return SMV
+    "bosy"         -> return BOSY
+    str            -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "WriteFormat"
+      , convErrorMessage = "Unknown format"
+      }
+
+-----------------------------------------------------------------------------
+
 -- | Indicates the formats only support lower case signal names.
 
 needsLower
   :: WriteFormat -> Bool
 
-needsLower s = s `elem` [LTLXBA, PROMELA, ACACIA, ACACIASPECS, LILY, BOSY]
+needsLower s =
+  s `elem` [LTLXBA, PROMELA, ACACIA, ACACIASPECS, LILY, BOSY]
 
 -----------------------------------------------------------------------------

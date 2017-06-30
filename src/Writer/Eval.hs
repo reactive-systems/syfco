@@ -24,6 +24,10 @@ import Utils
   ( iter
   )
 
+import Data.Error
+  ( cfgError
+  )
+
 import Data.Enum
   ( EnumDefinition(..)
   )
@@ -88,7 +92,6 @@ import Data.SymbolTable
 
 import Writer.Error
   ( Error
-  , argsError
   , errBounds
   , errBusCmp
   , errMinSet
@@ -1155,7 +1158,7 @@ overwriteParameter
 
 overwriteParameter s (n,v) =
   case find ((n ==) . idName . (symboltable s !) . bIdent) $ parameters s of
-  Nothing -> argsError $ "Specification has no parameter: " ++ n
+  Nothing -> cfgError $ "Specification has no parameter: " ++ n
   Just b  -> do
     let b' = b {
           bVal = if null $ bVal b

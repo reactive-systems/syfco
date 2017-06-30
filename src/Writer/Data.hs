@@ -8,7 +8,14 @@
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE
+
+    LambdaCase
+  , MultiParamTypeClasses
+  , TypeSynonymInstances
+  , FlexibleInstances
+
+  #-}
 
 -----------------------------------------------------------------------------
 
@@ -23,38 +30,42 @@ module Writer.Data
 
 -----------------------------------------------------------------------------
 
-import Data.Utils
-  ( MachinePrintable(..)
-  )
-
-import GHC.Generics
-  ( Generic
-  )
-
-import Generics.Deriving.Enum
-  ( GEnum
+import Data.Convertible
+  ( Convertible(..)
+  , ConvertError(..)
   )
 
 -----------------------------------------------------------------------------
 
 -- | There are two writing modes currently supported:
---
---     * pretty printing, producing a well readable minimal ouptut
---
---     * fully paranthesized printing, producing fully parenthesized
---       expressions
 
 data WriteMode =
     Pretty
+    -- ^ pretty printing, producing a well readable, minimal ouptut
   | Fully
-  deriving (Eq, Show, Generic)
+    -- ^ fully paranthesized printing, producing fully parenthesized
+    --   expressions
+  deriving (Eq, Ord)
 
-instance GEnum WriteMode
+-----------------------------------------------------------------------------
 
-instance MachinePrintable WriteMode where
-  mprint mode = case mode of
+instance Convertible WriteMode String where
+  safeConvert = return . \case
     Pretty -> "pretty"
     Fully  -> "fully"
+
+-----------------------------------------------------------------------------
+
+instance Convertible String WriteMode where
+  safeConvert = \case
+    "pretty" -> return Pretty
+    "fully"  -> return Fully
+    str      -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "WriteMode"
+      , convErrorMessage = "Unknown mode"
+      }
 
 -----------------------------------------------------------------------------
 

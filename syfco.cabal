@@ -1,7 +1,7 @@
 name:                syfco
-version:             1.0.0.12
-synopsis:            A tool for reading, manipulating and transforming synthesis specifications.
-description:         Synthesis Format Conversion Tool
+version:             1.0.0.22
+synopsis:            Synthesis Format Conversion Tool / Library
+description:         Library and tool for reading, manipulating and transforming synthesis specifications.
 license:             MIT
 license-file:        LICENSE
 author:              Felix Klein <klein@react.uni-saarland.de>
@@ -14,15 +14,105 @@ build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
+source-repository head
+  type:     git
+  location: https://github.com/reactive-systems/syfco
+
+library
+
+  build-depends:
+      base >=4.7 && <4.10
+    , array >=0.5 && <0.6
+    , containers >=0.5 && <0.6
+    , directory >=1.2 && <1.4
+    , mtl >=2.2 && <2.3
+    , parsec >=3.1 && <3.2
+    , transformers >= 0.4 && <0.6
+    , convertible >= 1.1
+
+  exposed-modules:
+    Syfco
+
+  other-modules:
+    Utils
+    Config
+    Simplify
+    Reader
+    Reader.Data
+    Reader.Error
+    Reader.Sugar
+    Reader.InferType
+    Reader.Abstraction
+    Reader.Bindings
+    Reader.Parser
+    Reader.Parser.Info
+    Reader.Parser.Utils
+    Reader.Parser.Expression
+    Reader.Parser.Global
+    Reader.Parser.Component
+    Reader.Parser.Data
+    Writer
+    Writer.Error
+    Writer.Utils
+    Writer.Data
+    Writer.Eval
+    Writer.Formats
+    Writer.Formats.Lily
+    Writer.Formats.Wring
+    Writer.Formats.Utf8
+    Writer.Formats.Psl
+    Writer.Formats.Smv
+    Writer.Formats.SlugsIn
+    Writer.Formats.Ltlxba
+    Writer.Formats.Full
+    Writer.Formats.Unbeast
+    Writer.Formats.Acacia
+    Writer.Formats.Promela
+    Writer.Formats.Bosy
+    Writer.Formats.Basic
+    Writer.Formats.AcaciaSpecs
+    Writer.Formats.Slugs
+    Detection
+    Detection.GeneralizedReactivity
+    Data.Info
+    Data.Error
+    Data.StringMap
+    Data.Enum
+    Data.Types
+    Data.Expression
+    Data.Specification
+    Data.SymbolTable
+    Data.LTL
+    Data.Binding
+    Paths_syfco
+
+  hs-source-dirs:
+    src
+
+  default-language:
+    Haskell2010
+
 executable syfco
-  main-is:           Main.hs
-  build-depends:     base >=4.7 && <4.10,
-                     array >=0.5 && <0.6,
-                     containers >=0.5 && <0.6,
-                     directory >=1.2 && <1.4,
-                     mtl >=2.2 && <2.3,
-                     parsec >=3.1 && <3.2,
-                     transformers >= 0.4 && <0.6,
-                     generic-deriving >= 1.10
-  default-language:  Haskell2010
-  hs-source-dirs:    src
+
+  main-is:
+    Main.hs
+
+  other-modules:
+    Arguments
+    Info
+
+  build-depends:
+      base >=4.7 && <4.10
+    , array >=0.5 && <0.6
+    , containers >=0.5 && <0.6
+    , directory >=1.2 && <1.4
+    , mtl >=2.2 && <2.3
+    , parsec >=3.1 && <3.2
+    , transformers >= 0.4 && <0.6
+    , convertible >= 1.1
+
+  hs-source-dirs:
+    src
+
+  default-language:
+    Haskell2010

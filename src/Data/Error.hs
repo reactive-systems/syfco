@@ -3,59 +3,68 @@
 -- Module      :  Data.Error
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Data structures to wrap all contents, that are needed to print nice
 -- error messages.
--- 
+--
+-----------------------------------------------------------------------------
+
+{-# LANGUAGE
+
+    LambdaCase
+  , RecordWildCards
+
+  #-}
+
 -----------------------------------------------------------------------------
 
 module Data.Error
-    ( Error
-    , syntaxError
-    , runtimeError
-    , typeError
-    , bindingError
-    , argsError
-    , conversionError  
-    , depError
-    , parseError  
-    , prError
-    , prErrPos      
-    ) where
+  ( Error
+  , syntaxError
+  , runtimeError
+  , typeError
+  , bindingError
+  , conversionError
+  , depError
+  , cfgError
+  , parseError
+  , prError
+  , prErrPos
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Expression
-    ( ExprPos(..)
-    , SrcPos(..)  
-    )
+  ( ExprPos(..)
+  , SrcPos(..)
+  )
 
 import Text.Parsec.Error
-    ( ParseError
-    )
-    
+  ( ParseError
+  )
+
 import System.Exit
-    ( exitFailure
-    )
-    
+  ( exitFailure
+  )
+
 import System.IO
-    ( hPutStrLn
-    , stderr  
-    )
+  ( hPrint
+  , stderr
+  )
 
 -----------------------------------------------------------------------------
 
--- | Unifying data structure.
+-- | Internal representation of an error.
 
 data Error =
     ErrType TypeError
   | ErrParse ParseError
   | ErrBnd BindingError
   | ErrDep DependencyError
-  | ErrArgs ArgumentsError
   | ErrSyntax SyntaxError
   | ErrRunT RunTimeError
   | ErrConv ConvError
+  | ErrCfg CfgError
 
 -----------------------------------------------------------------------------
 
@@ -99,18 +108,36 @@ data RunTimeError =
 
 -----------------------------------------------------------------------------
 
-data ArgumentsError =
-  ArgumentsError
-  { message :: String
-  }
-
------------------------------------------------------------------------------
-
 data ConvError =
   ConvError
   { title :: String
   , cmsg :: String
-  }  
+  } deriving (Eq, Ord)
+
+-----------------------------------------------------------------------------
+
+data CfgError =
+  ConfigError
+  { fmsg :: String
+  } deriving (Eq, Ord)
+
+-----------------------------------------------------------------------------
+
+instance Show Error where
+  show = \case
+    ErrParse x                 -> show x
+    ErrType TypeError{..}      -> pr "Type Error" errTPos errTMsgs
+    ErrBnd BindingError{..}    -> pr "Binding Error" errBPos errBMsgs
+    ErrDep DependencyError{..} -> pr "Dependency Error" errDPos errDMsgs
+    ErrSyntax SyntaxError{..}  -> pr "Syntax Error" errSPos errSMsgs
+    ErrRunT RunTimeError{..}   -> pr "Runtime Error" errRPos errRMsgs
+    ErrCfg ConfigError{..}     -> "\"Error\":\n" ++ fmsg
+    ErrConv ConvError{..}      -> "\"Conversion Error\": " ++ title ++
+                                 "\n" ++ cmsg
+
+    where
+      pr errname pos msgs =
+        "\"" ++ errname ++ "\" (" ++ prErrPos pos ++ "):\n" ++ concat msgs
 
 -----------------------------------------------------------------------------
 
@@ -129,7 +156,7 @@ syntaxError pos msg = Left $ ErrSyntax $ SyntaxError pos [msg]
 runtimeError
   :: ExprPos -> String -> Either Error a
 
-runtimeError pos msg = Left $ ErrRunT $ RunTimeError pos [msg]    
+runtimeError pos msg = Left $ ErrRunT $ RunTimeError pos [msg]
 
 -----------------------------------------------------------------------------
 
@@ -143,7 +170,7 @@ typeError pos msg = Left $ ErrType $ TypeError pos [msg]
 
 -----------------------------------------------------------------------------
 
--- | Use this error constructor, if some identifier binding related 
+-- | Use this error constructor, if some identifier binding related
 -- misbehavior is detected.
 
 bindingError
@@ -161,15 +188,16 @@ depError
 
 depError pos msg = Left $ ErrDep $ DependencyError pos [msg]
 
+
 -----------------------------------------------------------------------------
 
--- | Use this error constructor, if an invalid command line setting is
--- detected.
+-- | Use this error constructor, if some unresolvable inconsistency in the
+-- configuration exists.
 
-argsError
+cfgError
   :: String -> Either Error a
 
-argsError msg = Left $ ErrArgs $ ArgumentsError msg
+cfgError msg = Left $ ErrCfg $ ConfigError msg
 
 -----------------------------------------------------------------------------
 
@@ -198,22 +226,8 @@ prError
   :: Error -> IO a
 
 prError err = do
-  hPutStrLn stderr $ errmsg err
+  hPrint stderr $ show err
   exitFailure
-
-  where
-    prMeta errname pos msgs =
-      "\"" ++ errname ++ "\" (" ++ prErrPos pos ++ "):\n" ++ concat msgs
-
-    errmsg e = case e of
-      ErrType x   -> prMeta "Type Error" (errTPos x) (errTMsgs x)
-      ErrBnd x    -> prMeta "Binding Error" (errBPos x) (errBMsgs x)
-      ErrDep x    -> prMeta "Dependency Error" (errDPos x) (errDMsgs x)
-      ErrSyntax x -> prMeta "Syntax Error" (errSPos x) (errSMsgs x)
-      ErrRunT x   -> prMeta "Runtime Error" (errRPos x) (errRMsgs x)
-      ErrConv x   -> "\"Conversion Error\": " ++ title x ++ "\n" ++ cmsg x
-      ErrArgs x   -> "\"Error\" " ++ message x
-      ErrParse x  -> show x      
 
 -----------------------------------------------------------------------------
 
@@ -229,7 +243,7 @@ prErrPos pos =
     el = srcLine $ srcEnd pos
     ec = srcColumn $ srcEnd pos
   in
-    "line " ++ show bl ++ "," ++ 
+    "line " ++ show bl ++ "," ++
     "column " ++ show bc ++
     if bl == el
     then " - " ++ show ec

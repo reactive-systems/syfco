@@ -3,47 +3,51 @@
 -- Module      :  Reader.Error
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Pretty and informative error messages that may be thrown while reading
 -- the specification.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Error
-    ( Error
-    , errUnknown
-    , errConflict
-    , errEnumConflict      
-    , errPattern
-    , errArgArity
-    , errConditional
-    , errCircularDep
-    , errExpect
-    , errRange
-    ) where
+  ( Error
+  , errUnknown
+  , errConflict
+  , errEnumConflict
+  , errPattern
+  , errArgArity
+  , errConditional
+  , errCircularDep
+  , errExpect
+  , errRange
+  , errNoPFuns
+  , errNoHigher
+  , errEquality
+  , errInfinite
+  ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Types
-    ( IdType
-    )  
+  ( IdType(..)
+  )
 
 import Data.Error
-    ( Error
-    , depError
-    , typeError
-    , syntaxError
-    , bindingError  
-    , prErrPos
-    )
-    
+  ( Error
+  , depError
+  , typeError
+  , syntaxError
+  , bindingError
+  , prErrPos
+  )
+
 import Data.Expression
-    ( ExprPos
-    )
-    
+  ( ExprPos
+  )
+
 import Control.Monad.State
-    ( StateT(..)
-    )  
+  ( StateT(..)
+  )
 
 -----------------------------------------------------------------------------
 
@@ -55,7 +59,7 @@ errUnknown
 errUnknown i pos =
   let msg = "identifiyer not in scope: " ++ i
   in StateT $ \_ -> bindingError pos msg
-     
+
 -----------------------------------------------------------------------------
 
 -- | Throws an error that indicates two conflicting identifier bindings.
@@ -63,10 +67,10 @@ errUnknown i pos =
 errConflict
   :: String -> ExprPos -> ExprPos -> StateT a (Either Error) b
 
-errConflict i x y = 
+errConflict i x y =
   let msg = "conflicting definitions: " ++ i ++ "\n" ++
             "already bound at " ++ prErrPos x
-  in StateT $ \_ -> bindingError y msg                    
+  in StateT $ \_ -> bindingError y msg
 
 -----------------------------------------------------------------------------
 
@@ -75,9 +79,9 @@ errConflict i x y =
 errEnumConflict
   :: String -> String -> String -> String -> ExprPos -> Either Error b
 
-errEnumConflict e s1 s2 v y = 
+errEnumConflict e s1 s2 v y =
   let msg = "conflict in enumeration: " ++ e ++ "\n" ++
-            s1 ++ " and " ++ s2 ++ " share the same value: " ++ v 
+            s1 ++ " and " ++ s2 ++ " share the same value: " ++ v
   in bindingError y msg
 
 -----------------------------------------------------------------------------
@@ -92,6 +96,18 @@ errPattern pos =
   let msg = "Formulas are not allowed on the right hand side " ++
             "of a pattern match."
   in StateT $ \_ -> typeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that inidactes the use of a function as a parameter.
+
+errNoPFuns
+  :: Int -> ExprPos -> StateT a (Either Error) b
+
+errNoPFuns n y =
+  let msg = "expecting: " ++ show TNumber ++ " expression\n" ++
+            "but found: function with " ++ show n ++ "arguments"
+  in StateT $ \_ -> typeError y msg
 
 -----------------------------------------------------------------------------
 
@@ -113,7 +129,7 @@ errArgArity i n x y =
 -- | Throws an error that indicates a sub-expression that does not conform
 -- to the big-operator notation.
 
-errConditional 
+errConditional
   :: ExprPos -> StateT a (Either Error) b
 
 errConditional pos =
@@ -123,7 +139,7 @@ errConditional pos =
 
 -----------------------------------------------------------------------------
 
--- | Throws an error that indicates a set of identifiers that decribe a 
+-- | Throws an error that indicates a set of identifiers that decribe a
 -- circular dependency between each other.
 
 errCircularDep
@@ -133,7 +149,7 @@ errCircularDep xs pos =
   let
     m = foldl max (length $ fst $ head xs) $ map (length . fst) xs
     msg = "detected circular dependencies between:" ++
-          concatMap (\(x,y) -> "\n  " ++ x ++ 
+          concatMap (\(x,y) -> "\n  " ++ x ++
                               replicate (m - length x) ' ' ++
                               " (defined at " ++ prErrPos y ++ ")") xs ++
             if length xs > 1 then "" else " depends on itself"
@@ -162,6 +178,42 @@ errRange
 errRange x pos =
   let msg = "expecting: range expression\n" ++
             "but found: " ++ show x ++ " expression"
+  in StateT $ \_ -> typeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that inidactes the use higher order functions.
+
+errNoHigher
+  :: String -> ExprPos -> StateT a (Either Error) b
+
+errNoHigher n y =
+  let msg = "function passed as an argument: " ++ show n ++ "\n" ++
+            "higher order functions not supported"
+  in StateT $ \_ -> typeError y msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that incicates a wrongly typed subexpression.
+
+errEquality
+  :: IdType -> ExprPos -> StateT a (Either Error) b
+
+errEquality x pos =
+  let msg = "expecting numerical or enum comparison\n" ++
+            "but found: " ++ show x ++ " expression"
+  in StateT $ \_ -> typeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that incicates the construction of an infinite type
+
+errInfinite
+  :: String -> ExprPos -> StateT a (Either Error) b
+
+errInfinite n pos =
+  let msg = "cannot construct infinite type\n" ++
+            "check the definition of: " ++ n
   in StateT $ \_ -> typeError pos msg
 
 -----------------------------------------------------------------------------

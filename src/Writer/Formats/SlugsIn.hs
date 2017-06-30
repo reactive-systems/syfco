@@ -25,6 +25,8 @@ import Control.Exception
 
 -----------------------------------------------------------------------------
 
+-- | SlugsIn format writer.
+
 writeFormat
   :: Configuration -> Specification -> Either Error String
 

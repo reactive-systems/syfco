@@ -3,108 +3,118 @@
 -- Module      :  Reader.Parser.Info
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Parser for the INFO section.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Reader.Parser.Info
-    ( infoParser
-    , targetParser
-    , semanticsParser
-    ) where
+  ( infoParser
+  , targetParser
+  , semanticsParser
+  ) where
 
 -----------------------------------------------------------------------------
 
+import Data.List
+  ( dropWhileEnd
+  )
+
 import Data.Types
-    ( Semantics(..)
-    , Target(..)
-    )
+  ( Semantics(..)
+  , Target(..)
+  )
 
 import Data.Expression
-    ( SrcPos(..)
-    , ExprPos(..)  
-    )      
+  ( SrcPos(..)
+  , ExprPos(..)
+  )
 
 import Reader.Parser.Data
-    ( globalDef
-    )
-    
+  ( globalDef
+  )
+
 import Reader.Parser.Utils
-    ( getPos
-    , stringParser
-    , identifier
-    )  
+  ( getPos
+  , stringParser
+  , identifier
+  )
 
 import Control.Monad
-    ( void
-    )  
+  ( void
+  )
 
 import Data.Functor.Identity
-    ( Identity
-    )  
+  ( Identity
+  )
 
 import Text.Parsec
-    ( ParsecT
-    , (<|>)
-    , char
-    , unexpected  
-    , parserFail  
-    )
-    
+  ( ParsecT
+  , (<|>)
+  , char
+  , unexpected
+  , parserFail
+  )
+
 import Text.Parsec.String
-    ( Parser
-    )
-    
+  ( Parser
+  )
+
 import Text.Parsec.Token
-    ( TokenParser
-    , commaSep
-    , reservedNames  
-    , whiteSpace
-    , makeTokenParser
-    , reserved  
-    )  
+  ( TokenParser
+  , commaSep
+  , reservedNames
+  , whiteSpace
+  , makeTokenParser
+  , reserved
+  )
 
 -----------------------------------------------------------------------------
 
 -- | Parses the INFO section of a specification file. It returns:
--- 
+--
 --     * the title of the specification
--- 
+--
 --     * the description of the specification
--- 
+--
 --     * the semantics of the specification
--- 
+--
 --     * the target of the specification
--- 
+--
 --     * the tag list of the specification
 
 infoParser
-  :: Parser (String, String, (Semantics, ExprPos), (Target, ExprPos), [String])
+  :: Parser
+     ( (String, ExprPos)
+     , (String, ExprPos)
+     , (Semantics, ExprPos)
+     , (Target, ExprPos)
+     , [ (String, ExprPos) ]
+     )
 
 infoParser = (~~) >> do
   keyword "INFO"
   ch '{'
   infoContentParser Nothing Nothing Nothing Nothing Nothing
 
-  where    
+  where
     infoContentParser t d y g a =
           do { keyword "TITLE"; titleParser t d y g a }
       <|> do { keyword "DESCRIPTION"; descriptionParser t d y g a}
       <|> do { keyword "SEMANTICS"; semanticsParser' t d y g a }
       <|> do { keyword "TARGET"; targetParser' t d y g a }
-      <|> do { keyword "TAGS"; tagsParser t d y g a }          
+      <|> do { keyword "TAGS"; tagsParser t d y g a }
       <|> do { ch '}'; endParser  t d y g a }
-      
+
     titleParser t d y g a = case t of
       Nothing -> ch ':' >> do
-        str <- stringParser; (~~)
+        str <- strParser; (~~)
         infoContentParser (Just str) d y g a
       _       -> errDoubleDef "TITLE"
 
     descriptionParser t d y g a = case d of
       Nothing -> ch ':' >> do
-        str <- stringParser; (~~)
+        str <- strParser; (~~)
         infoContentParser t (Just str) y g a
       _       -> errDoubleDef "DESCRIPTION"
 
@@ -116,14 +126,14 @@ infoParser = (~~) >> do
 
     targetParser' t d y g a = case g of
       Nothing -> ch ':' >> do
-        x <- targetParser 
+        x <- targetParser
         infoContentParser t d y (Just x) a
       _       -> errDoubleDef "TARGET"
 
     tagsParser t d y g a = case a of
       Nothing -> ch ':' >> do
         xs <- commaSep tokenparser (identifier (~~))
-        infoContentParser t d y g (Just $ map fst xs)
+        infoContentParser t d y g (Just xs)
       _       -> errDoubleDef "TAGS"
 
     endParser t d y g a = case (t,d,y,g) of
@@ -133,12 +143,12 @@ infoParser = (~~) >> do
       (_, _, _, Nothing)               -> errMissing "TARGET"
       (Just u, Just v, Just w, Just x) -> case a of
         Just ts -> return (u,v,w,x,ts)
-        _       -> return (u,v,w,x,[]) 
+        _       -> return (u,v,w,x,[])
 
 
     ch x = void $ char x >> (~~)
     (~~) = whiteSpace tokenparser
-    
+
     errMissing str =
       parserFail $
       "The " ++ str ++ " entry is missing in the INFO section."
@@ -150,21 +160,38 @@ infoParser = (~~) >> do
 
 -- | Parses the target description.
 
+strParser
+  :: Parser (String, ExprPos)
+
+strParser = do
+  p1 <- getPos
+  str <- stringParser
+  let
+    cn = length $ filter (== '\n') str
+    cc = length $ dropWhileEnd (/= '\n') str
+    p2 = SrcPos (srcLine p1 + cn)
+           (if cn == 0 then srcColumn p1 + length str else cc)
+  return (str, ExprPos p1 p2)
+
+-----------------------------------------------------------------------------
+
+-- | Parses the target description.
+
 targetParser
   :: Parser (Target, ExprPos)
 
-targetParser = 
+targetParser =
       do { p1 <- getPos;
            keyword "Mealy";
            let p2 = SrcPos (srcLine p1) (srcColumn p1 + length "Mealy")
            in return (TargetMealy, ExprPos p1 p2)
          }
-  <|> do { p1 <- getPos; 
+  <|> do { p1 <- getPos;
            keyword "Moore";
            let p2 = SrcPos (srcLine p1) (srcColumn p1 + length "Moore")
            in return (TargetMoore, ExprPos p1 p2) }
 
------------------------------------------------------------------------------      
+-----------------------------------------------------------------------------
 
 -- | Parses the semantics description.
 
@@ -181,8 +208,8 @@ semanticsParser = do
               }
            <|> return ("none", SrcPos (srcLine p1) (srcColumn p1 + length x))
   case (x,z) of
-    ("mealy","none")  -> return (SemanticsMealy, ExprPos p1 p2)
-    ("moore","none")  -> return (SemanticsMoore, ExprPos p1 p2)
+    ("mealy","none")   -> return (SemanticsMealy, ExprPos p1 p2)
+    ("moore","none")   -> return (SemanticsMoore, ExprPos p1 p2)
     ("mealy","strict") -> return (SemanticsStrictMealy, ExprPos p1 p2)
     ("strict","mealy") -> return (SemanticsStrictMealy, ExprPos p1 p2)
     ("moore","strict") -> return (SemanticsStrictMoore, ExprPos p1 p2)
@@ -199,7 +226,7 @@ semanticsParser = do
       <|> do { keyword "Moore"; return "moore" }
       <|> do { keyword "Strict"; return "strict" }
 
------------------------------------------------------------------------------          
+-----------------------------------------------------------------------------
 
 tokenparser
   :: TokenParser a
@@ -210,11 +237,12 @@ tokenparser =
        ["INFO","TITLE","DESCRIPTION", "SEMANTICS",
         "TAGS","Strict","Mealy","Moore","TARGET"] }
 
------------------------------------------------------------------------------            
+-----------------------------------------------------------------------------
 
 keyword
   :: String -> ParsecT String u Identity ()
 
-keyword = void . reserved tokenparser
+keyword =
+  void . reserved tokenparser
 
------------------------------------------------------------------------------            
+-----------------------------------------------------------------------------

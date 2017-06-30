@@ -19,7 +19,6 @@ module Writer.Error
     , errNoMatch
     , errToLower
     , errNoGR1  
-    , argsError
     , prError      
     ) where
 
@@ -29,7 +28,6 @@ import Data.Error
     ( Error
     , runtimeError
     , conversionError
-    , argsError      
     , prError
     )  
     
