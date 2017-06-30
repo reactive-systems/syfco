@@ -129,7 +129,7 @@ parseArguments args = do
           exists <- doesFileExist file
           unless exists $ argsError $ "File does not exist: " ++ file
           fmap (update c) (readFile file) >>= \case
-            Left err -> error "todo"
+            Left err -> prError $ show err
             Right c' -> return $ Single c'
         Nothing   -> argsError "\"-r\": No configuration file"
       "--read-config"            -> case next of
