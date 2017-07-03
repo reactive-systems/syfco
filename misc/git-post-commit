@@ -13,16 +13,16 @@
 if [ -a .commit ]
 then
     rm .commit
-    
+
     # Update version number
     curver=`cat syfco.cabal | grep '^version' | sed 's/^version:[^.]*.[^.]*.[^.]*.\([0-9]*\).*/\1/'`
     newver=`expr $curver + 1`
-    
+
     sed -i "s/\(^version:[^.]*.[^.]*.[^.]*.\)[0-9]*/\1$newver/" syfco.cabal
 
     # build
-    cabal configure
-    
+    make
+
     if ! [[ $? = 0 ]]
     then
         # Reset version
@@ -30,18 +30,8 @@ then
         exit 1
     fi
 
-    # build
-    cabal build
-    
-    if ! [[ $? = 0 ]]
-    then
-        # Reset version
-        sed -i "s/\(^version:[^.]*.[^.]*.[^.]*.\)[0-9]*/\1$oldver/" syfco.cabal
-        exit 1
-    fi
-
-    dist/build/syfco/syfco --readme > README
-    dist/build/syfco/syfco --readme.md > README.md
+    ./syfco --readme > README
+    ./syfco --readme.md > README.md
 
     git commit -a --amend -C HEAD --no-verify
 fi
