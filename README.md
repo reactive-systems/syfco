@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool<br/>(Version 1.1.0.1)
+# Synthesis Format Conversion Tool<br/>(Version 1.1.0.2)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in [TLSF](https://arxiv.org/abs/1604.02284).
@@ -79,72 +79,72 @@ If you still encounter any problems, please inform us via the
 
 ## Usage
 
-```syfco [OPTIONS]... <file>```
+<code>syfco [OPTIONS]... <file></code>
 
 #### File Operations:
 
 |Command|Description|
 |-------|-----------|
-|```-o, --output```|path of the output file (results are printed to STDOUT if not set)|
-|```-r, --read-config```|read parameters from the given configuration file (may overwrite prior arguments)|
-|```-w, --write-config```|write the current configuration to the given path (includes later arguments)|
-|```-f, --format```|output format - possible values are:</br> <table><tbody> <tr><td>```full```</td><td>input file with applied transformations (default)</td></tr><tr><td>```basic```</td><td>high level format (without global section)</td></tr><tr><td>```utf8```</td><td>human readable output using UTF8 symbols</td></tr><tr><td>```wring```</td><td>Wring input format</td></tr><tr><td>```lily```</td><td>Lily input format</td></tr><tr><td>```acacia```</td><td>Acacia / Acacia+ input format</td></tr><tr><td>```acacia-specs```</td><td>Acacia input format with spec units</td></tr><tr><td>```ltlxba```</td><td>LTL2BA / LTL3BA input format</td></tr><tr><td>```promela```</td><td>Promela LTL</td></tr><tr><td>```unbeast```</td><td>Unbeast input format</td></tr><tr><td>```slugs```</td><td>structured Slugs format [GR(1) only]</td></tr><tr><td>```slugsin```</td><td>SlugsIn format [GR(1) only]</td></tr><tr><td>```psl```</td><td>PSL Syntax</td></tr><tr><td>```smv```</td><td>SMV file format</td></tr><tr><td>```bosy```</td><td>Bosy input format</td></tr> </tbody></table>|
-|```-m, --mode```|output mode - possible values are:</br> <table><tbody> <tr><td>```pretty```</td><td>pretty printing (as less parentheses as possible) (default)</td></tr><tr><td>```fully```</td><td>output fully parenthesized formulas</td></tr> </tbody></table>|
-|```-pf, --part-file```|create a partitioning (```.part```) file|
-|```-bd, --bus-delimiter```|delimiter used to print indexed bus signals</br> (default: ```_```)|
-|```-ps, --prime-symbol```|symbol/string denoting primes in signals</br> (default: ```'```)|
-|```-as, --at-symbol```|symbol/string denoting @-symbols in signals</br> (default: ```@```)|
-|```-in, --stdin```|read the input file from STDIN|
+|<code>-o, --output</code>|path of the output file (results are printed to STDOUT if not set)|
+|<code>-r, --read-config</code>|read parameters from the given configuration file (may overwrite prior arguments)|
+|<code>-w, --write-config</code>|write the current configuration to the given path (includes later arguments)|
+|<code>-f, --format</code>|output format - possible values are:</br> <table><tbody> <tr><td><code>full</code></td><td>input file with applied transformations (default)</td></tr><tr><td><code>basic</code></td><td>high level format (without global section)</td></tr><tr><td><code>utf8</code></td><td>human readable output using UTF8 symbols</td></tr><tr><td><code>wring</code></td><td>Wring input format</td></tr><tr><td><code>lily</code></td><td>Lily input format</td></tr><tr><td><code>acacia</code></td><td>Acacia / Acacia+ input format</td></tr><tr><td><code>acacia-specs</code></td><td>Acacia input format with spec units</td></tr><tr><td><code>ltlxba</code></td><td>LTL2BA / LTL3BA input format</td></tr><tr><td><code>promela</code></td><td>Promela LTL</td></tr><tr><td><code>unbeast</code></td><td>Unbeast input format</td></tr><tr><td><code>slugs</code></td><td>structured Slugs format [GR(1) only]</td></tr><tr><td><code>slugsin</code></td><td>SlugsIn format [GR(1) only]</td></tr><tr><td><code>psl</code></td><td>PSL Syntax</td></tr><tr><td><code>smv</code></td><td>SMV file format</td></tr><tr><td><code>bosy</code></td><td>Bosy input format</td></tr> </tbody></table>|
+|<code>-m, --mode</code>|output mode - possible values are:</br> <table><tbody> <tr><td><code>pretty</code></td><td>pretty printing (as less parentheses as possible) (default)</td></tr><tr><td><code>fully</code></td><td>output fully parenthesized formulas</td></tr> </tbody></table>|
+|<code>-pf, --part-file</code>|create a partitioning (<code>.part</code>) file|
+|<code>-bd, --bus-delimiter</code>|delimiter used to print indexed bus signals</br> (default: <code>_</code>)|
+|<code>-ps, --prime-symbol</code>|symbol/string denoting primes in signals</br> (default: <code>'</code>)|
+|<code>-as, --at-symbol</code>|symbol/string denoting @-symbols in signals</br> (default: <code>@</code>)|
+|<code>-in, --stdin</code>|read the input file from STDIN|
 
 #### File Modifications:
 
 |Command|Description|
 |-------|-----------|
-|```-os, --overwrite-semantics```|overwrite the semantics of the file|
-|```-ot, --overwrite-target```|overwrite the target of the file|
-|```-op, --overwrite-parameter```|overwrite a parameter of the file|
+|<code>-os, --overwrite-semantics</code>|overwrite the semantics of the file|
+|<code>-ot, --overwrite-target</code>|overwrite the target of the file|
+|<code>-op, --overwrite-parameter</code>|overwrite a parameter of the file|
 
 #### Formula Transformations (disabled by default):
 
 |Command|Description|
 |-------|-----------|
-|```-s0, --weak-simplify```|simple simplifications (removal of true/false in boolean connectives, redundant temporal operators, etc.)|
-|```-s1, --strong-simplify```|advanced simplifications</br> (includes: ```-s0 -nnf -nw -nr -pgo -pfo -pxo```)|
-|```-nnf, --negation-normal-form```|convert the resulting LTL formula into negation normal form|
-|```-pgi, --push-globally-inwards```|push global operators inwards</br>   ```G (a && b) => (G a) && (G b)```|
-|```-pfi, --push-finally-inwards```|push finally operators inwards</br>   ```F (a &#124;&#124; b) => (F a) &#124;&#124; (F b)```|
-|```-pxi, --push-next-inwards```|push next operators inwards</br>   ```X (a && b) => (X a) && (X b)```</br>   ```X (a &#124;&#124; b) => (X a) &#124;&#124; (X b)```|
-|```-pgo, --pull-globally-outwards```|pull global operators outwards</br>   ```(G a) && (G b) => G (a && b)```|
-|```-pfo, --pull-finally-outwards```|pull finally operators outwards</br>   ```(F a) &#124;&#124; (F b) => F (a &#124;&#124; b)```|
-|```-pxo, --pull-next-outwards```|pull next operators outwards</br>   ```(X a) && (X b) => X (a && b)```</br>   ```(X a) &#124;&#124; (X b) => X (a &#124;&#124; b)```|
-|```-nw, --no-weak-until```|replace weak until operators</br>   ```a W b => (a U b) &#124;&#124; (G a)```|
-|```-nr, --no-release```|replace release operators</br>   ```a R b => b W (a && b)```|
-|```-nf, --no-finally```|replace finally operators</br>   ```F a => true U a```|
-|```-ng, --no-globally```|replace global operators</br>   ```G a => false R a```|
-|```-nd, --no-derived```|same as: ```-nw -nf -ng```|
+|<code>-s0, --weak-simplify</code>|simple simplifications (removal of true/false in boolean connectives, redundant temporal operators, etc.)|
+|<code>-s1, --strong-simplify</code>|advanced simplifications</br> (includes: <code>-s0 -nnf -nw -nr -pgo -pfo -pxo</code>)|
+|<code>-nnf, --negation-normal-form</code>|convert the resulting LTL formula into negation normal form|
+|<code>-pgi, --push-globally-inwards</code>|push global operators inwards</br>   <code>G (a && b) => (G a) && (G b)</code>|
+|<code>-pfi, --push-finally-inwards</code>|push finally operators inwards</br>   <code>F (a &#124;&#124; b) => (F a) &#124;&#124; (F b)</code>|
+|<code>-pxi, --push-next-inwards</code>|push next operators inwards</br>   <code>X (a && b) => (X a) && (X b)</code></br>   <code>X (a &#124;&#124; b) => (X a) &#124;&#124; (X b)</code>|
+|<code>-pgo, --pull-globally-outwards</code>|pull global operators outwards</br>   <code>(G a) && (G b) => G (a && b)</code>|
+|<code>-pfo, --pull-finally-outwards</code>|pull finally operators outwards</br>   <code>(F a) &#124;&#124; (F b) => F (a &#124;&#124; b)</code>|
+|<code>-pxo, --pull-next-outwards</code>|pull next operators outwards</br>   <code>(X a) && (X b) => X (a && b)</code></br>   <code>(X a) &#124;&#124; (X b) => X (a &#124;&#124; b)</code>|
+|<code>-nw, --no-weak-until</code>|replace weak until operators</br>   <code>a W b => (a U b) &#124;&#124; (G a)</code>|
+|<code>-nr, --no-release</code>|replace release operators</br>   <code>a R b => b W (a && b)</code>|
+|<code>-nf, --no-finally</code>|replace finally operators</br>   <code>F a => true U a</code>|
+|<code>-ng, --no-globally</code>|replace global operators</br>   <code>G a => false R a</code>|
+|<code>-nd, --no-derived</code>|same as: <code>-nw -nf -ng</code>|
 
 #### Check Specification Type (and exit):
 
 |Command|Description|
 |-------|-----------|
-|```-gr, --generalized-reactivity```|check whether the input is in the Generalized Reactivity fragment|
+|<code>-gr, --generalized-reactivity</code>|check whether the input is in the Generalized Reactivity fragment|
 
 #### Extract Information (and exit):
 
 |Command|Description|
 |-------|-----------|
-|```-c, --check```|check that input conforms to TLSF|
-|```-t, --print-title```|output the title of the input file|
-|```-d, --print-description```|output the description of the input file|
-|```-s, --print-semantics```|output the semantics of the input file|
-|```-g, --print-target```|output the target of the input file|
-|```-a, --print-tags```|output the target of the input file|
-|```-p, --print-parameters```|output the parameters of the input file|
-|```-i, --print-info```|output all data of the info section|
-|```-ins, --print-input-signals```|output the input signals of the specification|
-|```-outs, --print-output-signals```|output the output signals of the specification|
-|```-v, --version```|output version information|
-|```-h, --help```|display this help|
+|<code>-c, --check</code>|check that input conforms to TLSF|
+|<code>-t, --print-title</code>|output the title of the input file|
+|<code>-d, --print-description</code>|output the description of the input file|
+|<code>-s, --print-semantics</code>|output the semantics of the input file|
+|<code>-g, --print-target</code>|output the target of the input file|
+|<code>-a, --print-tags</code>|output the target of the input file|
+|<code>-p, --print-parameters</code>|output the parameters of the input file|
+|<code>-i, --print-info</code>|output all data of the info section|
+|<code>-ins, --print-input-signals</code>|output the input signals of the specification|
+|<code>-outs, --print-output-signals</code>|output the output signals of the specification|
+|<code>-v, --version</code>|output version information|
+|<code>-h, --help</code>|display this help|
 
 #### Sample Usage:
 
@@ -159,7 +159,7 @@ syfco -t file.tlsf
 ## Examples
 
 A number of synthesis benchmarks in TLSF can be found in the
-```/examples``` directory.
+<code>/examples</code> directory.
 
 ## Syfco Library
 
@@ -173,11 +173,11 @@ generated by:
 
 ## Editor Support
 
-If you use [Emacs](https://www.gnu.org/software/emacs), you should try our emacs mode (```tlsf-mode.el```),
-which can be found in the ```/misc``` directory.
+If you use [Emacs](https://www.gnu.org/software/emacs), you should try our emacs mode (<code>tlsf-mode.el</code>),
+which can be found in the <code>/misc</code> directory.
 
 ## Adding output formats
 
 If you like to add a new output format, first consider
-```/Writer/Formats/Example.hs```, which contains the most common
+<code>/Writer/Formats/Example.hs</code>, which contains the most common
 standard constructs and a short tutorial.

@@ -710,7 +710,7 @@ code
   :: Mode -> String -> String
 
 code m str = case m of
-  Markdown -> "```" ++ concatMap escapePipe str ++ "```"
+  Markdown -> "<code>" ++ concatMap escapePipe str ++ "</code>"
   _        -> str
 
   where
