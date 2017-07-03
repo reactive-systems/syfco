@@ -710,8 +710,12 @@ code
   :: Mode -> String -> String
 
 code m str = case m of
-  Markdown -> "```" ++ str ++ "```"
+  Markdown -> "```" ++ concatMap escapePipe str ++ "```"
   _        -> str
+
+  where
+    escapePipe '|' = "&#124;"
+    escapePipe x   = [x]
 
 -----------------------------------------------------------------------------
 

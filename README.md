@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool<br/>(Version 1.1.0.0)
+# Synthesis Format Conversion Tool<br/>(Version 1.1.0.1)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in [TLSF](https://arxiv.org/abs/1604.02284).
@@ -112,12 +112,12 @@ If you still encounter any problems, please inform us via the
 |```-s1, --strong-simplify```|advanced simplifications</br> (includes: ```-s0 -nnf -nw -nr -pgo -pfo -pxo```)|
 |```-nnf, --negation-normal-form```|convert the resulting LTL formula into negation normal form|
 |```-pgi, --push-globally-inwards```|push global operators inwards</br>   ```G (a && b) => (G a) && (G b)```|
-|```-pfi, --push-finally-inwards```|push finally operators inwards</br>   ```F (a || b) => (F a) || (F b)```|
-|```-pxi, --push-next-inwards```|push next operators inwards</br>   ```X (a && b) => (X a) && (X b)```</br>   ```X (a || b) => (X a) || (X b)```|
+|```-pfi, --push-finally-inwards```|push finally operators inwards</br>   ```F (a &#124;&#124; b) => (F a) &#124;&#124; (F b)```|
+|```-pxi, --push-next-inwards```|push next operators inwards</br>   ```X (a && b) => (X a) && (X b)```</br>   ```X (a &#124;&#124; b) => (X a) &#124;&#124; (X b)```|
 |```-pgo, --pull-globally-outwards```|pull global operators outwards</br>   ```(G a) && (G b) => G (a && b)```|
-|```-pfo, --pull-finally-outwards```|pull finally operators outwards</br>   ```(F a) || (F b) => F (a || b)```|
-|```-pxo, --pull-next-outwards```|pull next operators outwards</br>   ```(X a) && (X b) => X (a && b)```</br>   ```(X a) || (X b) => X (a || b)```|
-|```-nw, --no-weak-until```|replace weak until operators</br>   ```a W b => (a U b) || (G a)```|
+|```-pfo, --pull-finally-outwards```|pull finally operators outwards</br>   ```(F a) &#124;&#124; (F b) => F (a &#124;&#124; b)```|
+|```-pxo, --pull-next-outwards```|pull next operators outwards</br>   ```(X a) && (X b) => X (a && b)```</br>   ```(X a) &#124;&#124; (X b) => X (a &#124;&#124; b)```|
+|```-nw, --no-weak-until```|replace weak until operators</br>   ```a W b => (a U b) &#124;&#124; (G a)```|
 |```-nr, --no-release```|replace release operators</br>   ```a R b => b W (a && b)```|
 |```-nf, --no-finally```|replace finally operators</br>   ```F a => true U a```|
 |```-ng, --no-globally```|replace global operators</br>   ```G a => false R a```|
