@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool<br/>(Version 1.0.0.22)
+# Synthesis Format Conversion Tool<br/>(Version 1.0.0.23)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in [TLSF](https://arxiv.org/abs/1604.02284).
@@ -26,7 +26,7 @@ The main features of the tool are summarized as follows:
   [structured Slugs](https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#structuredslugs), and [SlugsIn](https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#slugsin).
 
 * Syntactical analysis of membership in GR(k) for any k (modulo
-  boolean identities).
+  Boolean identities).
 
 * On the fly adjustment of parameters, semantics or targets.
 
@@ -44,36 +44,38 @@ The main features of the tool are summarized as follows:
 ## Installation
 
 SyfCo is written in Haskell and can be compiled using the
-Glasgow Haskell Compiler (GHC).
+Glasgow Haskell Compiler (GHC). To install the tool you can either
+use [cabal](https://www.haskell.org/cabal) or [stack](https://docs.haskellstack.org/en/stable/README/)(recommended).
+For more information about the purpose of these tools and why you
+should prefer using stack instead of cabal, we recommend reading
+[this blog post](https://www.fpcomplete.com/blog/2015/06/why-is-stack-not-cabal) by Mathieu Boespflug. 
 
-Prerequisites:
+To install the tool with stack use:
 
-* [GHC](https://www.haskell.org/ghc) (recommended version: >= 7.0.1, [Haskell2010](https://wiki.haskell.org/Definition))
+`stack install`
 
-* [parsec](https://hackage.haskell.org/package/parsec) (recommended version: >= 3.1)
+Stack then automatically fetches the right compiler version
+and required dependencies. After that it builds and installs
+the package into you local stack path. If you instead prefer
+to build only, use `stack build`.
 
-* [array](https://hackage.haskell.org/package/array) (recommended version: >= 0.5)
+If you insist to use cabal instead, we recommend at least to use
+a sandbox. Initialize the sandbox and configure the project via
 
-* [containers](https://hackage.haskell.org/package/containers) (recommended version: >= 0.5)
+`cabal sandbox init && cabal configure`
 
-* [directory](https://hackage.haskell.org/package/directory) (recommended version: >= 1.2)
+Then use `cabal build` or `cabal install` to build or install the
+tool.
 
-* [mtl](https://hackage.haskell.org/package/mtl) (recommended version: >= 2.2)
+Note that (independent of the chosen build method) building the
+tool will only create the final executable in a hidden sub-folder,
+which might get cumbersome for development or testing local changes.
+Hence, for this purpose, you may prefer to use `make`. The makefile
+determines the chosen build method, rebuilds the package, and copies
+the final `syfco` executable to the root directory of the project.
 
-* [transformers](https://hackage.haskell.org/package/transformers) (recommended version: >= 0.4)
-
-To install the above dependencies, build the tool,
-and install it with [cabal](https://www.haskell.org/cabal):
-
-`cabal install`
-
-If the dependencies are already installed,
-then build (no installation) with:
-
-`make`
-
-However, if you encounter any problems,
-please inform us via [the project bug tracker](https://github.com/reactive-systems/syfco/issues).
+If you still encounter any problems, please inform us via the
+[project bug tracker](https://github.com/reactive-systems/syfco/issues).
 
 ## Usage
 

@@ -1,5 +1,5 @@
 # Synthesis Format Conversion Tool
-# (Version 1.0.0.22)
+# (Version 1.0.0.23)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF [0].
@@ -27,7 +27,7 @@ The main features of the tool are summarized as follows:
   structured Slugs [7], and SlugsIn [8].
 
 * Syntactical analysis of membership in GR(k) for any k (modulo
-  boolean identities).
+  Boolean identities).
 
 * On the fly adjustment of parameters, semantics or targets.
 
@@ -46,36 +46,38 @@ The main features of the tool are summarized as follows:
 ## Installation
 
 SyfCo is written in Haskell and can be compiled using the
-Glasgow Haskell Compiler (GHC).
+Glasgow Haskell Compiler (GHC). To install the tool you can either
+use cabal [9] or stack [10](recommended).
+For more information about the purpose of these tools and why you
+should prefer using stack instead of cabal, we recommend reading
+this blog post [11] by Mathieu Boespflug. 
 
-Prerequisites:
+To install the tool with stack use:
 
-* GHC [9] (recommended version: >= 7.0.1, Haskell2010 [10])
+  stack install
 
-* parsec [11] (recommended version: >= 3.1)
+Stack then automatically fetches the right compiler version
+and required dependencies. After that it builds and installs
+the package into you local stack path. If you instead prefer
+to build only, use `stack build`.
 
-* array [12] (recommended version: >= 0.5)
+If you insist to use cabal instead, we recommend at least to use
+a sandbox. Initialize the sandbox and configure the project via
 
-* containers [13] (recommended version: >= 0.5)
+  cabal sandbox init && cabal configure
 
-* directory [14] (recommended version: >= 1.2)
+Then use `cabal build` or `cabal install` to build or install the
+tool.
 
-* mtl [15] (recommended version: >= 2.2)
+Note that (independent of the chosen build method) building the
+tool will only create the final executable in a hidden sub-folder,
+which might get cumbersome for development or testing local changes.
+Hence, for this purpose, you may prefer to use `make`. The makefile
+determines the chosen build method, rebuilds the package, and copies
+the final `syfco` executable to the root directory of the project.
 
-* transformers [16] (recommended version: >= 0.4)
-
-To install the above dependencies, build the tool,
-and install it with cabal [17]:
-
-  cabal install
-
-If the dependencies are already installed,
-then build (no installation) with:
-
-  make
-
-However, if you encounter any problems,
-please inform us via the project bug tracker:
+If you still encounter any problems, please inform us via the
+project bug tracker:
 
   https://github.com/reactive-systems/syfco/issues
 
@@ -201,7 +203,7 @@ A number of synthesis benchmarks in TLSF can be found in the
 
 ## Editor Support
 
-If you use Emacs [18], you should try our emacs mode (tlsf-mode.el),
+If you use Emacs [12], you should try our emacs mode (tlsf-mode.el),
 which can be found in the /misc directory.
 
 ## Adding output formats
@@ -221,13 +223,7 @@ standard constructs and a short tutorial.
 [6]   http://www.ist.tugraz.at/staff/bloem/wring.html
 [7]   https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#structuredslugs
 [8]   https://github.com/VerifiableRobotics/slugs/blob/master/doc/input_formats.md#slugsin
-[9]   https://www.haskell.org/ghc
-[10]  https://wiki.haskell.org/Definition
-[11]  https://hackage.haskell.org/package/parsec
-[12]  https://hackage.haskell.org/package/array
-[13]  https://hackage.haskell.org/package/containers
-[14]  https://hackage.haskell.org/package/directory
-[15]  https://hackage.haskell.org/package/mtl
-[16]  https://hackage.haskell.org/package/transformers
-[17]  https://www.haskell.org/cabal
-[18]  https://www.gnu.org/software/emacs
+[9]   https://www.haskell.org/cabal
+[10]  https://docs.haskellstack.org/en/stable/README/
+[11]  https://www.fpcomplete.com/blog/2015/06/why-is-stack-not-cabal
+[12]  https://www.gnu.org/software/emacs

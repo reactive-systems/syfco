@@ -1,5 +1,5 @@
 name:                syfco
-version:             1.0.0.22
+version:             1.0.0.23
 synopsis:            Synthesis Format Conversion Tool / Library
 description:         Library and tool for reading, manipulating and transforming synthesis specifications.
 license:             MIT
@@ -100,6 +100,58 @@ executable syfco
   other-modules:
     Arguments
     Info
+    Syfco
+    Utils
+    Config
+    Simplify
+    Reader
+    Reader.Data
+    Reader.Error
+    Reader.Sugar
+    Reader.InferType
+    Reader.Abstraction
+    Reader.Bindings
+    Reader.Parser
+    Reader.Parser.Info
+    Reader.Parser.Utils
+    Reader.Parser.Expression
+    Reader.Parser.Global
+    Reader.Parser.Component
+    Reader.Parser.Data
+    Writer
+    Writer.Error
+    Writer.Utils
+    Writer.Data
+    Writer.Eval
+    Writer.Formats
+    Writer.Formats.Lily
+    Writer.Formats.Wring
+    Writer.Formats.Utf8
+    Writer.Formats.Psl
+    Writer.Formats.Smv
+    Writer.Formats.SlugsIn
+    Writer.Formats.Ltlxba
+    Writer.Formats.Full
+    Writer.Formats.Unbeast
+    Writer.Formats.Acacia
+    Writer.Formats.Promela
+    Writer.Formats.Bosy
+    Writer.Formats.Basic
+    Writer.Formats.AcaciaSpecs
+    Writer.Formats.Slugs
+    Detection
+    Detection.GeneralizedReactivity
+    Data.Info
+    Data.Error
+    Data.StringMap
+    Data.Enum
+    Data.Types
+    Data.Expression
+    Data.Specification
+    Data.SymbolTable
+    Data.LTL
+    Data.Binding
+    Paths_syfco
 
   build-depends:
       base >=4.7 && <4.10
