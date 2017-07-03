@@ -8,6 +8,17 @@
 --
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE
+
+    LambdaCase
+  , MultiParamTypeClasses
+  , TypeSynonymInstances
+  , FlexibleContexts
+
+  #-}
+
+-----------------------------------------------------------------------------
+
 module Info
   ( prTitle
   , prDescription
@@ -31,6 +42,8 @@ import Syfco
   ( Configuration(..)
   , Semantics(..)
   , Target(..)
+  , WriteFormat(..)
+  , WriteMode(..)
   , Specification
   , defaultCfg
   , title
@@ -42,6 +55,11 @@ import Syfco
   , inputs
   , outputs
   , version
+  )
+
+import Data.Convertible
+  ( Convertible
+  , convert
   )
 
 import Data.Array
@@ -469,38 +487,42 @@ usage m =
          [ "display this help" ]) ]
 
     formats =
-      [ ("full", True,
+      [ (convert FULL, True,
          ["input file with applied transformations"])
-      , ("basic", False,
+      , (convert BASIC, False,
          ["high level format (without global section)"])
-      , ("utf8", False,
+      , (convert UTF8, False,
          ["human readable output using UTF8 symbols"])
-      , ("wring", False,
+      , (convert WRING, False,
          ["Wring input format"])
-      , ("lily", False,
+      , (convert LILY, False,
          ["Lily input format"])
-      , ("acacia", False,
+      , (convert ACACIA, False,
          ["Acacia / Acacia+ input format"])
-      , ("acacia-specs", False, ["Acacia input format with spec units"])
-      , ("ltlxba", False,
+      , (convert ACACIASPECS, False,
+         ["Acacia input format with spec units"])
+      , (convert LTLXBA, False,
          ["LTL2BA / LTL3BA input format"])
-      , ("promela", False,
+      , (convert PROMELA, False,
          ["Promela LTL"])
-      , ("unbeast", False,
+      , (convert UNBEAST, False,
          ["Unbeast input format"])
-      , ("slugs", False,
+      , (convert SLUGS, False,
          ["structured Slugs format [GR(1) only]"])
-      , ("slugsin", False,
+      , (convert SLUGSIN, False,
          ["SlugsIn format [GR(1) only]"])
-      , ("psl", False,
+      , (convert PSL, False,
          ["PSL Syntax"])
-      , ("smv", False,
-         ["SMV file format"]) ]
+      , (convert SMV, False,
+         ["SMV file format"])
+      , (convert BOSY, False,
+         ["Bosy input format"])
+      ]
 
     modes =
-      [ ("pretty", True,
+      [ (convert Pretty, True,
          ["pretty printing (as less parentheses as possible)"])
-      , ("fully", False,
+      , (convert Fully, False,
          ["output fully parenthesized formulas"]) ]
 
 -----------------------------------------------------------------------------
