@@ -50,7 +50,7 @@ writeFormat c s =
           []  -> ([],[])
           x:_ -> x
 
-      (iv,ov) <- evalSignals c s
+      (iv,ov) <- signals c s
 
       return $ "[INPUT]"
         ++ "\n" ++ unlines iv

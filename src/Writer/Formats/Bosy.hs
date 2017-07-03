@@ -72,7 +72,7 @@ writeFormat config specification = do
   assertions' <- mapM ((simplify (adjust config' opConfig)) . fGlobally) assertions
   guarantees' <- mapM (simplify (adjust config' opConfig)) guarantees
 
-  (inputs, outputs) <- evalSignals config' specification
+  (inputs, outputs) <- signals config' specification
 
   return $
     "{" ++

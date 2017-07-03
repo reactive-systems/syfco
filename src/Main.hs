@@ -26,9 +26,9 @@ import Syfco
   ( Configuration(..)
   , WriteFormat(..)
   , Specification
+  , signals
   , fromTLSF
   , apply
-  , partition
   , checkGR
   )
 
@@ -183,9 +183,13 @@ writeOutput c s = case apply c s of
         UNBEAST -> writeFile (rmSuffix f ++ ".xml") wc
         _       -> writeFile f wc
 
-    when (isJust $ partFile c) $ case partition c s of
-      Left err -> prError $ show err
-      Right f  -> writeFile (fromJust $ partFile c) f
+    when (isJust $ partFile c) $ case signals c s of
+      Left err      -> prError $ show err
+      Right (is,os) ->
+        writeFile (fromJust $ partFile c) $ unlines
+          [ ".inputs" ++ concatMap (' ' :) is
+          , ".outputs" ++ concatMap (' ' :) os
+          ]
 
   where
     rmSuffix path = case reverse path of

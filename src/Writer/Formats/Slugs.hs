@@ -40,7 +40,7 @@ writeFormat c s =
       | level gr > 1        ->
           errNoGR1 ("in GR(" ++ show (level gr) ++ ")") "slugs"
       | primeSymbol c == "'" -> do
-          (iv,ov) <- evalSignals c s
+          (iv,ov) <- signals c s
           case find (== '\'') $ concat (iv ++ ov) of
             Nothing -> printSlugs gr
             Just _  ->
@@ -61,7 +61,7 @@ writeFormat c s =
           []  -> ([],[])
           x:_ -> x
 
-      (iv,ov) <- evalSignals c s
+      (iv,ov) <- signals c s
       
       return $ "[INPUT]"
         ++ "\n" ++ unlines iv

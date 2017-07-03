@@ -61,22 +61,22 @@ writeFormat config spec = do
   simplified_formula <- simplify (adjust config opConfig) formula
     
   
-  (input_signals, output_signals) <- evalSignals config spec
+  (input_signals, output_signals) <- signals config spec
   let 
-    signals = (input_signals ++ output_signals)
+    all_signals = (input_signals ++ output_signals)
   
-  return $ main (printFormula opConfig (outputMode config) simplified_formula) signals
+  return $ main (printFormula opConfig (outputMode config) simplified_formula) all_signals
   
   where 
-    main formula signals =
+    main formula xs =
         "MODULE main\n"
         ++ "\tVAR\n"
-        ++ (printSignals signals)
+        ++ (printSignals xs)
         ++ "\tLTLSPEC " ++ formula ++ "\n"
 
-    printSignals signals = case signals of
+    printSignals xs = case xs of
       []               -> ""
-      (signal:signals) -> "\t\t" ++ signal ++ " : boolean;\n" ++ (printSignals signals)
+      (x:xr) -> "\t\t" ++ x ++ " : boolean;\n" ++ (printSignals xr)
 
 -----------------------------------------------------------------------------
 

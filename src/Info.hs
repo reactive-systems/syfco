@@ -163,8 +163,6 @@ prInputs c s = case inputs c s of
   Right (x:xr) -> putStrLn $ x ++ concatMap ((:) ',' . (:) ' ') xr
   _            -> return ()
 
-
-
 -----------------------------------------------------------------------------
 
 -- | Prints the output signals of the given specification.

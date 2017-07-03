@@ -70,7 +70,7 @@ writeFormat c s = do
   is' <- mapM (simplify (adjust c opConfig)) is
   gs' <- mapM (simplify (adjust c opConfig)) gs  
 
-  (si,so) <- evalSignals c s'
+  (si,so) <- signals c s'
 
   return $
     "INFO {"

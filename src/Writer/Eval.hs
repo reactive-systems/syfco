@@ -9,13 +9,17 @@
 --
 -----------------------------------------------------------------------------
 
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE
+
+    FlexibleContexts
+
+  #-}
 
 -----------------------------------------------------------------------------
 
 module Writer.Eval
   ( eval
-  , evalSignals
+  , signals
   ) where
 
 -----------------------------------------------------------------------------
@@ -216,10 +220,10 @@ eval
 
 eval c s = do
   (s', st0, xs) <- initialize c s
-  let signals = inputs s' ++ outputs s'
+  let ios = inputs s' ++ outputs s'
 
   stt <- execStateT (mapM_ staticBinding xs) st0
-  (rr,sti) <- runStateT (mapM componentSignal signals) stt
+  (rr,sti) <- runStateT (mapM componentSignal ios) stt
   let (er,sr) = partitionEithers $ catMaybes rr
 
   es <- evalStateT (mapM evalLtl $ initially s') sti
@@ -337,19 +341,18 @@ eval c s = do
 
 -----------------------------------------------------------------------------
 
+-- | Returns the signals of a specification using the format as
+-- implied by the given configuration.
 
--- | @evalSignals c s@ evaluates all signals of the given
--- specification @s@ under the current configuration @c@.
-
-evalSignals
+signals
   :: Configuration -> Specification
   -> Either Error ([String],[String])
 
-evalSignals c s = do
+signals c s = do
   (s',st,xs) <- initialize c s
-  let signals = inputs s' ++ outputs s'
+  let ios = inputs s' ++ outputs s'
   stt <- execStateT (mapM_ staticBinding xs) st
-  stf <- execStateT (mapM_ componentSignal signals) stt
+  stf <- execStateT (mapM_ componentSignal ios) stt
   let
     is = map getId $ inputs s'
     os = map getId $ outputs s'
@@ -367,7 +370,7 @@ evalSignals c s = do
       if needsLower (outputFormat c)
       then map toLower x
       else x
-    
+
     getId v = case v of
       SDSingle (i,_) -> i
       SDBus (i,_) _  -> i

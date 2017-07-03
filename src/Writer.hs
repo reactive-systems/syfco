@@ -21,7 +21,6 @@
 module Writer
   ( WriteFormat(..)
   , apply
-  , partition
   ) where
 
 -----------------------------------------------------------------------------
@@ -50,10 +49,6 @@ import Writer.Error
   ( prError
   )
 
-import Writer.Eval
-  ( evalSignals
-  )
-
 import Writer.Formats
   ( WriteFormat(..)
   , needsLower
@@ -80,22 +75,6 @@ import qualified Writer.Formats.Full as Full
 import qualified Writer.Formats.Psl as Psl
 import qualified Writer.Formats.Smv as Smv
 import qualified Writer.Formats.Bosy as Bosy
-
------------------------------------------------------------------------------
-
--- | Creates the content of a partioning file from the lists
--- of input and output signals.
-
-partition
-  :: Configuration -> Specification -> Either Error String
-
-partition c s = case evalSignals c s of
-  Left err      -> Left err
-  Right (is,os) ->
-    return $ unlines
-      [ ".inputs" ++ concatMap (' ' :) is
-      , ".outputs" ++ concatMap (' ' :) os
-      ]
 
 -----------------------------------------------------------------------------
 

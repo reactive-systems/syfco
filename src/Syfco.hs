@@ -37,11 +37,11 @@ module Syfco
   , target
   , tags
   , parameters
+  , signals
   , inputs
   , outputs
   , symboltable
   , fromTLSF
-  , partition
   , apply
     -- * Fragment Detection
   , checkGR
@@ -74,7 +74,10 @@ import Writer.Data
 import Writer
   ( WriteFormat(..)
   , apply
-  , partition
+  )
+
+import Writer.Eval
+  ( signals
   )
 
 import Data.Specification
@@ -145,10 +148,9 @@ parameters s =
 inputs
   :: Configuration -> Specification -> Either Error [String]
 
-inputs c s = case eval c s of
-  Left err                  -> Left err
-  Right (es,ss,rs,as,is,gs) ->
-    return $ fmlInputs $ And $ es ++ ss ++ rs ++ as ++ is ++ gs
+inputs c s = case signals c s of
+  Left err     -> Left err
+  Right (is,_) -> return is
 
 -----------------------------------------------------------------------------
 
@@ -158,10 +160,9 @@ inputs c s = case eval c s of
 outputs
   :: Configuration -> Specification -> Either Error [String]
 
-outputs c s = case eval c s of
-  Left err                  -> Left err
-  Right (es,ss,rs,as,is,gs) ->
-    return $ fmlOutputs $ And $ es ++ ss ++ rs ++ as ++ is ++ gs
+outputs c s = case signals c s of
+  Left err     -> Left err
+  Right (_,os) -> return os
 
 -----------------------------------------------------------------------------
 

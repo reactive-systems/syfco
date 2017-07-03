@@ -3,9 +3,9 @@
 -- Module      :  Writer.Formats.Unbeast
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Transforms a specification to the Unbeast format.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Writer.Formats.Unbeast where
@@ -37,17 +37,17 @@ writeFormat c s = do
        _  -> filter (/= FFalse) $ es ++
               map (\f -> fOr [fNot $ fAnd ss, f])
                 (map fGlobally rs ++ as)
-  
+
   vs <- mapM (simplify' (c { noRelease = True, noWeak = True })) $
          filter (/= TTrue) $ ss ++ [fGlobally $ fAnd is] ++ gs
 
-  (si,so) <- evalSignals c s       
+  (si,so) <- signals c s
 
   return $ main si so us vs
 
   where
-    main si so as vs = 
-                 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>" 
+    main si so as vs =
+                 "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>"
       ++ "\n" ++ "<!DOCTYPE SynthesisProblem SYSTEM \""
               ++ specfile ++ "\">"
       ++ "\n"
@@ -65,18 +65,18 @@ writeFormat c s = do
       ++ "\n"
       ++ "\n" ++ "<SynthesisProblem>"
       ++ "\n" ++ "  <Title>" ++ title s ++ "</Title>"
-      ++ "\n" ++ "  <Description>" 
+      ++ "\n" ++ "  <Description>"
       ++ "\n" ++ fixedIndent (description s)
       ++ "\n" ++ "  </Description>"
       ++ "\n" ++ "  <PathToLTLCompiler>" ++ compiler
               ++ "</PathToLTLCompiler>"
       ++ "\n" ++ "  <GlobalInputs>"
       ++ concatMap printSignal si
-      ++ "\n" ++ "  </GlobalInputs>"  
+      ++ "\n" ++ "  </GlobalInputs>"
       ++ "\n" ++ "  <GlobalOutputs>"
       ++ concatMap printSignal so
       ++ "\n" ++ "  </GlobalOutputs>"
-      ++ (if null as then "" 
+      ++ (if null as then ""
           else "\n" ++ "  <Assumptions>" ++
                concatMap (\x -> "\n    <LTL>\n" ++ printFormula 6 x
                                ++ "    </LTL>\n") as ++
@@ -87,7 +87,7 @@ writeFormat c s = do
       ++ "  </Specification>"
       ++ "\n" ++ "</SynthesisProblem>"
       ++ "\n"
-    
+
     specfile = "SynSpec.dtd"
     compiler = "ltl2ba -f"
 
@@ -113,14 +113,14 @@ writeFormat c s = do
       (' ':xr)  ->
         if b
         then rmLeadingSpace a b xr
-        else rmLeadingSpace (' ':a) b xr             
-      (x:xr)    -> rmLeadingSpace (x:a) False xr            
-        
+        else rmLeadingSpace (' ':a) b xr
+      (x:xr)    -> rmLeadingSpace (x:a) False xr
+
     printSignal sig =
       "\n    <Bit>" ++ sig ++ "</Bit>"
 
     printFormula n f = replicate n ' ' ++ printFormula' (n + 2) f
-    
+
     printFormula' n f = case f of
       TTrue       -> "<True></True>\n"
       FFalse      -> "<False></False>\n"
