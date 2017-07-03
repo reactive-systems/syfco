@@ -1,5 +1,5 @@
 # Synthesis Format Conversion Tool
-# (Version 1.0.0.23)
+# (Version 1.0.0.24)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF [0].
@@ -47,7 +47,7 @@ The main features of the tool are summarized as follows:
 
 SyfCo is written in Haskell and can be compiled using the
 Glasgow Haskell Compiler (GHC). To install the tool you can either
-use cabal [9] or stack [10](recommended).
+use cabal [9] or stack [10] (recommended).
 For more information about the purpose of these tools and why you
 should prefer using stack instead of cabal, we recommend reading
 this blog post [11] by Mathieu Boespflug. 

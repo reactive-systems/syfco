@@ -578,7 +578,7 @@ readme m = appendlinks $ unlines
   , "Glasgow Haskell Compiler (GHC). To install the tool you can either"
   , "use " ++ link "cabal" "https://www.haskell.org/cabal" ++ " or " ++
     link "stack" "https://docs.haskellstack.org/en/stable/README/" ++
-    "(recommended)."
+    " (recommended)."
   , "For more information about the purpose of these tools and why you"
   , "should prefer using stack instead of cabal, we recommend reading"
   ,  link "this blog post"

@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool<br/>(Version 1.0.0.23)
+# Synthesis Format Conversion Tool<br/>(Version 1.0.0.24)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in [TLSF](https://arxiv.org/abs/1604.02284).
@@ -45,7 +45,7 @@ The main features of the tool are summarized as follows:
 
 SyfCo is written in Haskell and can be compiled using the
 Glasgow Haskell Compiler (GHC). To install the tool you can either
-use [cabal](https://www.haskell.org/cabal) or [stack](https://docs.haskellstack.org/en/stable/README/)(recommended).
+use [cabal](https://www.haskell.org/cabal) or [stack](https://docs.haskellstack.org/en/stable/README/) (recommended).
 For more information about the purpose of these tools and why you
 should prefer using stack instead of cabal, we recommend reading
 [this blog post](https://www.fpcomplete.com/blog/2015/06/why-is-stack-not-cabal) by Mathieu Boespflug. 
