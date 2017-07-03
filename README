@@ -1,5 +1,5 @@
 # Synthesis Format Conversion Tool
-# (Version 1.0.0.28)
+# (Version 1.1.0.0)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF [0].
