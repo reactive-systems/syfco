@@ -1,5 +1,5 @@
 # Synthesis Format Conversion Tool
-# (Version 1.1.0.2)
+# (Version 1.1.0.3)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF [0].
@@ -112,6 +112,7 @@ syfco [OPTIONS]... <file>
     * psl                        : PSL Syntax
     * smv                        : SMV file format
     * bosy                       : Bosy input format
+    * rabinizer                  : Rabinizer input format
 
   -m, --mode                     : output mode - possible values are:
 

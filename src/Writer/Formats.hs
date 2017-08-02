@@ -70,6 +70,8 @@ data WriteFormat =
     -- ^ SMV file format
   | BOSY
     -- ^ <https://github.com/reactive-systems/bosy>
+  | RABINIZER
+    -- ^ <https://www7.in.tum.de/~kretinsk/rabinizer3.html>
   deriving (Eq, Ord)
 
 -----------------------------------------------------------------------------
@@ -94,6 +96,7 @@ instance Show WriteFormat where
     PSL         -> "Psl"
     SMV         -> "SMV"
     BOSY        -> "BoSy"
+    RABINIZER   -> "Rabinizer"
 
 -----------------------------------------------------------------------------
 
@@ -114,6 +117,7 @@ instance Convertible WriteFormat String where
     PSL         -> "psl"
     SMV         -> "smv"
     BOSY        -> "bosy"
+    RABINIZER   -> "rabinizer"
 
 -----------------------------------------------------------------------------
 
@@ -134,6 +138,7 @@ instance Convertible String WriteFormat where
     "psl"          -> return PSL
     "smv"          -> return SMV
     "bosy"         -> return BOSY
+    "rabinizer"    -> return RABINIZER
     str            -> Left ConvertError
       { convSourceValue = str
       , convSourceType = "String"

@@ -515,6 +515,8 @@ usage m =
          ["SMV file format"])
       , (convert BOSY, False,
          ["Bosy input format"])
+      , (convert RABINIZER, False,
+         ["Rabinizer input format"])
       ]
 
     modes =
