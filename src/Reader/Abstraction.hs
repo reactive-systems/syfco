@@ -117,12 +117,16 @@ abstractSpec s = do
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.parameters s
   mapM_ (mapM_ (\(y,z,_) -> add (y,z)) . eValues) $ PD.enumerations s
   mapM_ (\x -> add (bIdent x,bPos x)) $ PD.definitions s
-  ps <- mapM abstractBind $ PD.parameters s
-  vs <- mapM abstractBind $ PD.definitions s
 
   let
     (ig,ib,ie) = foldl classify ([],[],[]) $ PD.inputs s
     (og,ob,oe) = foldl classify ([],[],[]) $ PD.outputs s
+
+  ig' <- mapM add ig
+  og' <- mapM add og
+
+  ps <- mapM abstractBind $ PD.parameters s
+  vs <- mapM abstractBind $ PD.definitions s
 
   a <- get
   ms <- mapM abstractEnum $ PD.enumerations s
@@ -133,8 +137,6 @@ abstractSpec s = do
     tIndex = tIndex a
     }
 
-  ig' <- mapM add ig
-  og' <- mapM add og
   ib' <- mapM abstractBus ib
   ob' <- mapM abstractBus ob
   ie'' <- mapM abstractTypedBus ie'
