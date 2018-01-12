@@ -83,12 +83,12 @@ writeFormat c s =
       Next x                -> prFormula' x
       And []                -> prFormula TTrue
       And [x]               -> prFormula x
-      And (x:xr)            -> concatMap (\y -> " & ") xr ++
+      And (x:xr)            -> concatMap (\_ -> " & ") xr ++
                                prFormula x ++
                                concatMap (\y -> prFormula y) xr
       Or []                 -> prFormula FFalse
       Or [x]                -> prFormula x
-      Or (x:xr)             -> concatMap (\y -> " | ") xr ++
+      Or (x:xr)             -> concatMap (\_ -> " | ") xr ++
                                prFormula x ++
                                concatMap (\y -> prFormula y) xr
       Implies x y           -> " | ! " ++
@@ -105,15 +105,15 @@ writeFormat c s =
               FFalse                -> " 0 "
               Atomic x              -> " " ++ show x ++ "' "
               Not x                 -> "! " ++ prFormula' x
-              Next x                -> assert False undefined
+              Next {}               -> assert False undefined
               And []                -> prFormula' TTrue
               And [x]               -> prFormula' x
-              And (x:xr)            -> concatMap (\y -> " & ") xr ++
+              And (x:xr)            -> concatMap (\_ -> " & ") xr ++
                                        prFormula' x ++
                                        concatMap (\y -> prFormula' y) xr
               Or []                 -> prFormula' FFalse
               Or [x]                -> prFormula' x
-              Or (x:xr)             -> concatMap (\y -> " | ") xr ++
+              Or (x:xr)             -> concatMap (\_ -> " | ") xr ++
                                        prFormula' x ++
                                        concatMap (\y -> prFormula' y) xr
               Implies x y           -> " | ! " ++

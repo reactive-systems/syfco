@@ -27,10 +27,6 @@ import Data.Version
   , showVersion
   )
 
-import Data.Char
-  ( toLower
-  )
-
 -----------------------------------------------------------------------------
 
 -- | The default delimiter symbol
@@ -72,6 +68,9 @@ name = "SyFCo"
 
 -- | Returns the build version of the library. Requires the library to
 -- be built with cabal or stack.
+
+version
+  :: String
 
 version = case P.version of
   Version [0,0,0,0] [] -> "no version information available"

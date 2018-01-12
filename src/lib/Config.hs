@@ -37,10 +37,6 @@ import Data.Convertible
   , convert
   )
 
-import Data.Char
-  ( toLower
-  )
-
 import Data.Info
   ( name
   , version
@@ -51,11 +47,6 @@ import Data.Info
 
 import Data.Maybe
   ( isJust
-  , catMaybes
-  )
-
-import System.Directory
-  ( doesFileExist
   )
 
 import Data.Types
@@ -65,7 +56,6 @@ import Data.Types
 
 import Data.Error
   ( Error
-  , prError
   , parseError
   , cfgError
   )
@@ -84,30 +74,15 @@ import Text.Parsec
   , char
   , oneOf
   , many
-  , many1
-  , digit
   , alphaNum
-  , eof
   )
 
 import Control.Monad
   ( void
-  , liftM
-  , when
-  , unless
   )
 
 import Writer.Data
   ( WriteMode(..)
-  )
-
-import Reader.Parser.Info
-  ( targetParser
-  , semanticsParser
-  )
-
-import Reader.Parser.Data
-  ( globalDef
   )
 
 import Text.Parsec.Prim
@@ -115,8 +90,7 @@ import Text.Parsec.Prim
   )
 
 import Text.Parsec.Token
-  ( LanguageDef
-  , GenLanguageDef(..)
+  ( GenLanguageDef(..)
   , makeTokenParser
   , stringLiteral
   , identifier
@@ -638,12 +612,6 @@ verify Configuration{..}
 
   | otherwise = return ()
 
-  where
-    missingQuotes str =
-      length str < 2 ||
-      head str /= '"' ||
-      last str /= '"'
-
 -----------------------------------------------------------------------------
 
 -- | Creates the content of a parsable configuration file restricted
@@ -712,20 +680,20 @@ instance Convertible Configuration String where
       "the LTL"
     , comment $ "formula level. Possible values are either \"true\" " ++
       "or \"false\"."
-    , set "weak_simplify" $ convert simplifyWeak
+    , set "weak_simplify" $ convert $ CBool simplifyWeak
     , emptyline
     , comment $ "Either enable or disable strong simplifications on " ++
       "the LTL"
     , comment $ "formula level. Possible values are either \"true\" " ++
       "or \"false\"."
-    , set "strong_simplify" $ convert simplifyStrong
+    , set "strong_simplify" $ convert $ CBool simplifyStrong
     , emptyline
     , comment $ "Either enable or disable that the resulting " ++
       "formula is"
     , comment "converted into negation normal form. Possible values " ++
       "are"
     , comment "either \"true\" or \"false\"."
-    , set "negation_normal_form" $ convert negNormalForm
+    , set "negation_normal_form" $ convert $ CBool negNormalForm
     , emptyline
     , comment $ "Either enable or disable to push globally operators " ++
       "inwards,"
@@ -734,7 +702,7 @@ instance Convertible Configuration String where
     , comment "  G (a && b) => (G a) && (G b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "push_globally_inwards" $ convert pushGlobally
+    , set "push_globally_inwards" $ convert $ CBool pushGlobally
     , emptyline
     , comment $ "Either enable or disable to push finally operators " ++
       "inwards,"
@@ -743,7 +711,7 @@ instance Convertible Configuration String where
     , comment "  F (a || b) => (F a) || (F b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "push_finally_inwards" $ convert pushFinally
+    , set "push_finally_inwards" $ convert $ CBool pushFinally
     , emptyline
     , comment $ "Either enable or disable to next operators " ++
       "inwards, i.e.,"
@@ -753,7 +721,7 @@ instance Convertible Configuration String where
     , comment "  X (a || b) => (X a) || (X b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "push_next_inwards" $ convert pushNext
+    , set "push_next_inwards" $ convert $ CBool  pushNext
     , emptyline
     , comment $ "Either enable or disable to pull globally operators " ++
       "outwards,"
@@ -762,7 +730,7 @@ instance Convertible Configuration String where
     , comment "  (G a) && (G b) => G (a && b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "pull_globally_outwards" $ convert pullGlobally
+    , set "pull_globally_outwards" $ convert $ CBool pullGlobally
     , emptyline
     , comment $ "Either enable or disable to pull finally operators " ++
       "outwards,"
@@ -771,7 +739,7 @@ instance Convertible Configuration String where
     , comment "  (F a) || (F b) => F (a || b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "pull_finally_outwards" $ convert pullFinally
+    , set "pull_finally_outwards" $ convert $ CBool pullFinally
     , emptyline
     , comment $ "Either enable or disable to pull next operators " ++
       "outwards,"
@@ -781,34 +749,34 @@ instance Convertible Configuration String where
     , comment "  (X a) || (X b) => X (a || b)"
     , comment ""
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "pull_next_outwards" $ convert pullNext
+    , set "pull_next_outwards" $ convert $ CBool pullNext
     , emptyline
     , comment $ "Either enable or disable to resolve weak until " ++
       "operators."
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "no_weak_until" $ convert noWeak
+    , set "no_weak_until" $ convert $ CBool noWeak
     , emptyline
     , comment $ "Either enable or disable to resolve release " ++
       "operators."
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "no_release" $ convert noRelease
+    , set "no_release" $ convert $ CBool noRelease
     , emptyline
     , comment $ "Either enable or disable to resolve finally " ++
       "operators."
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "no_finally" $ convert noFinally
+    , set "no_finally" $ convert $ CBool noFinally
     , emptyline
     , comment $ "Either enable or disable to resolve globally " ++
       "operators."
     , comment "Possible values are either \"true\" or \"false\"."
-    , set "no_globally" $ convert noGlobally
+    , set "no_globally" $ convert $ CBool noGlobally
     , emptyline
     , comment $ "Either enable or disable to resolve derived " ++
       "operators, i.e.,"
     , comment "weak until, finally, globally, ... . Possible " ++
       "values are"
     , comment "either \"true\" or \"false\"."
-    , set "no_derived" $ convert noDerived
+    , set "no_derived" $ convert $ CBool noDerived
     , emptyline
     ]
 
@@ -862,33 +830,33 @@ configParser = (~~) >> many entryParser
       <|> (mParser "overwrite_target"
              >>= (\v -> return (\c -> c { owTarget = Just v })))
       <|> (mParser "weak_simplify"
-             >>= (\v -> return (\c -> c { simplifyWeak = v })))
+             >>= (\(CBool v) -> return (\c -> c { simplifyWeak = v })))
       <|> (mParser "strong_simplify"
-             >>= (\v -> return (\c -> c { simplifyStrong = v })))
+             >>= (\(CBool v) -> return (\c -> c { simplifyStrong = v })))
       <|> (mParser "negation_normal_form"
-             >>= (\v -> return (\c -> c { negNormalForm = v })))
+             >>= (\(CBool v) -> return (\c -> c { negNormalForm = v })))
       <|> (mParser "push_globally_inwards"
-             >>= (\v -> return (\c -> c { pushGlobally = v })))
+             >>= (\(CBool v) -> return (\c -> c { pushGlobally = v })))
       <|> (mParser "push_finally_inwards"
-             >>= (\v -> return (\c -> c { pushFinally = v })))
+             >>= (\(CBool v) -> return (\c -> c { pushFinally = v })))
       <|> (mParser "push_next_inwards"
-             >>= (\v -> return (\c -> c { pushNext = v })))
+             >>= (\(CBool v) -> return (\c -> c { pushNext = v })))
       <|> (mParser "pull_globally_outwards"
-             >>= (\v -> return (\c -> c { pullGlobally = v })))
+             >>= (\(CBool v) -> return (\c -> c { pullGlobally = v })))
       <|> (mParser "pull_finally_outwards"
-             >>= (\v -> return (\c -> c { pullFinally = v })))
+             >>= (\(CBool v) -> return (\c -> c { pullFinally = v })))
       <|> (mParser "pull_next_outwards"
-             >>= (\v -> return (\c -> c { pullNext = v })))
+             >>= (\(CBool v) -> return (\c -> c { pullNext = v })))
       <|> (mParser "no_weak_until"
-             >>= (\v -> return (\c -> c { noWeak = v })))
+             >>= (\(CBool v) -> return (\c -> c { noWeak = v })))
       <|> (mParser "no_release"
-             >>= (\v -> return (\c -> c { noRelease = v })))
+             >>= (\(CBool v) -> return (\c -> c { noRelease = v })))
       <|> (mParser "no_finally"
-             >>= (\v -> return (\c -> c { noFinally = v })))
+             >>= (\(CBool v) -> return (\c -> c { noFinally = v })))
       <|> (mParser "no_globally"
-             >>= (\v -> return (\c -> c { noGlobally = v })))
+             >>= (\(CBool v) -> return (\c -> c { noGlobally = v })))
       <|> (mParser "no_derived"
-             >>= (\v -> return (\c -> c { noDerived = v })))
+             >>= (\(CBool v) -> return (\c -> c { noDerived = v })))
 
     sParser str = do
       keyword str
@@ -932,17 +900,21 @@ configParser = (~~) >> many entryParser
 
 -----------------------------------------------------------------------------
 
-instance Convertible Bool String where
-  safeConvert = return . \case
-    True  -> "true"
-    False -> "false"
+newtype CBool = CBool Bool
 
 -----------------------------------------------------------------------------
 
-instance Convertible String Bool where
+instance Convertible CBool String where
+  safeConvert = return . \case
+    (CBool True)  -> "true"
+    (CBool False) -> "false"
+
+-----------------------------------------------------------------------------
+
+instance Convertible String CBool where
   safeConvert = \case
-    "true"  -> return True
-    "false" -> return False
+    "true"  -> return $ CBool True
+    "false" -> return $ CBool False
     str     -> Left ConvertError
       { convSourceValue = str
       , convSourceType = "String"

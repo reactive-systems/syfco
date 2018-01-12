@@ -17,7 +17,6 @@ import Simplify
 
 import Data.LTL
 import Data.Error
-import Data.Types
 import Data.Specification
 
 import Writer.Eval

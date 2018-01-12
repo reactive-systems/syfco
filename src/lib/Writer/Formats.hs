@@ -31,10 +31,6 @@ import Data.Convertible
   , ConvertError(..)
   )
 
-import Data.List
-  ( find
-  )
-
 -----------------------------------------------------------------------------
 
 -- | Supported writer formats.

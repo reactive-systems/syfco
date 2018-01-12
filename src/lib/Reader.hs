@@ -22,10 +22,6 @@ module Reader
 
 -----------------------------------------------------------------------------
 
-import Data.Enum
-  ( EnumDefinition(..)
-  )
-
 import Data.Error
   ( Error
   )
@@ -81,12 +77,6 @@ import qualified Data.Array.IArray as A
 import qualified Reader.Data as RD
   ( Specification(..)
   )
-
-import qualified Reader.Parser.Data as PD
-  ( enumerations
-  )
-
-import Debug.Trace
 
 -----------------------------------------------------------------------------
 

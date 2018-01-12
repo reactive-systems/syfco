@@ -59,10 +59,7 @@ import Text.Parsec
 
 import Text.Parsec
   ( (<|>)
-  , (<?>)
   , char
-  , oneOf
-  , many
   , many1
   , digit
   , alphaNum
@@ -70,14 +67,9 @@ import Text.Parsec
   )
 
 import Text.Parsec.Token
-  ( LanguageDef
-  , GenLanguageDef(..)
+  ( GenLanguageDef(..)
   , makeTokenParser
-  , stringLiteral
   , identifier
-  , reserved
-  , reservedOp
-  , whiteSpace
   )
 
 import Text.Parsec.Language

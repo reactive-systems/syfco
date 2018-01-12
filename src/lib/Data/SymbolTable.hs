@@ -32,12 +32,9 @@ import Data.Types
    )
 
 import Data.Expression
-   ( Expr(..)
-   , Expr'(..)
+   ( Expr
    , ExprPos(..)
    , SrcPos(..)
-   , prExpr
-   , expr
    )
 
 import Data.Char
@@ -99,7 +96,7 @@ st2csv lt =
  ++ (unlines $ map printEntry $ assocs lt)
 
   where
-    printEntry (i,r@IdRec{..}) =
+    printEntry (i,IdRec{..}) =
       concat
         [ show i
         , ";"
@@ -166,7 +163,7 @@ st2csv lt =
          else prType args (idType r) ++ " -> "
 
 -----------------------------------------------------------------------------
-
+{-
 prPrettyExpr
   :: SymbolTable -> IdRec -> Expr Int -> String
 
@@ -237,5 +234,5 @@ prPrettyExpr st r e = pr e
       SetRCap xs x     -> "⋂ [" ++ concatMap (flip (++) " " . pr) xs ++ "] " ++ pr x
       BlnROr xs x      -> "⋁ [" ++ concatMap (flip (++) " " . pr) xs ++ "] " ++ pr x
       BlnRAnd xs x     -> "⋀ [ " ++ concatMap (flip (++) " " . pr) xs ++ "] " ++ pr x
-
+-}
 -----------------------------------------------------------------------------

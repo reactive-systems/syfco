@@ -58,12 +58,7 @@ import Syfco
   )
 
 import Data.Convertible
-  ( Convertible
-  , convert
-  )
-
-import Data.Array
-  ( (!)
+  ( convert
   )
 
 import Control.Monad
@@ -311,7 +306,7 @@ usage m =
         Markdown -> [str]
         _        -> rearrange l [] [] 0 $ words str
 
-    rearrange l a b n [] =
+    rearrange _ a b _ [] =
       reverse ((unwords $ reverse b):a)
     rearrange l a [] _ (x:xr)
       | length x > l = rearrange l (x:a) [] 0 xr
@@ -681,12 +676,12 @@ readme m = appendlinks $ unlines
     appendlinks str = case m of
       Markdown -> str
       _        ->
-        let (str',ls) = replclct [] [] [] [] 0 0 str
+        let (str',ls) = replclct [] [] [] [] (0 :: Int) (0 :: Int) str
         in str' ++
            "\n--------------------------------------------------\n\n" ++
-           concatMap (\(n,s1,s2) -> "[" ++ show n ++ "]" ++
-                                    replicate (4 - length (show n)) ' '
-                                    ++ s2 ++ "\n") ls
+           concatMap (\(n,_,s2) -> "[" ++ show n ++ "]" ++
+                                   replicate (4 - length (show n)) ' '
+                                   ++ s2 ++ "\n") ls
 
     replclct a b c1 c2 n m xs = case xs of
       []   -> case m of

@@ -26,9 +26,6 @@ module Reader.InferType
 
 -----------------------------------------------------------------------------
 
-import Prelude hiding
-  ((!))
-
 import Control.Arrow
   ( (>>>)
   , (&&&)
@@ -69,8 +66,7 @@ import Data.Types
   )
 
 import Data.Binding
-  ( Binding
-  , BindExpr(..)
+  ( BindExpr(..)
   )
 
 import Data.Expression
@@ -81,7 +77,6 @@ import Data.Expression
 
 import Reader.Data
   ( TypeTable
-  , ExpressionTable
   , ArgumentTable
   , Specification(..)
   )
@@ -89,8 +84,6 @@ import Reader.Data
 import Reader.Error
   ( Error
   , errExpect
-  , errRange
-  , errPattern
   , errNoPFuns
   , errArgArity
   , errNoHigher
@@ -98,20 +91,11 @@ import Reader.Error
   , errInfinite
   )
 
-import Data.Maybe
-  ( fromJust
-  )
-
-import Data.Either
-  ( partitionEithers
-  )
-
 import Control.Monad.State
   ( StateT(..)
   , execStateT
   , get
   , put
-  , liftM
   , when
   , unless
   )
@@ -125,8 +109,7 @@ import qualified Data.IntMap.Strict as IM
   )
 
 import Data.IntMap.Strict
-  ( IntMap
-  , (!)
+  ( (!)
   , insert
   , fromList
   , findMax
@@ -134,8 +117,6 @@ import Data.IntMap.Strict
   )
 
 -----------------------------------------------------------------------------
-
-type TypeChecker a = a -> StateT ST (Either Error) ()
 
 type TC a = StateT ST (Either Error) a
 
@@ -438,7 +419,7 @@ typeCheck e = \case
     BaseTrue          -> return ()
     BaseFalse         -> return ()
     BaseOtherwise     -> return ()
-    Pattern x y       -> typeChckP e
+    Pattern x y       -> typeChckP x y
     BlnElem x xs      -> typeChElm x xs
     BlnEQ x y         -> typeChEqB x y
     BlnNEQ x y        -> typeChEqB x y
@@ -529,7 +510,7 @@ typeChIdF e t = case expr e of
   BaseFml xs f -> typeCheckFml t xs f $ srcPos e
   BaseBus x b  -> typeCheckBus t x b $ srcPos e
   Colon x y    -> typeCheck x TBoolean >> typeCheck y t
-  x            -> do
+  _            -> do
     TSet t' <- inferFromExpr e
     errExpect t t' $ srcPos e
 
@@ -709,13 +690,13 @@ typeChEqL
 
 typeChEqL x y = inferFromExpr x >>= \case
   TNumber -> typeChck2 x y TNumber
-  TTypedBus s m i -> inferFromExpr y >>= \case
+  TTypedBus _ m i -> inferFromExpr y >>= \case
     TEnum n j
       | i == j     -> return ()
       | otherwise -> errExpect (TEnum m i) (TEnum n j) $ srcPos y
     t -> errExpect (TEnum m i) t $ srcPos y
   TEnum n j -> inferFromExpr y >>= \case
-    TTypedBus s m i
+    TTypedBus _ m i
       | i == j     -> return ()
       | otherwise -> errExpect
                       (TTypedBus STGeneric n j)
@@ -818,9 +799,9 @@ typeChckU e x = case expr e of
 -----------------------------------------------------------------------------
 
 typeChckP
-  :: Expression -> StateT ST (Either Error) ()
+  :: Expression -> Expression -> StateT ST (Either Error) ()
 
-typeChckP (expr -> Pattern x y) = do
+typeChckP x y = do
   typeCheck x TLtl
   typeCheck y TPattern
 
@@ -855,15 +836,6 @@ typeErrES e x = do
   t <- inferFromExpr x
   typeCheck x t
   errExpect TEmptySet (TSet t) $ srcPos e
-
------------------------------------------------------------------------------
-
-typeChSBn
-  :: ExprType -> Expression -> Expression -> StateT ST (Either Error) ()
-
-typeChSBn t x y = do
-  typeCheck x $ TSet t
-  typeCheck y $ TSet t
 
 -----------------------------------------------------------------------------
 
@@ -970,10 +942,10 @@ inferFromBoolExpr e = case expr e of
     inferFromEqExpr x y = inferFromExpr x >>= \case
       TTypedBus {} -> return TLtl
       TEnum {}     -> return TLtl
-      TPoly p      -> inferFromExpr y >>= \case
+      TPoly {}     -> inferFromExpr y >>= \case
         TTypedBus {} -> return TLtl
         TEnum {}     -> return TLtl
-        TPoly p'     -> return TLtl
+        TPoly {}     -> return TLtl
         _            -> return TBoolean
       _            -> return TBoolean
 

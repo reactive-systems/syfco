@@ -45,10 +45,6 @@ import Writer.Utils
   ( checkLower
   )
 
-import Writer.Error
-  ( prError
-  )
-
 import Writer.Formats
   ( WriteFormat(..)
   , needsLower

@@ -14,14 +14,11 @@ module Writer.Formats.AcaciaSpecs where
 
 -----------------------------------------------------------------------------
 
-import qualified Data.Char as Char
-
 import Config
 import Simplify
 
 import Data.LTL
 import Data.Error
-import Data.Types
 import Data.Specification
 
 import Writer.Eval
@@ -87,7 +84,7 @@ writeFormat c s = do
       [] -> []
       ys -> map (++ "\n") (init ys) ++ [last ys]
 
-    zs = zip [0..] xs
+    zs = zip [(0 :: Int)..] xs
 
     finals = map (\x -> "[spec_unit " ++ show(fst x) ++ "]\n" ++ flatws ++ (snd x)) zs
 

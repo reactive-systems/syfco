@@ -16,7 +16,6 @@ module Writer.Formats.Bosy where
 import Config
 import Simplify
 
-import Data.Maybe
 import Data.List
 import Data.LTL
 import Data.Types
@@ -65,8 +64,8 @@ writeFormat config specification = do
   }
 
   (initial, preset, requirments, assumptions, assertions, guarantees) <- eval config' specification
-  initial' <- mapM (simplify (adjust config' opConfig)) initial
-  preset' <- mapM (simplify (adjust config' opConfig)) preset
+  _ <- mapM (simplify (adjust config' opConfig)) initial
+  _ <- mapM (simplify (adjust config' opConfig)) preset
   requirments' <- mapM ((simplify (adjust config' opConfig)) . fGlobally) requirments
   assumptions' <- mapM (simplify (adjust config' opConfig)) assumptions
   assertions' <- mapM ((simplify (adjust config' opConfig)) . fGlobally) assertions

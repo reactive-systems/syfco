@@ -116,16 +116,6 @@ import Data.Array
   ( (!)
   )
 
-import Writer.Eval
-  ( eval
-  )
-
-import Data.LTL
-  ( Formula(..)
-  , fmlInputs
-  , fmlOutputs
-  )
-
 import Data.Info
   ( version
   )
