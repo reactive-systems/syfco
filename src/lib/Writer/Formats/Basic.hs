@@ -3,10 +3,10 @@
 -- Module      :  Writer.Formats.Basic
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Transforms a specification to the basic TLSF version without high level
 -- constructs.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Writer.Formats.Basic where
@@ -41,9 +41,9 @@ opConfig = OperatorConfig
   , opOr       = BinaryOp "||"  3 AssocLeft
   , opImplies  = BinaryOp "->"  4 AssocRight
   , opEquiv    = BinaryOp "<->" 4 AssocRight
-  , opNext     = UnaryOp  "X"   1 
-  , opFinally  = UnaryOp  "F"   1 
-  , opGlobally = UnaryOp  "G"   1 
+  , opNext     = UnaryOp  "X"   1
+  , opFinally  = UnaryOp  "F"   1
+  , opGlobally = UnaryOp  "G"   1
   , opUntil    = BinaryOp "U"   6 AssocRight
   , opRelease  = BinaryOp "R"   7 AssocLeft
   , opWeak     = BinaryOp "W"   5 AssocRight
@@ -68,7 +68,7 @@ writeFormat c s = do
   rs' <- mapM (simplify (adjust c opConfig)) rs
   as' <- mapM (simplify (adjust c opConfig)) as
   is' <- mapM (simplify (adjust c opConfig)) is
-  gs' <- mapM (simplify (adjust c opConfig)) gs  
+  gs' <- mapM (simplify (adjust c opConfig)) gs
 
   (si,so) <- signals c s'
 
@@ -76,17 +76,17 @@ writeFormat c s = do
     "INFO {"
     ++ "\n" ++ "  TITLE:       \"" ++ title s' ++ "\""
     ++ "\n" ++ "  DESCRIPTION: \"" ++ description s' ++ "\""
-    ++ "\n" ++ "  SEMANTICS:   " ++ 
+    ++ "\n" ++ "  SEMANTICS:   " ++
       (case semantics s' of
          SemanticsMealy       -> "Mealy"
          SemanticsMoore       -> "Moore"
          SemanticsStrictMealy -> "Strict,Mealy"
-         SemanticsStrictMoore -> "Strict,Moore")    
-    ++ "\n" ++ "  TARGET:      " ++ 
+         SemanticsStrictMoore -> "Strict,Moore")
+    ++ "\n" ++ "  TARGET:      " ++
       (case target s' of
          TargetMealy -> "Mealy"
          TargetMoore -> "Moore")
-    ++ (if null $ tags s' then "" 
+    ++ (if null $ tags s' then ""
         else "\n  TAGS:        " ++ head (tags s') ++
              concatMap ((:) ' ' . (:) ',') (tail $ tags s'))
     ++ "\n" ++ "}"
@@ -98,27 +98,27 @@ writeFormat c s = do
     ++ "\n" ++ "  OUTPUTS {"
     ++ concatMap printSignal so
     ++ "\n" ++ "  }"
-    ++ (if not $ any checkTrue es' then "" 
+    ++ (if not $ any checkTrue es' then ""
         else "\n" ++ "  INITIALLY {" ++
              concatMap pr (filter checkTrue es') ++
              "\n" ++ "  }")
-    ++ (if not $ any checkTrue ss' then "" 
+    ++ (if not $ any checkTrue ss' then ""
         else "\n" ++ "  PRESET {" ++
              concatMap pr (filter checkTrue ss') ++
              "\n" ++ "  }")
-    ++ (if not $ any checkTrue rs' then "" 
+    ++ (if not $ any checkTrue rs' then ""
         else "\n" ++ "  REQUIRE {" ++
              concatMap pr (filter checkTrue rs') ++
              "\n" ++ "  }")
-    ++ (if not $ any checkTrue as' then "" 
+    ++ (if not $ any checkTrue as' then ""
         else "\n" ++ "  ASSUME {" ++
              concatMap pr (filter checkTrue as') ++
              "\n" ++ "  }")
-    ++ (if not $ any checkTrue is' then "" 
+    ++ (if not $ any checkTrue is' then ""
         else "\n" ++ "  ASSERT {" ++
              concatMap pr (filter checkTrue is') ++
              "\n" ++ "  }")
-    ++ (if not $ any checkTrue gs' then "" 
+    ++ (if not $ any checkTrue gs' then ""
         else "\n" ++ "  GUARANTEE {" ++
              concatMap pr (filter checkTrue gs') ++
              "\n" ++ "  }")
@@ -130,7 +130,7 @@ writeFormat c s = do
       TTrue -> False
       _     -> True
 
-    printSignal sig = 
+    printSignal sig =
       "\n    " ++ sig ++ ";"
 
     pr = (++ ";") . ("\n    " ++) . printFormula opConfig Fully

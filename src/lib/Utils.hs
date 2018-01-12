@@ -3,14 +3,14 @@
 -- Module      :  Utils
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Functions on standard data types that are not in Prelude.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Utils
     ( strictSort
-    , bucketSort  
+    , bucketSort
     , iter
     , imLookup
     ) where
@@ -34,7 +34,7 @@ import Data.Set
 
 import Data.Ix
     ( Ix
-    )    
+    )
 
 import qualified Data.Array.ST as A
 import Control.Monad.ST
@@ -57,23 +57,23 @@ bucketSort
 
 bucketSort xs = case xs of
   []     -> []
-  (x:xr) -> 
+  (x:xr) ->
     let bounds = foldl (\(a,b) y -> (min a y, max b y)) (x,x) xr
     in runST (bucketSortST bounds xs)
 
   where
-    bucketSortST (l,u) ys = 
+    bucketSortST (l,u) ys =
       let
         newArray :: Ix j => (j, j) -> Int -> ST s (A.STArray s j Int)
-        newArray = A.newArray 
+        newArray = A.newArray
       in do
-        a <- newArray (l,u) 0 
-        mapM_ (incIdx a) ys               
+        a <- newArray (l,u) 0
+        mapM_ (incIdx a) ys
         getPositive l a [] u
 
-    incIdx a i = do 
+    incIdx a i = do
       v <- A.readArray a i
-      A.writeArray a i (v+1)    
+      A.writeArray a i (v+1)
 
     getPositive l a b i
       | i < l     = return b

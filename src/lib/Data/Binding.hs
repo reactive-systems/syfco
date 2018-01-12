@@ -3,9 +3,9 @@
 -- Module      :  Data.Binding
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- A data type to store an identifier bound to an expression.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Data.Binding
@@ -38,10 +38,9 @@ type Binding = BindExpr Int
 data BindExpr a =
   BindExpr
   { bIdent :: a
-  , bArgs :: [(a,ExprPos)]    
-  , bPos :: ExprPos      
+  , bArgs :: [(a,ExprPos)]
+  , bPos :: ExprPos
   , bVal :: [Expr a]
   } deriving (Show)
 
------------------------------------------------------------------------------             
-
+-----------------------------------------------------------------------------

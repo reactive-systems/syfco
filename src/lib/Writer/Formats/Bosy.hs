@@ -87,7 +87,7 @@ writeFormat config specification = do
     "}\n"
 
   where
-    printSemantics specSemantics = 
+    printSemantics specSemantics =
       case specSemantics of
         SemanticsMealy       -> "\"mealy\""
         SemanticsMoore       -> "\"moore\""

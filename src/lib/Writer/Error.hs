@@ -3,41 +3,41 @@
 -- Module      :  Writer.Error
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
--- Pretty and informative error messages that may be thrown while writing 
+--
+-- Pretty and informative error messages that may be thrown while writing
 -- out a specification to another format.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Writer.Error
     ( Error
     , errBounds
-    , errBusCmp  
+    , errBusCmp
     , errMinSet
     , errMaxSet
     , errSetCap
     , errNoMatch
     , errToLower
-    , errNoGR1  
-    , prError      
+    , errNoGR1
+    , prError
     ) where
 
 -----------------------------------------------------------------------------
-    
+
 import Data.Error
     ( Error
     , runtimeError
     , conversionError
     , prError
-    )  
-    
+    )
+
 import Data.Expression
     ( ExprPos
     )
-    
+
 import Control.Monad.State
     ( StateT(..)
-    )  
+    )
 
 -----------------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ errBounds
 
 errBounds i u r pos =
   let msg = "index out of bounds: " ++ i ++ "[" ++ show r ++ "]" ++ "\n" ++
-            "valid range:         0 - " ++ show (u - 1)  
+            "valid range:         0 - " ++ show (u - 1)
   in StateT $ \_ -> runtimeError pos msg
 
 -----------------------------------------------------------------------------
@@ -62,8 +62,8 @@ errBusCmp
 errBusCmp v1 v2 cm i j pos =
   let msg = "invalid comparison: " ++ v1 ++ " " ++ show cm ++ " " ++ v2
             ++ "\n" ++
-            "they are of unequal length: " ++ show i ++ " != " ++ show j 
-  in StateT $ \_ -> runtimeError pos msg                    
+            "they are of unequal length: " ++ show i ++ " != " ++ show j
+  in StateT $ \_ -> runtimeError pos msg
 
 -----------------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ errBusCmp v1 v2 cm i j pos =
 errMinSet
   :: ExprPos -> StateT a (Either Error) b
 
-errMinSet pos = 
+errMinSet pos =
   let msg = "Cannot compute the minumum of an empty set."
   in StateT $ \_ -> runtimeError pos msg
 
@@ -85,7 +85,7 @@ errMinSet pos =
 errMaxSet
   :: ExprPos -> StateT a (Either Error) b
 
-errMaxSet pos = 
+errMaxSet pos =
   let msg = "Cannot compute the maximum of an empty set."
   in StateT $ \_ -> runtimeError pos msg
 
@@ -97,7 +97,7 @@ errMaxSet pos =
 errSetCap
   :: ExprPos -> StateT a (Either Error) b
 
-errSetCap pos = 
+errSetCap pos =
   let msg = "Cannot compute the intersection of an empty set of sets."
   in StateT $ \_ -> runtimeError pos msg
 
@@ -109,7 +109,7 @@ errSetCap pos =
 errNoMatch
   :: String -> [String] -> ExprPos -> StateT a (Either Error) b
 
-errNoMatch i xs pos = 
+errNoMatch i xs pos =
   let msg = "there is no positive guard to evaluate:\n" ++
             "  " ++ i ++ "(" ++
             (if null xs then "" else
@@ -123,7 +123,7 @@ errNoMatch i xs pos =
 -- if converted to lower case.
 
 errToLower
-  :: String -> String -> String -> ExprPos -> Either Error a 
+  :: String -> String -> String -> ExprPos -> Either Error a
 
 errToLower fmt n1 n2 pos =
   let msg = "The " ++ fmt ++ " format only accepts lower case variables. " ++
@@ -137,7 +137,7 @@ errToLower fmt n1 n2 pos =
 -- which is neccessary for the corresponding conversation.
 
 errNoGR1
-  :: String -> String -> Either Error a 
+  :: String -> String -> Either Error a
 
 errNoGR1 t fmt =
   let msg = "The given specification is not in GR(1), which is " ++

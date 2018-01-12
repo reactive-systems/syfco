@@ -3,12 +3,12 @@
 -- Module      :  Writer.Formats.Utf8
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Transforms a specification to a UTF8 string.
--- 
+--
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Psl where
+module Writer.Formats.Utf8 where
 
 -----------------------------------------------------------------------------
 
@@ -24,30 +24,30 @@ import Writer.Utils
 
 -----------------------------------------------------------------------------
 
--- | PSL operator configuration.
+-- | UTF8 operator configuration.
 
 opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue      = "true"
-  , fFalse     = "false"
-  , opNot      = UnaryOp  "!"           1
-  , opAnd      = BinaryOp "&&"          2 AssocLeft
-  , opOr       = BinaryOp "||"          3 AssocLeft
-  , opImplies  = BinaryOp "->"          6 AssocRight
-  , opEquiv    = BinaryOp "<->"         6 AssocRight
-  , opNext     = UnaryOp  "next!"       4 
-  , opFinally  = UnaryOp  "eventually!" 4 
-  , opGlobally = UnaryOp  "always"      7      
-  , opUntil    = BinaryOp "until!"      5 AssocRight
-  , opRelease  = BinaryOpUnsupported
-  , opWeak     = BinaryOpUnsupported
+  { tTrue      = "⊤"
+  , fFalse     = "⊥"
+  , opNot      = UnaryOp  "¬" 1
+  , opAnd      = BinaryOp "∧" 2 AssocLeft
+  , opOr       = BinaryOp "∨" 3 AssocLeft
+  , opImplies  = BinaryOp "→" 4 AssocRight
+  , opEquiv    = BinaryOp "↔" 4 AssocRight
+  , opNext     = UnaryOp  "◯" 1
+  , opFinally  = UnaryOp  "◇" 1
+  , opGlobally = UnaryOp  "□" 1
+  , opUntil    = BinaryOp "U" 6 AssocRight
+  , opRelease  = BinaryOp "R" 7 AssocLeft
+  , opWeak     = BinaryOp "W" 5 AssocRight
   }
 
 -----------------------------------------------------------------------------
 
--- | PSL format writer.
+-- | UTF8 writer.
 
 writeFormat
   :: Configuration -> Specification -> Either Error String
@@ -56,8 +56,7 @@ writeFormat c s = do
   (es,ss,rs,as,is,gs) <- eval c s
   fml0 <- merge es ss rs as is gs
   fml1 <- simplify (adjust c opConfig) fml0
-  
+
   return $ printFormula opConfig (outputMode c) fml1
 
 -----------------------------------------------------------------------------
-

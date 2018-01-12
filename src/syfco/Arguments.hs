@@ -54,6 +54,7 @@ import Text.Parsec.String
 
 import Text.Parsec
   ( parse
+  , letter
   )
 
 import Text.Parsec
@@ -79,8 +80,8 @@ import Text.Parsec.Token
   , whiteSpace
   )
 
-import Reader.Parser.Data
-  ( globalDef
+import Text.Parsec.Language
+  ( emptyDef
   )
 
 -----------------------------------------------------------------------------
@@ -292,7 +293,13 @@ parameterParser
   :: Parser (String, Int)
 
 parameterParser = do
-  name <- identifier $ makeTokenParser globalDef
+  name <-
+    identifier $ makeTokenParser
+      emptyDef
+      { identStart     = letter <|> char '_' <|> char '@'
+      , identLetter    = alphaNum <|> char '_' <|> char '@' <|> char '\''
+      }
+
   void $ char '='
   x <- many1 digit
   eof

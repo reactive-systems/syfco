@@ -3,9 +3,9 @@
 -- Module      :  Data.Enum
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Data types to store enum definitions and applications.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Data.Enum
@@ -33,7 +33,7 @@ data EnumDefinition a =
   , ePos :: ExprPos
   , eMissing  :: [Int -> Either Bool ()]
   , eDouble :: Maybe ((a,ExprPos), (a, ExprPos), (a,ExprPos), Int -> Either Bool ())
-  } 
+  }
 
 -----------------------------------------------------------------------------
 
@@ -43,10 +43,10 @@ data EnumDefinition a =
 data EnumId a =
   EnumId
   { eIName :: a
-  , eIPos :: ExprPos 
+  , eIPos :: ExprPos
   , eISize :: Int
   , eIVName :: a
   , eIValue :: Int -> Bool
-  }  
+  }
 
------------------------------------------------------------------------------             
+-----------------------------------------------------------------------------

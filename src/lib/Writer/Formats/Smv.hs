@@ -4,11 +4,11 @@
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Leander Tentrup (tentrup@react.uni-saarland.de)
 --                Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Transforms a specification to SMV format.
 -- See http://nusmv.fbk.eu/NuSMV/userman/v21/nusmv_3.html#SEC31 for more
 -- information about the SMV LTL specification.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Writer.Formats.Smv where
@@ -59,15 +59,15 @@ writeFormat config spec = do
   (es,ss,rs,as,is,gs) <- eval config spec
   formula <- merge es ss rs as is gs
   simplified_formula <- simplify (adjust config opConfig) formula
-    
-  
+
+
   (input_signals, output_signals) <- signals config spec
-  let 
+  let
     all_signals = (input_signals ++ output_signals)
-  
+
   return $ main (printFormula opConfig (outputMode config) simplified_formula) all_signals
-  
-  where 
+
+  where
     main formula xs =
         "MODULE main\n"
         ++ "\tVAR\n"
@@ -79,6 +79,3 @@ writeFormat config spec = do
       (x:xr) -> "\t\t" ++ x ++ " : boolean;\n" ++ (printSignals xr)
 
 -----------------------------------------------------------------------------
-
-
-         

@@ -3,9 +3,9 @@
 -- Module      :  Data.StringMap
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- A simple data structure to map strings to integers.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Data.StringMap
@@ -57,13 +57,13 @@ lookup str mapping = case mapping of
     findMatch x xs = case xs of
       []           -> Nothing
       ((y,n) : xr) -> if x == y then Just n
-                     else findMatch x xr      
+                     else findMatch x xr
 
 -----------------------------------------------------------------------------
 
--- | Inserts a new string-int pair to the given mapping. If the mapping 
+-- | Inserts a new string-int pair to the given mapping. If the mapping
 -- already containts the given string, then the corresponding value is
--- updated.      
+-- updated.
 
 insert
   :: String -> Int -> StringMap -> StringMap

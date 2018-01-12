@@ -3,23 +3,23 @@
 -- Module      :  Writer.Utils
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Functions shared among the different writer modules.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Writer.Utils
     ( printFormula
     , checkLower
     , merge
-    , adjust  
+    , adjust
     ) where
 
 -----------------------------------------------------------------------------
 
 import Data.Maybe
     ( mapMaybe
-    )  
+    )
 
 import Data.Char
     ( toLower
@@ -31,22 +31,22 @@ import Config
 
 import Data.Types
     ( SignalDecType(..)
-    )  
+    )
 
 import Data.LTL
     ( Atomic(..)
     , Formula(..)
-    , fNot  
+    , fNot
     )
 
 import Data.SymbolTable
     ( IdRec(..)
-    )  
+    )
 
 import Data.Specification
     ( Specification(..)
     )
-    
+
 import Writer.Error
     ( Error
     , errToLower
@@ -54,16 +54,16 @@ import Writer.Error
 
 import Writer.Data
     ( WriteMode(..)
-    , OperatorConfig(..)        
+    , OperatorConfig(..)
     , UnaryOperator(..)
-    , BinaryOperator(..)      
+    , BinaryOperator(..)
     , Assoc(..)
-    , Unsupported(..)  
+    , Unsupported(..)
     )
-    
+
 import Data.Array.IArray
     ( (!)
-    )  
+    )
 
 -----------------------------------------------------------------------------
 
@@ -79,12 +79,12 @@ printFormula opc mode formula = reverse $ case mode of
   Fully  -> parens pr [] formula
 
   where
-    parens c a x = ')' : c ('(':a) x 
+    parens c a x = ')' : c ('(':a) x
 
     pr' a y r x = case mode of
       Fully  -> parens pr a x
       Pretty -> case compare (precedence' y) (precedence' x) of
-        LT -> parens pr a x        
+        LT -> parens pr a x
         GT -> pr a x
         EQ -> case (assoc' y, r) of
           (AssocRight, False) -> parens pr a x
@@ -96,7 +96,7 @@ printFormula opc mode formula = reverse $ case mode of
       TTrue                   -> revappend a ttrue
       FFalse                  -> revappend a ffalse
       Atomic (Input x)        -> revappend a x
-      Atomic (Output x)       -> revappend a x      
+      Atomic (Output x)       -> revappend a x
       Not x                   -> pr' (unOp opnot a) f False x
       And []                  -> pr a TTrue
       And [x]                 -> pr a x
@@ -112,9 +112,9 @@ printFormula opc mode formula = reverse $ case mode of
         _          -> pr a $ Or $ Or [x,y] : xr
       Implies x y             -> pr' (binOp opimplies $ pr' a f False x) f True y
       Equiv x y               -> pr' (binOp opequiv $ pr' a f False x) f True y
-      Next x                  -> pr' (unOp opnext a) f True x    
-      Globally x              -> pr' (unOp opglobally a) f True x    
-      Finally x               -> pr' (unOp opfinally a) f True x    
+      Next x                  -> pr' (unOp opnext a) f True x
+      Globally x              -> pr' (unOp opglobally a) f True x
+      Finally x               -> pr' (unOp opfinally a) f True x
       Until x y               -> pr' (binOp opuntil $ pr' a f False x) f True y
       Release x y             -> pr' (binOp oprelease $ pr' a f False x) f True y
       Weak x y                -> pr' (binOp opweak $ pr' a f False x) f True y
@@ -164,12 +164,12 @@ printFormula opc mode formula = reverse $ case mode of
     bopPrecedence' x =
       if unsupported x
       then Nothing
-      else Just $ bopPrecedence x           
+      else Just $ bopPrecedence x
 
     dp =
       let
-        xs = mapMaybe (\f -> f opc) 
-          [ uopPrecedence' . opNot 
+        xs = mapMaybe (\f -> f opc)
+          [ uopPrecedence' . opNot
           , bopPrecedence' . opAnd
           , bopPrecedence' . opOr
           , bopPrecedence' . opImplies
@@ -225,8 +225,8 @@ merge es ss rs as is gs =
       ([x],_)   -> And (Globally x : as)
       (_,[])    -> Globally $ And rs
       (_,[x])   -> And [Globally $ And rs, x]
-      (_,_)     -> And ((Globally $ And rs) : as)      
-    
+      (_,_)     -> And ((Globally $ And rs) : as)
+
     fmls = case (is,gs) of
       ([],[])   -> TTrue
       ([],[x])  -> x
@@ -251,7 +251,7 @@ merge es ss rs as is gs =
       ([x],TTrue) -> x
       (xs, TTrue) -> And xs
       _           -> And (ss ++ [fmli])
-        
+
     fmlf = case (es,fmlc) of
       ([],_)       -> fmlc
       ([x],FFalse) -> fNot x
@@ -279,18 +279,18 @@ checkLower fmt s =
     znames = zip3 ids names lnames
   in
     checkDouble znames
-    
+
   where
     ident x = case x of
       SDSingle (y,_) -> y
       SDBus (y,_) _  -> y
       SDEnum (y,_) _ -> y
-    
+
     checkDouble xs = case xs of
       [] ->  return ()
       [_] -> return ()
       ((i,a,b):(x,c,d):xr) ->
-        if b == d 
+        if b == d
         then errToLower fmt a c $ idPos $ symboltable s ! i
         else checkDouble ((x,c,d) : xr)
 

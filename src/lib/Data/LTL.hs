@@ -3,24 +3,24 @@
 -- Module      :  Data.LTL
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
--- 
+--
 -- Internal representation of Linear Temporal Logic formulas.
--- 
+--
 -----------------------------------------------------------------------------
 
 module Data.LTL
     ( Atomic(..)
     , Formula(..)
-    , subFormulas      
-    , applySub  
+    , subFormulas
+    , applySub
     , applyAtomic
     , fmlSignals
     , fmlInputs
     , fmlOutputs
     , isBooleanFormula
     , isBooleanNextFormula
-    , simplePrint      
-    , fNot        
+    , simplePrint
+    , fNot
     , fAnd
     , fOr
     , fGlobally
@@ -54,7 +54,7 @@ instance Ord Atomic where
     (Input a, Input b)   -> compare a b
     (Output a, Output b) -> compare a b
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
 
 instance Show Atomic where
   show a = case a of
@@ -74,12 +74,12 @@ data Formula =
   | Equiv Formula Formula
   | And [Formula]
   | Or [Formula]
-  | Next Formula    
+  | Next Formula
   | Globally Formula
   | Finally Formula
   | Until Formula  Formula
   | Release Formula Formula
-  | Weak Formula Formula  
+  | Weak Formula Formula
   deriving (Eq, Show)
 
 -----------------------------------------------------------------------------
@@ -109,13 +109,13 @@ instance Ord Formula where
     (Or xs, Or ys)             -> case foldl lexord EQ $ zip xs ys of
       EQ -> compare (length xs) (length ys)
       v  -> v
-    _                          -> compare (num x) (num y)  
+    _                          -> compare (num x) (num y)
 
     where
       num :: Formula -> Int
-      
+
       num f = case f of
-        FFalse      -> 0        
+        FFalse      -> 0
         TTrue       -> 1
         Atomic {}   -> 2
         Not {}      -> 3
@@ -177,7 +177,7 @@ applyAtomic f fml = case fml of
 fmlSignals
   :: Formula -> [Atomic]
 
-fmlSignals = S.toList . signals' S.empty 
+fmlSignals = S.toList . signals' S.empty
   where
     signals' a fml = case fml of
       Atomic x -> S.insert x a
@@ -185,7 +185,7 @@ fmlSignals = S.toList . signals' S.empty
 
 -----------------------------------------------------------------------------
 
--- | Returns the list of input signals that appear inside the given formula.      
+-- | Returns the list of input signals that appear inside the given formula.
 
 fmlInputs
   :: Formula -> [String]
@@ -197,7 +197,7 @@ fmlInputs fml = map (\(Input x) -> x) $ filter isInput $ fmlSignals fml
 
 -----------------------------------------------------------------------------
 
--- | Returns the list of output signals that appear inside the given formula.          
+-- | Returns the list of output signals that appear inside the given formula.
 
 fmlOutputs
   :: Formula -> [String]
@@ -205,7 +205,7 @@ fmlOutputs
 fmlOutputs fml = map (\(Output x) -> x) $ filter isOutput $ fmlSignals fml
   where
     isOutput (Output _)  = True
-    isOutput (Input _) =False     
+    isOutput (Input _) =False
 
 -----------------------------------------------------------------------------
 
@@ -248,7 +248,7 @@ isBooleanFormula fml = case fml of
   Or xs     -> all isBooleanFormula xs
   _         -> False
 
------------------------------------------------------------------------------  
+-----------------------------------------------------------------------------
 
 -- | Checks whether a given formula contains 'next' as the only temporal
 -- operator.
@@ -264,8 +264,8 @@ isBooleanNextFormula fml = case fml of
   And xs    -> all isBooleanNextFormula xs
   Or xs     -> all isBooleanNextFormula xs
   Next x    -> isBooleanFormula x
-  _         -> False  
-  
+  _         -> False
+
 -----------------------------------------------------------------------------
 
 -- | Smart 'And' constructur.
@@ -283,17 +283,17 @@ fAnd xs =
     warp = concatMap wAnd
     wAnd fml = case fml of
       And x -> x
-      _     -> [fml]    
+      _     -> [fml]
 
 -----------------------------------------------------------------------------
 
--- | Smart 'Or' constructur.  
+-- | Smart 'Or' constructur.
 
 fOr
   :: [Formula] -> Formula
 
 fOr xs =
-  case filter (/= FFalse) $ warp xs of  
+  case filter (/= FFalse) $ warp xs of
     []  -> FFalse
     [x] -> x
     _   -> Or xs
@@ -302,7 +302,7 @@ fOr xs =
     warp = concatMap wOr
     wOr fml = case fml of
       Or x -> x
-      _    -> [fml]      
+      _    -> [fml]
 
 -----------------------------------------------------------------------------
 
@@ -351,13 +351,13 @@ fFinally
 
 fFinally fml = case fml of
   Finally FFalse -> FFalse
-  Finally TTrue  -> TTrue  
+  Finally TTrue  -> TTrue
   Finally _      -> fml
   _              -> Finally fml
 
------------------------------------------------------------------------------    
+-----------------------------------------------------------------------------
 
--- | Simple printing.  
+-- | Simple printing.
 
 simplePrint
   :: Formula -> String
