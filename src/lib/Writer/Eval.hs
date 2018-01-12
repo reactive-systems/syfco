@@ -92,7 +92,6 @@ import Data.Specification
 
 import Data.SymbolTable
   ( IdRec(..)
-  , st2csv
   , SymbolTable
   )
 
