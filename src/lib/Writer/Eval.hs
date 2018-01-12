@@ -12,6 +12,7 @@
 {-# LANGUAGE
 
     FlexibleContexts
+  , LambdaCase
 
   #-}
 
@@ -91,6 +92,7 @@ import Data.Specification
 
 import Data.SymbolTable
   ( IdRec(..)
+  , st2csv
   , SymbolTable
   )
 
@@ -223,6 +225,7 @@ eval c s = do
   let ios = inputs s' ++ outputs s'
 
   stt <- execStateT (mapM_ staticBinding xs) st0
+
   (rr,sti) <- runStateT (mapM componentSignal ios) stt
   let (er,sr) = partitionEithers $ catMaybes rr
 
@@ -232,6 +235,8 @@ eval c s = do
   as <- evalStateT (mapM evalLtl $ assumptions s') sti
   is <- evalStateT (mapM evalLtl $ invariants s') sti
   gs <- evalStateT (mapM evalLtl $ guarantees s') sti
+
+
 
   return $ splitConjuncts $ overwrite s'
     ( map plainltl es, map plainltl ts, map plainltl (rs ++ er),
@@ -396,29 +401,64 @@ initialize
 
 initialize c s = do
   s' <- foldM overwriteParameter s $ owParameter c
+
   let
     s'' = s' {
       target = fromMaybe (target s') $ owTarget c
       }
-    xs = filter (isunary s'') $
-         map bIdent $ parameters s'' ++ definitions s''
-    ys = concatMap (\i -> map (\j -> (i,j)) $ filter (isunary s'') $
-                         idDeps $ symboltable s'' ! i) xs
-    minkey = foldl min (head xs) xs
-    maxkey = foldl max (head xs) xs
-    zs = if null xs then []
-         else reverse $ G.topSort $ G.buildG (minkey,maxkey) ys
 
-  st <- execStateT (mapM_ enumBinding $ enumerations s) $ ST
-        (symboltable s'')
-        IM.empty
-        (busDelimiter c)
-        (enumerations s)
+    -- get identifiers definitions that are not a function
+    uids =
+      filter (isunary s'') $
+      map bIdent $ parameters s'' ++ definitions s''
 
-  return (s'', st, zs)
+    -- get unary input and output signals
+    ios =
+      filter single $ inputs s'' ++ outputs s''
+
+    -- get the ids from the signals
+    ioids =
+      map (\(SDSingle (x,_)) -> x) ios
+
+    ids = ioids ++ uids
+
+    -- construct the edges according to the dependency graph
+    edges =
+      concatMap
+        (\i -> map (\j -> (i,j))
+              $ filter (isunary s'')
+              $ idDeps $ symboltable s'' ! i)
+        ids
+
+    minkey = minimum ids
+    maxkey = maximum ids
+
+    -- obtain general dependency order
+    order' = if null ids then []
+             else reverse
+                  $ G.topSort
+                  $ G.buildG (minkey,maxkey) edges
+
+    -- filter u and
+    order =
+      filter (`S.member` (S.fromList uids)) order'
+
+  st <- execStateT (mapM componentSignal ios) $ ST
+         (symboltable s'')
+         IM.empty
+         (busDelimiter c)
+         (enumerations s)
+
+  st' <- execStateT (mapM_ enumBinding $ enumerations s) st
+
+  return (s'', st', order)
 
   where
     isunary y x = null $ idArgs $ symboltable y ! x
+
+    single = \case
+      SDSingle _ -> True
+      _          -> False
 
 -----------------------------------------------------------------------------
 
@@ -693,7 +733,7 @@ idValue i = do
   st <- get
   case IM.lookup i $ tValues st of
     Just x  -> return x
-    Nothing -> assert False undefined
+    Nothing -> error (show i) -- assert False undefined
 
 -----------------------------------------------------------------------------
 

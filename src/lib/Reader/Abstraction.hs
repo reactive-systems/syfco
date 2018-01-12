@@ -241,7 +241,7 @@ abstractBind
 
 abstractBind b = do
   a <- get
-  as <- mapM add $ bArgs b
+  as <- mapM addOW $ bArgs b
   es <- mapM abstractExpr $ bVal b
   a' <- get
   i <- case SM.lookup (bIdent b) $ tIndex a of
@@ -280,6 +280,24 @@ add (i,pos) = do
     Just j ->
       let Just p = IM.lookup j $ tPos a
       in errConflict i p pos
+
+-----------------------------------------------------------------------------
+
+addOW
+  :: Abstractor (String,ExprPos) (Int,ExprPos)
+
+addOW (i,pos) = do
+  a <- get
+
+  put ST
+    { count = count a + 1
+    , tIndex = SM.insert i (count a) $ tIndex a
+    , tName = IM.insert (count a) i $ tName a
+    , tPos = IM.insert (count a) pos $ tPos a
+    , tArgs = IM.insert (count a) [] $ tArgs a
+    }
+
+  return (count a,pos)
 
 -----------------------------------------------------------------------------
 
