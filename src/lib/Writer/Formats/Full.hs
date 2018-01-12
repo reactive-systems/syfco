@@ -63,7 +63,7 @@ replaces xs str =
         a = A.array (1,length ls) $ reverse zs
       in
        -- return a mapping that maps a position to the index
-       \pos -> a ! srcLine pos + srcColumn pos
+       \pos -> a ! srcLine pos + srcColumn pos + 1
 
 -----------------------------------------------------------------------------
 
