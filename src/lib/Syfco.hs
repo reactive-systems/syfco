@@ -1,4 +1,4 @@
-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
 -- |
 -- Module      :  Syfco
 -- License     :  MIT (see the LICENSE file)
@@ -23,6 +23,8 @@ module Syfco
   , WriteMode(..)
   , Semantics(..)
   , Target(..)
+  , Atomic(..)
+  , Formula(..)
   , Specification
   , Error
     -- * Configurations
@@ -43,6 +45,7 @@ module Syfco
   , symboltable
   , fromTLSF
   , apply
+  , applyF
     -- * Fragment Detection
   , checkGR
     -- * Meta Information
@@ -54,6 +57,11 @@ module Syfco
 import Data.Types
   ( Semantics(..)
   , Target(..)
+  )
+
+import Data.LTL
+  ( Atomic(..)
+  , Formula(..)
   )
 
 import Data.Error
@@ -78,6 +86,15 @@ import Writer
 
 import Writer.Eval
   ( signals
+  , eval
+  )
+
+import Writer.Utils
+  ( merge
+  )
+
+import Simplify
+  ( simplify
   )
 
 import Data.Specification
@@ -163,5 +180,18 @@ symboltable
 
 symboltable =
   st2csv . S.symboltable
+
+-----------------------------------------------------------------------------
+
+-- | Same as 'apply', except that the resulting LTL formula is not
+-- converted into any specific format, but is returned in the internal
+-- data structure.
+
+applyF
+  :: Configuration -> Specification -> Either Error Formula
+
+applyF c s = do
+  (es,ss,rs,as,is,gs) <- eval c s
+  merge es ss rs as is gs >>= simplify c
 
 -----------------------------------------------------------------------------

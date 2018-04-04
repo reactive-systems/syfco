@@ -37,7 +37,7 @@ import qualified Data.Set as S
 
 -----------------------------------------------------------------------------
 
--- | Internal representation of an atomic proposition. Each atomic
+-- | Representation of an atomic proposition. Each atomic
 -- proposition is either an input or output signal.
 
 data Atomic =
@@ -63,7 +63,7 @@ instance Show Atomic where
 
 -----------------------------------------------------------------------------
 
--- | Internal representation of a Linear Temporal Logic formula.
+-- | Representation of a linear temporal logic formulas.
 
 data Formula =
     TTrue

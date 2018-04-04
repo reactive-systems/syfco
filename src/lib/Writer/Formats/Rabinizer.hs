@@ -53,6 +53,8 @@ opConfig = OperatorConfig
 
 -----------------------------------------------------------------------------
 
+-- | Rabinizer writer.
+
 writeFormat
   :: Configuration -> Specification -> Either Error String
 
