@@ -80,75 +80,79 @@ exprParser = (~~) >> buildExpressionParser table term
       [ [ Prefix $ unaryOperators numUnary
         ]
 
-      , [ Infix  (binOp "*"        NumMul)     AssocLeft
-        , Infix  (binOp "MUL"      NumMul)     AssocLeft
+      , [ Infix  (binOp "*"        NumMul)       AssocLeft
+        , Infix  (binOp "MUL"      NumMul)       AssocLeft
         ]
-      , [ Infix  (binOp "/"        NumDiv)     AssocRight
-        , Infix  (binOp "DIV"      NumDiv)     AssocRight
-        , Infix  (binOp "%"        NumMod)     AssocRight
-        , Infix  (binOp "MOD"      NumMod)     AssocRight
+      , [ Infix  (binOp "/"        NumDiv)       AssocRight
+        , Infix  (binOp "DIV"      NumDiv)       AssocRight
+        , Infix  (binOp "%"        NumMod)       AssocRight
+        , Infix  (binOp "MOD"      NumMod)       AssocRight
         ]
-      , [ Infix  (binOp "+"        NumPlus)    AssocLeft
-        , Infix  (binOp "PLUS"     NumPlus)    AssocLeft
-        , Infix  (binOp "-"        NumMinus)   AssocLeft
-        , Infix  (binOp "MINUS"    NumMinus)   AssocLeft
+      , [ Infix  (binOp "+"        NumPlus)      AssocLeft
+        , Infix  (binOp "PLUS"     NumPlus)      AssocLeft
+        , Infix  (binOp "-"        NumMinus)     AssocLeft
+        , Infix  (binOp "MINUS"    NumMinus)     AssocLeft
         ]
 
       , [ Prefix $ unaryOperators setUnary
         ]
 
-      , [ Infix  (binOp "(-)"      SetMinus)   AssocRight
-        , Infix  (binOp "(\\)"     SetMinus)   AssocRight
-        , Infix  (binOp "SETMINUS" SetMinus)   AssocRight
+      , [ Infix  (binOp "(-)"      SetMinus)     AssocRight
+        , Infix  (binOp "(\\)"     SetMinus)     AssocRight
+        , Infix  (binOp "SETMINUS" SetMinus)     AssocRight
         ]
-      , [ Infix  (binOp "(*)"      SetCap)     AssocLeft
-        , Infix  (binOp "CAP"      SetCap)     AssocLeft
+      , [ Infix  (binOp "(*)"      SetCap)       AssocLeft
+        , Infix  (binOp "CAP"      SetCap)       AssocLeft
         ]
-      , [ Infix  (binOp "(+)"      SetCup)     AssocLeft
-        , Infix  (binOp "CUP"      SetCup)     AssocLeft
+      , [ Infix  (binOp "(+)"      SetCup)       AssocLeft
+        , Infix  (binOp "CUP"      SetCup)       AssocLeft
         ]
-      , [ Infix  (binOp "=="       BlnEQ)      AssocLeft
-        , Infix  (binOp "EQ"       BlnEQ)      AssocLeft
-        , Infix  (binOp "/="       BlnNEQ)     AssocLeft
-        , Infix  (binOp "!="       BlnNEQ)     AssocLeft
-        , Infix  (binOp "NEQ"      BlnNEQ)     AssocLeft
-        , Infix  (binOp ">"        BlnGE)      AssocLeft
-        , Infix  (binOp "GE"       BlnGE)      AssocLeft
-        , Infix  (binOp ">="       BlnGEQ)     AssocLeft
-        , Infix  (binOp "GEQ"      BlnGEQ)     AssocLeft
-        , Infix  (binOp "<"        BlnLE)      AssocLeft
-        , Infix  (binOp "LE"       BlnLE)      AssocLeft
-        , Infix  (binOp "<="       BlnLEQ)     AssocLeft
-        , Infix  (binOp "LEQ"      BlnLEQ)     AssocLeft
+      , [ Infix  (binOp "=="       BlnEQ)        AssocLeft
+        , Infix  (binOp "EQ"       BlnEQ)        AssocLeft
+        , Infix  (binOp "/="       BlnNEQ)       AssocLeft
+        , Infix  (binOp "!="       BlnNEQ)       AssocLeft
+        , Infix  (binOp "NEQ"      BlnNEQ)       AssocLeft
+        , Infix  (binOp ">"        BlnGE)        AssocLeft
+        , Infix  (binOp "GE"       BlnGE)        AssocLeft
+        , Infix  (binOp ">="       BlnGEQ)       AssocLeft
+        , Infix  (binOp "GEQ"      BlnGEQ)       AssocLeft
+        , Infix  (binOp "<"        BlnLE)        AssocLeft
+        , Infix  (binOp "LE"       BlnLE)        AssocLeft
+        , Infix  (binOp "<="       BlnLEQ)       AssocLeft
+        , Infix  (binOp "LEQ"      BlnLEQ)       AssocLeft
         ]
-      , [ Infix  (binOp "<-"       BlnElem)    AssocLeft
-        , Infix  (binOp "IN"       BlnElem)    AssocLeft
-        , Infix  (binOp "ELEM"     BlnElem)    AssocLeft
+      , [ Infix  (binOp "<-"       BlnElem)      AssocLeft
+        , Infix  (binOp "IN"       BlnElem)      AssocLeft
+        , Infix  (binOp "ELEM"     BlnElem)      AssocLeft
         ]
 
       , [ Prefix $ unaryOperators ltlUnary
         ]
 
-      , [ Infix  (binOp "&&"       BlnAnd)     AssocLeft
-        , Infix  (binOp "AND"      BlnAnd)     AssocLeft
+      , [ Infix  (binOp "&&"       BlnAnd)       AssocLeft
+        , Infix  (binOp "AND"      BlnAnd)       AssocLeft
         ]
-      , [ Infix  (binOp "||"       BlnOr)      AssocLeft
-        , Infix  (binOp "OR"       BlnOr)      AssocLeft
+      , [ Infix  (binOp "||"       BlnOr)        AssocLeft
+        , Infix  (binOp "OR"       BlnOr)        AssocLeft
         ]
-      , [ Infix  (binOp "->"       BlnImpl)    AssocRight
-        , Infix  (binOp "IMPIES"   BlnImpl)    AssocRight
-        , Infix  (binOp "<->"      BlnEquiv)   AssocRight
-        , Infix  (binOp "EQUIV"    BlnEquiv)   AssocRight
+      , [ Infix  (binOp "->"       BlnImpl)      AssocRight
+        , Infix  (binOp "IMPIES"   BlnImpl)      AssocRight
+        , Infix  (binOp "<->"      BlnEquiv)     AssocRight
+        , Infix  (binOp "EQUIV"    BlnEquiv)     AssocRight
         ]
-      , [ Infix  (binOp "W"        LtlWeak)    AssocRight
+      , [ Infix  (binOp "W"        LtlWeak)      AssocRight
         ]
-      , [ Infix  (binOp "U"        LtlUntil)   AssocRight
+      , [ Infix  (binOp "U"        LtlUntil)     AssocRight
         ]
-      , [ Infix  (binOp "R"        LtlRelease) AssocLeft
+      , [ Infix  (binOp "R"        LtlRelease)   AssocLeft
         ]
-      , [ Infix  (binOp "~"        Pattern)    AssocLeft
+      , [ Infix  (binOp "S"        LtlSince)     AssocRight
         ]
-      , [ Infix  (binOp ":"        Colon)      AssocLeft
+      , [ Infix  (binOp "T"        LtlTriggered) AssocLeft
+        ]
+      , [ Infix  (binOp "~"        Pattern)      AssocLeft
+        ]
+      , [ Infix  (binOp ":"        Colon)        AssocLeft
         ]
       ]
 
@@ -162,13 +166,14 @@ exprParser = (~~) >> buildExpressionParser table term
            "NEQ", "LE", "GE", "LEQ", "GEQ", "ELEM","AND[","OR[",
            "+","-","*","/","%","PLUS","MINUS","MUL","DIV","MOD",
            "SIZE","MIN","MAX","(-)","(\\)","(+)","(*)","SETMINUS",
-           "CAP","CUP",":","~","W","U","R","X","G","F",",","X[",
-           "G[","F[","AND[","OR[","SUM","PROD","IN","SIZEOF"]
+           "CAP","CUP",":","~","W","U","R","X","Y","G","F","H","O",
+           "S","T","X[","Y[","G[","F[","H[","O[","AND[","OR[",
+           "SUM","PROD","IN","SIZEOF"]
       , reservedNames =
           ["NOT","AND","OR","IMPLIES","EQUIV","true","false","F",
            "PLUS","MINUS","MUL","DIV","MOD","SIZE","MIN","MAX","_",
            "SETMINUS","CAP","CUP","otherwise","W","U","R","X","G",
-           "SUM","PROD","IN","SIZEOF"] }
+           "SUM","PROD","IN","SIZEOF","Y","H","O","S","T"] }
 
     tokenparser = makeTokenParser tokenDef
 
@@ -203,11 +208,17 @@ exprParser = (~~) >> buildExpressionParser table term
           unOp' '!' BlnNot
       <|> unOp3 'N' 'O' 'T' BlnNot
       <|> unOp1 'X' LtlNext
+      <|> unOp1 'Y' LtlPrevious
       <|> unOp1 'G' LtlGlobally
       <|> unOp1 'F' LtlFinally
+      <|> unOp1 'H' LtlHistorically
+      <|> unOp1 'O' LtlOnce
       <|> parOp "X" exprParser LtlRNext
+      <|> parOp "Y" exprParser LtlRPrevious
       <|> parOp "G" exprParser LtlRGlobally
       <|> parOp "F" exprParser LtlRFinally
+      <|> parOp "H" exprParser LtlRHistorically
+      <|> parOp "O" exprParser LtlROnce
       <|> parOp "&&" manyExprParser BlnRAnd
       <|> parOp "AND" manyExprParser BlnRAnd
       <|> parOp "FORALL" manyExprParser BlnRAnd

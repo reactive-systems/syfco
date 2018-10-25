@@ -36,19 +36,24 @@ opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue     = "true"
-  , fFalse    = "false"
-  , opNot      = UnaryOp "!"   1
-  , opAnd      = BinaryOp "&&"  2 AssocLeft
-  , opOr       = BinaryOp "||"  3 AssocLeft
-  , opImplies  = BinaryOp "->"  4 AssocRight
-  , opEquiv    = BinaryOp "<->" 4 AssocRight
-  , opNext     = UnaryOp  "X"   1
-  , opFinally  = UnaryOp  "F"   1
-  , opGlobally = UnaryOp  "G"   1
-  , opUntil    = BinaryOp "U"   6 AssocRight
-  , opRelease  = BinaryOp "R"   7 AssocLeft
-  , opWeak     = BinaryOpUnsupported
+  { tTrue          = "true"
+  , fFalse         = "false"
+  , opNot          = UnaryOp "!"   1
+  , opAnd          = BinaryOp "&&"  2 AssocLeft
+  , opOr           = BinaryOp "||"  3 AssocLeft
+  , opImplies      = BinaryOp "->"  4 AssocRight
+  , opEquiv        = BinaryOp "<->" 4 AssocRight
+  , opNext         = UnaryOp  "X"   1
+  , opPrevious     = UnaryOpUnsupported
+  , opFinally      = UnaryOp  "F"   1
+  , opGlobally     = UnaryOp  "G"   1
+  , opHistorically = UnaryOpUnsupported
+  , opOnce         = UnaryOpUnsupported
+  , opUntil        = BinaryOp "U"   6 AssocRight
+  , opRelease      = BinaryOp "R"   7 AssocLeft
+  , opWeak         = BinaryOpUnsupported
+  , opSince        = BinaryOpUnsupported
+  , opTriggered    = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
@@ -73,16 +78,19 @@ writeFormat config specification = do
 
   (inputs, outputs) <- signals config' specification
 
+  assumptions'' <- mapM (printFormula opConfig Fully) (requirments' ++ assumptions')
+  guarantees'' <- mapM (printFormula opConfig  Fully) (assertions' ++ guarantees')
+
   return $
     "{" ++
     "\"semantics\": " ++
       (case owSemantics config of
          Nothing       -> printSemantics (semantics specification)
          Just x        -> printSemantics x) ++ ", " ++
-    "\"inputs\": [" ++ (intercalate ", " (map printSignal inputs)) ++ "], " ++
-    "\"outputs\": [" ++ (intercalate ", " (map printSignal outputs)) ++ "], " ++
-    "\"assumptions\": [" ++ (intercalate ", " (map printFormula' (requirments' ++ assumptions'))) ++ "], " ++
-    "\"guarantees\": [" ++ (intercalate ", " (map printFormula' (assertions' ++ guarantees'))) ++ "] " ++
+    "\"inputs\": [" ++ (intercalate ", " (map (quote . map toLower) inputs)) ++ "], " ++
+    "\"outputs\": [" ++ (intercalate ", " (map (quote . map toLower) outputs)) ++ "], " ++
+    "\"assumptions\": [" ++ (intercalate ", " (map quote assumptions'')) ++ "], " ++
+    "\"guarantees\": [" ++ (intercalate ", " (map quote guarantees'')) ++ "] " ++
     "}\n"
 
   where
@@ -93,10 +101,6 @@ writeFormat config specification = do
         SemanticsStrictMealy -> "\"mealy\""
         SemanticsStrictMoore -> "\"moore\""
 
-    printFormula' f =
-      "\"" ++ (printFormula opConfig Fully) f ++ "\""
-
-    printSignal sig =
-      "\"" ++ (map toLower sig) ++ "\""
+    quote x = "\"" ++ x ++ "\""
 
 -----------------------------------------------------------------------------

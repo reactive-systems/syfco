@@ -30,19 +30,24 @@ opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue      = "true"
-  , fFalse     = "false"
-  , opNot      = UnaryOp  "!"   1
-  , opAnd      = BinaryOp "&&"  3 AssocLeft
-  , opOr       = BinaryOp "||"  3 AssocLeft
-  , opImplies  = BinaryOp "->"  3 AssocLeft
-  , opEquiv    = BinaryOp "<->" 3 AssocLeft
-  , opNext     = UnaryOp  "X"   1
-  , opFinally  = UnaryOp  "<>"  1
-  , opGlobally = UnaryOp  "[]"  1
-  , opUntil    = BinaryOp "U"   2 AssocLeft
-  , opRelease  = BinaryOp "V"   2 AssocLeft
-  , opWeak     = BinaryOpUnsupported
+  { tTrue          = "true"
+  , fFalse         = "false"
+  , opNot          = UnaryOp  "!"   1
+  , opAnd          = BinaryOp "&&"  3 AssocLeft
+  , opOr           = BinaryOp "||"  3 AssocLeft
+  , opImplies      = BinaryOp "->"  3 AssocLeft
+  , opEquiv        = BinaryOp "<->" 3 AssocLeft
+  , opNext         = UnaryOp  "X"   1
+  , opPrevious     = UnaryOpUnsupported
+  , opFinally      = UnaryOp  "<>"  1
+  , opGlobally     = UnaryOp  "[]"  1
+  , opHistorically = UnaryOpUnsupported
+  , opOnce         = UnaryOpUnsupported
+  , opUntil        = BinaryOp "U"   2 AssocLeft
+  , opRelease      = BinaryOp "V"   2 AssocLeft
+  , opWeak         = BinaryOpUnsupported
+  , opSince        = BinaryOpUnsupported
+  , opTriggered    = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
@@ -57,6 +62,6 @@ writeFormat c s = do
   fml0 <- merge es ss rs as is gs
   fml1 <- simplify (adjust c opConfig) fml0
 
-  return $ printFormula opConfig (outputMode c) fml1
+  printFormula opConfig (outputMode c) fml1
 
 -----------------------------------------------------------------------------

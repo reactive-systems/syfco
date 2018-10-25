@@ -19,6 +19,7 @@ module Writer.Error
     , errNoMatch
     , errToLower
     , errNoGR1
+    , errUnsupportedOp
     , prError
     ) where
 
@@ -143,5 +144,19 @@ errNoGR1 t fmt =
   let msg = "The given specification is not in GR(1), which is " ++
             "neccessary to convert to the " ++ fmt ++ " format."
   in conversionError t msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that indicates that the given formula does not support
+-- one of the operators requiered for the transformation.
+
+errUnsupportedOp
+  :: String -> Either Error a
+
+errUnsupportedOp str =
+  let msg = "The given specification cannot be transformed into the " ++
+            "selected format.\nThe selected format does not support the " ++
+             str ++ "."
+  in conversionError "unsupported operator" msg
 
 -----------------------------------------------------------------------------

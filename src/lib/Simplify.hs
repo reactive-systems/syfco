@@ -63,6 +63,18 @@ simplify c f =
       Finally FFalse
         | sw || ss || nf || nd                -> FFalse
         | otherwise                        -> Finally FFalse
+      Historically TTrue
+        | sw || ss || nf || nd                -> TTrue
+        | otherwise                        -> Historically TTrue
+      Historically FFalse
+        | sw || ss || nf || nd                -> FFalse
+        | otherwise                        -> Historically FFalse
+      Once TTrue
+        | sw || ss || nf || nd                -> TTrue
+        | otherwise                        -> Once TTrue
+      Once FFalse
+        | sw || ss || nf || nd                -> FFalse
+        | otherwise                        -> Once FFalse
       Not TTrue
         | sw || ss || nnf                    -> FFalse
         | otherwise                        -> Not TTrue
@@ -81,6 +93,12 @@ simplify c f =
       Finally (Finally x)
         | sw || ss || hf || lf || nf || nd      -> simplify' $ Finally x
         | otherwise                        -> Finally $ simplify' $ Finally x
+      Historically (Historically x)
+        | sw || ss || nf || nd                -> simplify' $ Historically x
+        | otherwise                        -> Historically $ simplify' $ Historically x
+      Once (Once x)
+        | sw || ss || nf || nd                -> simplify' $ Once x
+        | otherwise                        -> Once $ simplify' $ Once x
       Equiv TTrue x
         | sw || ss                          -> simplify' x
         | otherwise                        -> Equiv TTrue $ simplify' x
@@ -111,12 +129,19 @@ simplify c f =
       Not (Next x)
         | ss || ln || nnf                    -> Next $ simplify' $ Not x
         | otherwise                        -> Not $ simplify' $ Next x
+      Not (Previous x)                     -> Not $ simplify' $ Previous x
       Not (Globally x)
         | ss || nnf                         -> Finally $ simplify' $ Not x
         | otherwise                        -> Not $ simplify' $ Globally x
       Not (Finally x)
         | ss || nnf                         -> Globally $ simplify' $ Not x
         | otherwise                        -> Not $ simplify' $ Finally x
+      Not (Historically x)
+        | ss || nnf                         -> Once $ simplify' $ Not x
+        | otherwise                        -> Not $ simplify' $ Historically x
+      Not (Once x)
+        | ss || nnf                         -> Historically $ simplify' $ Not x
+        | otherwise                        -> Not $ simplify' $ Once x
       Not (And xs)
         | ss || nnf                         -> Or $ map (simplify' . Not) xs
         | otherwise                        -> Not $ And $ map simplify' xs
@@ -141,6 +166,12 @@ simplify c f =
       Not (Weak x y)
         | (ss || nw || nnf) && not nr           -> simplify' $ Not $ Release y $ Or [x,y]
         | otherwise                        -> Not $ Weak (simplify' x) $ simplify' y
+      Not (Since x y)
+        | ss || nnf                         -> simplify' $ Triggered (Not x) $ Not y
+        | otherwise                        -> Not $ Since (simplify' x) $ simplify' y
+      Not (Triggered x y)
+        | ss || nnf                         -> simplify' $ Since (Not x) $ Not y
+        | otherwise                        -> Not $ Triggered (simplify' x) $ simplify' y
       Finally (Next x)
         | ss || ln || hf                     -> simplify' $ Next $ Finally x
         | nf || nd                          -> simplify' $ Until TTrue $ Next x
@@ -193,6 +224,9 @@ simplify c f =
         | otherwise                        -> case simplify' $ And xs of
           And ys -> Globally $ And ys
           z      -> simplify' $ Globally z
+      Since x (Once y)
+        | ss                               -> simplify' (Once y)
+        | otherwise                        -> Since (simplify' x) $ simplify' $ Once x
       Finally (Or xs)
         | hf                               -> simplify' $ Or $ map Finally xs
         | nf || nd                          -> simplify' $ Until TTrue $ Or xs
@@ -302,6 +336,12 @@ simplify c f =
       Globally x
         | ng || nd                          -> simplify' $ Release FFalse x
         | otherwise                        -> Globally $ simplify' x
+      Historically x
+        | nd                               -> simplify' $ Triggered FFalse x
+        | otherwise                        -> Historically $ simplify' x
+      Once x
+        | nd                               -> simplify' $ Since TTrue x
+        | otherwise                        -> Once $ simplify' x
       Release x y
         | not nr                             -> Release (simplify' x) $ simplify' y
         | nnf                              -> simplify' $ Weak y $ And [x,y]
@@ -312,7 +352,10 @@ simplify c f =
       Equiv x y                            -> Equiv (simplify' x) (simplify' y)
       Implies x y                          -> Implies (simplify' x) (simplify' y)
       Until x y                            -> Until (simplify' x) (simplify' y)
+      Since x y                            -> Since (simplify' x) (simplify' y)
+      Triggered x y                        -> Triggered (simplify' x) (simplify' y)
       Next x                               -> Next (simplify' x)
+      Previous x                           -> Previous (simplify' x)
       Not (Atomic x)                       -> Not (Atomic x)
       Atomic x                             -> Atomic x
       FFalse                               -> FFalse

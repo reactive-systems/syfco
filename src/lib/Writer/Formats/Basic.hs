@@ -34,19 +34,24 @@ opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue     = "true"
-  , fFalse    = "false"
-  , opNot      = UnaryOp "!"   1
-  , opAnd      = BinaryOp "&&"  2 AssocLeft
-  , opOr       = BinaryOp "||"  3 AssocLeft
-  , opImplies  = BinaryOp "->"  4 AssocRight
-  , opEquiv    = BinaryOp "<->" 4 AssocRight
-  , opNext     = UnaryOp  "X"   1
-  , opFinally  = UnaryOp  "F"   1
-  , opGlobally = UnaryOp  "G"   1
-  , opUntil    = BinaryOp "U"   6 AssocRight
-  , opRelease  = BinaryOp "R"   7 AssocLeft
-  , opWeak     = BinaryOp "W"   5 AssocRight
+  { tTrue          = "true"
+  , fFalse         = "false"
+  , opNot          = UnaryOp "!"    1
+  , opAnd          = BinaryOp "&&"  2 AssocLeft
+  , opOr           = BinaryOp "||"  3 AssocLeft
+  , opImplies      = BinaryOp "->"  4 AssocRight
+  , opEquiv        = BinaryOp "<->" 4 AssocRight
+  , opNext         = UnaryOp  "X"   1
+  , opPrevious     = UnaryOp  "Y"   1
+  , opFinally      = UnaryOp  "F"   1
+  , opGlobally     = UnaryOp  "G"   1
+  , opHistorically = UnaryOp  "H"   1
+  , opOnce         = UnaryOp  "O"   1
+  , opUntil        = BinaryOp "U"   6 AssocRight
+  , opRelease      = BinaryOp "R"   7 AssocLeft
+  , opWeak         = BinaryOp "W"   5 AssocRight
+  , opSince        = BinaryOp "S"   8 AssocRight
+  , opTriggered    = BinaryOp "T"   9 AssocLeft
   }
 
 -----------------------------------------------------------------------------
@@ -63,12 +68,20 @@ writeFormat c s = do
       }
 
   (es,ss,rs,as,is,gs) <- eval c s
+
   es' <- mapM (simplify (adjust c opConfig)) es
   ss' <- mapM (simplify (adjust c opConfig)) ss
   rs' <- mapM (simplify (adjust c opConfig)) rs
   as' <- mapM (simplify (adjust c opConfig)) as
   is' <- mapM (simplify (adjust c opConfig)) is
   gs' <- mapM (simplify (adjust c opConfig)) gs
+
+  es'' <- mapM (printFormula opConfig Fully) $ filter checkTrue es'
+  ss'' <- mapM (printFormula opConfig Fully) $ filter checkTrue ss'
+  rs'' <- mapM (printFormula opConfig Fully) $ filter checkTrue rs'
+  as'' <- mapM (printFormula opConfig Fully) $ filter checkTrue as'
+  is'' <- mapM (printFormula opConfig Fully) $ filter checkTrue is'
+  gs'' <- mapM (printFormula opConfig Fully) $ filter checkTrue gs'
 
   (si,so) <- signals c s'
 
@@ -99,29 +112,17 @@ writeFormat c s = do
     ++ concatMap printSignal so
     ++ "\n" ++ "  }"
     ++ (if not $ any checkTrue es' then ""
-        else "\n" ++ "  INITIALLY {" ++
-             concatMap pr (filter checkTrue es') ++
-             "\n" ++ "  }")
+        else "\n" ++ "  INITIALLY {" ++ concat es'' ++ "\n" ++ "  }")
     ++ (if not $ any checkTrue ss' then ""
-        else "\n" ++ "  PRESET {" ++
-             concatMap pr (filter checkTrue ss') ++
-             "\n" ++ "  }")
+        else "\n" ++ "  PRESET {" ++ concat ss'' ++ "\n" ++ "  }")
     ++ (if not $ any checkTrue rs' then ""
-        else "\n" ++ "  REQUIRE {" ++
-             concatMap pr (filter checkTrue rs') ++
-             "\n" ++ "  }")
+        else "\n" ++ "  REQUIRE {" ++ concat rs'' ++ "\n" ++ "  }")
     ++ (if not $ any checkTrue as' then ""
-        else "\n" ++ "  ASSUME {" ++
-             concatMap pr (filter checkTrue as') ++
-             "\n" ++ "  }")
+        else "\n" ++ "  ASSUME {" ++ concat as'' ++"\n" ++ "  }")
     ++ (if not $ any checkTrue is' then ""
-        else "\n" ++ "  ASSERT {" ++
-             concatMap pr (filter checkTrue is') ++
-             "\n" ++ "  }")
+        else "\n" ++ "  ASSERT {" ++ concat is'' ++ "\n" ++ "  }")
     ++ (if not $ any checkTrue gs' then ""
-        else "\n" ++ "  GUARANTEE {" ++
-             concatMap pr (filter checkTrue gs') ++
-             "\n" ++ "  }")
+        else "\n" ++ "  GUARANTEE {" ++ concat gs'' ++ "\n" ++ "  }")
     ++ "\n" ++ "}"
     ++ "\n"
 
@@ -132,7 +133,5 @@ writeFormat c s = do
 
     printSignal sig =
       "\n    " ++ sig ++ ";"
-
-    pr = (++ ";") . ("\n    " ++) . printFormula opConfig Fully
 
 -----------------------------------------------------------------------------

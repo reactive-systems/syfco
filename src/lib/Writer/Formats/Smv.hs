@@ -33,19 +33,24 @@ opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue      = "TRUE"
-  , fFalse     = "FALSE"
-  , opNot      = UnaryOp  "!"   1
-  , opAnd      = BinaryOp "&"   3 AssocLeft
-  , opOr       = BinaryOp "|"   4 AssocLeft
-  , opImplies  = BinaryOp "->"  6 AssocRight
-  , opEquiv    = BinaryOp "<->" 5 AssocLeft
-  , opNext     = UnaryOp  "X"   1
-  , opFinally  = UnaryOp  "F"   1
-  , opGlobally = UnaryOp  "G"   1
-  , opUntil    = BinaryOp "U"   2 AssocLeft
-  , opRelease  = BinaryOp "V"   2 AssocLeft
-  , opWeak     = BinaryOpUnsupported
+  { tTrue          = "TRUE"
+  , fFalse         = "FALSE"
+  , opNot          = UnaryOp  "!"   1
+  , opAnd          = BinaryOp "&"   3 AssocLeft
+  , opOr           = BinaryOp "|"   4 AssocLeft
+  , opImplies      = BinaryOp "->"  6 AssocRight
+  , opEquiv        = BinaryOp "<->" 5 AssocLeft
+  , opNext         = UnaryOp  "X"   1
+  , opPrevious     = UnaryOpUnsupported
+  , opFinally      = UnaryOp  "F"   1
+  , opGlobally     = UnaryOp  "G"   1
+  , opHistorically = UnaryOpUnsupported
+  , opOnce         = UnaryOpUnsupported
+  , opUntil        = BinaryOp "U"   2 AssocLeft
+  , opRelease      = BinaryOp "V"   2 AssocLeft
+  , opWeak         = BinaryOpUnsupported
+  , opSince        = BinaryOpUnsupported
+  , opTriggered    = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
@@ -65,7 +70,8 @@ writeFormat config spec = do
   let
     all_signals = (input_signals ++ output_signals)
 
-  return $ main (printFormula opConfig (outputMode config) simplified_formula) all_signals
+  fml <- printFormula opConfig (outputMode config) simplified_formula
+  return $ main fml all_signals
 
   where
     main formula xs =

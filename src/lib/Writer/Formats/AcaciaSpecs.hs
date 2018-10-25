@@ -33,19 +33,24 @@ opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue      = "true"
-  , fFalse     = "false"
-  , opNot      = UnaryOp "!"    1
-  , opAnd      = BinaryOp "*"   3 AssocLeft
-  , opOr       = BinaryOp "+"   3 AssocLeft
-  , opImplies  = BinaryOp "->"  3 AssocLeft
-  , opEquiv    = BinaryOp "<->" 3 AssocLeft
-  , opNext     = UnaryOp  "X"   1
-  , opFinally  = UnaryOp  "F"   1
-  , opGlobally = UnaryOp  "G"   1
-  , opUntil    = BinaryOp "U"   2 AssocLeft
-  , opRelease  = BinaryOpUnsupported
-  , opWeak     = BinaryOpUnsupported
+  { tTrue          = "true"
+  , fFalse         = "false"
+  , opNot          = UnaryOp "!"    1
+  , opAnd          = BinaryOp "*"   3 AssocLeft
+  , opOr           = BinaryOp "+"   3 AssocLeft
+  , opImplies      = BinaryOp "->"  3 AssocLeft
+  , opEquiv        = BinaryOp "<->" 3 AssocLeft
+  , opNext         = UnaryOp  "X"   1
+  , opPrevious     = UnaryOpUnsupported
+  , opFinally      = UnaryOp  "F"   1
+  , opGlobally     = UnaryOp  "G"   1
+  , opHistorically = UnaryOpUnsupported
+  , opOnce         = UnaryOpUnsupported
+  , opUntil        = BinaryOp "U"   2 AssocLeft
+  , opRelease      = BinaryOpUnsupported
+  , opWeak         = BinaryOpUnsupported
+  , opSince        = BinaryOpUnsupported
+  , opTriggered    = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
@@ -68,11 +73,11 @@ writeFormat c s = do
   is2 <- mapM (simplify (adjust c opConfig) . fGlobally . adjustAtomic) is1
   gs2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) (gs1 ++ ss1)
 
-  let
-    as3 = map (printFormula opConfig (outputMode c)) as2
-    is3 = map (printFormula opConfig (outputMode c)) is2
-    gs3 = map (printFormula opConfig (outputMode c)) gs2
+  as3 <- mapM (printFormula opConfig (outputMode c)) as2
+  is3 <- mapM (printFormula opConfig (outputMode c)) is2
+  gs3 <- mapM (printFormula opConfig (outputMode c)) gs2
 
+  let
     as4 = map (\x -> "assume " ++ x ++ ";") as3
     is4 = map (++ ";") is3
     gs4 = map (++ ";") gs3

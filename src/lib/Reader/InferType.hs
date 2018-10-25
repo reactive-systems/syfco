@@ -365,134 +365,150 @@ typeCheck
 
 typeCheck e = \case
   -- check signal types
-  TSignal x           -> typeChIdF e $ TSignal x
+  TSignal x              -> typeChIdF e $ TSignal x
 
   -- check normal bus types
-  TBus x              -> typeChIdF e $ TBus x
+  TBus x                 -> typeChIdF e $ TBus x
 
   -- check enum bus types
-  TEnum t x           -> typeChIdF e $ TEnum t x
+  TEnum t x              -> typeChIdF e $ TEnum t x
 
   -- check typed bus types
-  TTypedBus x y z     -> typeChIdF e $ TTypedBus x y z
+  TTypedBus x y z        -> typeChIdF e $ TTypedBus x y z
 
   -- check for empty sets
   TEmptySet -> case expr e of
-    SetExplicit []    -> return ()
-    SetExplicit (x:_) -> typeErrES e x
-    SetCup x y        -> typeChck2 x y TEmptySet
-    SetCap x y        -> typeChck2 x y TEmptySet
-    SetMinus x y      -> typeChck2 x y TEmptySet
-    SetRCup _ x       -> typeCheck x TEmptySet
-    SetRCap _ x       -> typeCheck x TEmptySet
-    _                 -> typeChIdF e TEmptySet
+    SetExplicit []       -> return ()
+    SetExplicit (x:_)    -> typeErrES e x
+    SetCup x y           -> typeChck2 x y TEmptySet
+    SetCap x y           -> typeChck2 x y TEmptySet
+    SetMinus x y         -> typeChck2 x y TEmptySet
+    SetRCup _ x          -> typeCheck x TEmptySet
+    SetRCap _ x          -> typeCheck x TEmptySet
+    _                    -> typeChIdF e TEmptySet
 
   -- check set types
   TSet t -> case expr e of
-    SetExplicit xs    -> typeChSEx t xs
-    SetRange x y z    -> typeChSRg x y z
-    SetCup x y        -> typeChck2 x y $ TSet t
-    SetRCup xs x      -> typeChckO xs x $ TSet t
-    SetCap x y        -> typeChck2 x y $ TSet t
-    SetRCap xs x      -> typeChckO xs x $ TSet t
-    SetMinus x y      -> typeChck2 x y $ TSet t
-    _                 -> typeChIdF e $ TSet t
+    SetExplicit xs       -> typeChSEx t xs
+    SetRange x y z       -> typeChSRg x y z
+    SetCup x y           -> typeChck2 x y $ TSet t
+    SetRCup xs x         -> typeChckO xs x $ TSet t
+    SetCap x y           -> typeChck2 x y $ TSet t
+    SetRCap xs x         -> typeChckO xs x $ TSet t
+    SetMinus x y         -> typeChck2 x y $ TSet t
+    _                    -> typeChIdF e $ TSet t
 
   -- check numerical types
   TNumber -> case expr e of
-    BaseCon {}        -> return ()
-    NumSMin xs        -> typeCheck xs $ TSet TNumber
-    NumSMax xs        -> typeCheck xs $ TSet TNumber
-    NumSSize x        -> typeChckS x
-    NumSizeOf b       -> typeCheck b $ TBus STGeneric
-    NumPlus x y       -> typeChck2 x y TNumber
-    NumRPlus xs x     -> typeChckO xs x TNumber
-    NumMinus x y      -> typeChck2 x y TNumber
-    NumMul x y        -> typeChck2 x y TNumber
-    NumRMul xs x      -> typeChckO xs x TNumber
-    NumDiv x y        -> typeChck2 x y TNumber
-    NumMod x y        -> typeChck2 x y TNumber
-    _                 -> typeChIdF e TNumber
+    BaseCon {}           -> return ()
+    NumSMin xs           -> typeCheck xs $ TSet TNumber
+    NumSMax xs           -> typeCheck xs $ TSet TNumber
+    NumSSize x           -> typeChckS x
+    NumSizeOf b          -> typeCheck b $ TBus STGeneric
+    NumPlus x y          -> typeChck2 x y TNumber
+    NumRPlus xs x        -> typeChckO xs x TNumber
+    NumMinus x y         -> typeChck2 x y TNumber
+    NumMul x y           -> typeChck2 x y TNumber
+    NumRMul xs x         -> typeChckO xs x TNumber
+    NumDiv x y           -> typeChck2 x y TNumber
+    NumMod x y           -> typeChck2 x y TNumber
+    _                    -> typeChIdF e TNumber
 
   -- check boolean types
   TBoolean -> case expr e of
-    BaseTrue          -> return ()
-    BaseFalse         -> return ()
-    BaseOtherwise     -> return ()
-    Pattern x y       -> typeChckP x y
-    BlnElem x xs      -> typeChElm x xs
-    BlnEQ x y         -> typeChEqB x y
-    BlnNEQ x y        -> typeChEqB x y
-    BlnGE x y         -> typeChck2 x y TNumber
-    BlnGEQ x y        -> typeChck2 x y TNumber
-    BlnLE x y         -> typeChck2 x y TNumber
-    BlnLEQ x y        -> typeChck2 x y TNumber
-    BlnNot x          -> typeCheck x TBoolean
-    BlnOr x y         -> typeChck2 x y TBoolean
-    BlnAnd x y        -> typeChck2 x y TBoolean
-    BlnImpl x y       -> typeChck2 x y TBoolean
-    BlnEquiv x y      -> typeChck2 x y TBoolean
-    BlnROr xs x       -> typeChckO xs x TBoolean
-    BlnRAnd xs x      -> typeChckO xs x TBoolean
-    _                 -> typeChIdF e TBoolean
+    BaseTrue             -> return ()
+    BaseFalse            -> return ()
+    BaseOtherwise        -> return ()
+    Pattern x y          -> typeChckP x y
+    BlnElem x xs         -> typeChElm x xs
+    BlnEQ x y            -> typeChEqB x y
+    BlnNEQ x y           -> typeChEqB x y
+    BlnGE x y            -> typeChck2 x y TNumber
+    BlnGEQ x y           -> typeChck2 x y TNumber
+    BlnLE x y            -> typeChck2 x y TNumber
+    BlnLEQ x y           -> typeChck2 x y TNumber
+    BlnNot x             -> typeCheck x TBoolean
+    BlnOr x y            -> typeChck2 x y TBoolean
+    BlnAnd x y           -> typeChck2 x y TBoolean
+    BlnImpl x y          -> typeChck2 x y TBoolean
+    BlnEquiv x y         -> typeChck2 x y TBoolean
+    BlnROr xs x          -> typeChckO xs x TBoolean
+    BlnRAnd xs x         -> typeChckO xs x TBoolean
+    _                    -> typeChIdF e TBoolean
 
   -- check LTL formula types
   TLtl -> case expr e of
-    BaseTrue          -> return ()
-    BaseFalse         -> return ()
-    BlnElem x xs      -> typeChElm x xs
-    BlnEQ x y         -> typeChEqL x y
-    BlnNEQ x y        -> typeChEqL x y
-    BlnGE x y         -> typeChck2 x y TNumber
-    BlnGEQ x y        -> typeChck2 x y TNumber
-    BlnLE x y         -> typeChck2 x y TNumber
-    BlnLEQ x y        -> typeChck2 x y TNumber
-    BlnNot x          -> typeCheck x TLtl
-    BlnOr x y         -> typeChck2 x y TLtl
-    BlnAnd x y        -> typeChck2 x y TLtl
-    BlnImpl x y       -> typeChck2 x y TLtl
-    BlnEquiv x y      -> typeChck2 x y TLtl
-    BlnROr xs x       -> typeChckO xs x TLtl
-    BlnRAnd xs x      -> typeChckO xs x TLtl
-    LtlNext x         -> typeCheck x TLtl
-    LtlRNext x y      -> typeChckR x y
-    LtlGlobally x     -> typeCheck x TLtl
-    LtlRGlobally x y  -> typeChckR x y
-    LtlFinally x      -> typeCheck x TLtl
-    LtlRFinally x y   -> typeChckR x y
-    LtlUntil x y      -> typeChck2 x y TLtl
-    LtlWeak x y       -> typeChck2 x y TLtl
-    LtlRelease x y    -> typeChck2 x y TLtl
-    _                 -> typeChIdF e TLtl
+    BaseTrue             -> return ()
+    BaseFalse            -> return ()
+    BlnElem x xs         -> typeChElm x xs
+    BlnEQ x y            -> typeChEqL x y
+    BlnNEQ x y           -> typeChEqL x y
+    BlnGE x y            -> typeChck2 x y TNumber
+    BlnGEQ x y           -> typeChck2 x y TNumber
+    BlnLE x y            -> typeChck2 x y TNumber
+    BlnLEQ x y           -> typeChck2 x y TNumber
+    BlnNot x             -> typeCheck x TLtl
+    BlnOr x y            -> typeChck2 x y TLtl
+    BlnAnd x y           -> typeChck2 x y TLtl
+    BlnImpl x y          -> typeChck2 x y TLtl
+    BlnEquiv x y         -> typeChck2 x y TLtl
+    BlnROr xs x          -> typeChckO xs x TLtl
+    BlnRAnd xs x         -> typeChckO xs x TLtl
+    LtlNext x            -> typeCheck x TLtl
+    LtlRNext x y         -> typeChckR x y
+    LtlPrevious x        -> typeCheck x TLtl
+    LtlRPrevious x y     -> typeChckR x y
+    LtlGlobally x        -> typeCheck x TLtl
+    LtlRGlobally x y     -> typeChckR x y
+    LtlFinally x         -> typeCheck x TLtl
+    LtlRFinally x y      -> typeChckR x y
+    LtlHistorically x    -> typeCheck x TLtl
+    LtlRHistorically x y -> typeChckR x y
+    LtlOnce x            -> typeCheck x TLtl
+    LtlROnce x y         -> typeChckR x y
+    LtlUntil x y         -> typeChck2 x y TLtl
+    LtlWeak x y          -> typeChck2 x y TLtl
+    LtlRelease x y       -> typeChck2 x y TLtl
+    LtlSince x y         -> typeChck2 x y TLtl
+    LtlTriggered x y     -> typeChck2 x y TLtl
+    _                    -> typeChIdF e TLtl
 
   TPattern -> case expr e of
-    BaseTrue          -> return ()
-    BaseFalse         -> return ()
-    BaseWild          -> return ()
-    BlnElem x xs      -> typeChElm x xs
-    BlnEQ x y         -> typeChck2 x y TNumber
-    BlnNEQ x y        -> typeChck2 x y TNumber
-    BlnGE x y         -> typeChck2 x y TNumber
-    BlnGEQ x y        -> typeChck2 x y TNumber
-    BlnLE x y         -> typeChck2 x y TNumber
-    BlnLEQ x y        -> typeChck2 x y TNumber
-    BlnNot x          -> typeCheck x TPattern
-    BlnOr x y         -> typeChck2 x y TPattern
-    BlnAnd x y        -> typeChck2 x y TPattern
-    BlnImpl x y       -> typeChck2 x y TPattern
-    BlnEquiv x y      -> typeChck2 x y TPattern
-    BlnROr xs x       -> typeChckO xs x TPattern
-    BlnRAnd xs x      -> typeChckO xs x TPattern
-    LtlNext x         -> typeCheck x TPattern
-    LtlRNext x y      -> typeChckU x y
-    LtlGlobally x     -> typeCheck x TPattern
-    LtlRGlobally x y  -> typeChckU x y
-    LtlFinally x      -> typeCheck x TPattern
-    LtlRFinally x y   -> typeChckU x y
-    LtlUntil x y      -> typeChck2 x y TPattern
-    LtlWeak x y       -> typeChck2 x y TPattern
-    LtlRelease x y    -> typeChck2 x y TPattern
-    _                 -> typeChIdF e TPattern
+    BaseTrue             -> return ()
+    BaseFalse            -> return ()
+    BaseWild             -> return ()
+    BlnElem x xs         -> typeChElm x xs
+    BlnEQ x y            -> typeChck2 x y TNumber
+    BlnNEQ x y           -> typeChck2 x y TNumber
+    BlnGE x y            -> typeChck2 x y TNumber
+    BlnGEQ x y           -> typeChck2 x y TNumber
+    BlnLE x y            -> typeChck2 x y TNumber
+    BlnLEQ x y           -> typeChck2 x y TNumber
+    BlnNot x             -> typeCheck x TPattern
+    BlnOr x y            -> typeChck2 x y TPattern
+    BlnAnd x y           -> typeChck2 x y TPattern
+    BlnImpl x y          -> typeChck2 x y TPattern
+    BlnEquiv x y         -> typeChck2 x y TPattern
+    BlnROr xs x          -> typeChckO xs x TPattern
+    BlnRAnd xs x         -> typeChckO xs x TPattern
+    LtlNext x            -> typeCheck x TPattern
+    LtlRNext x y         -> typeChckU x y
+    LtlPrevious x        -> typeCheck x TPattern
+    LtlRPrevious x y     -> typeChckU x y
+    LtlGlobally x        -> typeCheck x TPattern
+    LtlRGlobally x y     -> typeChckU x y
+    LtlFinally x         -> typeCheck x TPattern
+    LtlRFinally x y      -> typeChckU x y
+    LtlHistorically x    -> typeCheck x TPattern
+    LtlRHistorically x y -> typeChckU x y
+    LtlOnce x            -> typeCheck x TPattern
+    LtlROnce x y         -> typeChckU x y
+    LtlUntil x y         -> typeChck2 x y TPattern
+    LtlWeak x y          -> typeChck2 x y TPattern
+    LtlRelease x y       -> typeChck2 x y TPattern
+    LtlSince x y         -> typeChck2 x y TPattern
+    LtlTriggered x y     -> typeChck2 x y TPattern
+    _                    -> typeChIdF e TPattern
 
   TPoly i -> inferFromExpr e >>= \case
     TPoly j
@@ -843,58 +859,66 @@ inferFromExpr
   :: Expression -> StateT ST (Either Error) ExprType
 
 inferFromExpr e = case expr e of
-  BaseCon {}        -> return TNumber
-  NumSMin {}        -> return TNumber
-  NumSMax {}        -> return TNumber
-  NumSSize {}       -> return TNumber
-  NumSizeOf {}      -> return TNumber
-  NumPlus {}        -> return TNumber
-  NumMinus {}       -> return TNumber
-  NumMul {}         -> return TNumber
-  NumDiv {}         -> return TNumber
-  NumMod {}         -> return TNumber
-  NumRPlus {}       -> return TNumber
-  NumRMul {}        -> return TNumber
-  BaseWild          -> return TPattern
-  BaseOtherwise     -> return TBoolean
-  Pattern {}        -> return TBoolean
-  BaseTrue          -> inferFromBoolExpr e
-  BaseFalse         -> inferFromBoolExpr e
-  BlnEQ {}          -> inferFromBoolExpr e
-  BlnNEQ {}         -> inferFromBoolExpr e
-  BlnGE {}          -> inferFromBoolExpr e
-  BlnGEQ {}         -> inferFromBoolExpr e
-  BlnLE {}          -> inferFromBoolExpr e
-  BlnLEQ {}         -> inferFromBoolExpr e
-  BlnNot {}         -> inferFromBoolExpr e
-  BlnOr {}          -> inferFromBoolExpr e
-  BlnROr {}         -> inferFromBoolExpr e
-  BlnAnd {}         -> inferFromBoolExpr e
-  BlnRAnd {}        -> inferFromBoolExpr e
-  BlnImpl {}        -> inferFromBoolExpr e
-  BlnElem {}        -> inferFromBoolExpr e
-  BlnEquiv {}       -> inferFromBoolExpr e
-  BaseBus {}        -> return TLtl
-  LtlNext {}        -> return TLtl
-  LtlRNext {}       -> return TLtl
-  LtlGlobally {}    -> return TLtl
-  LtlRGlobally {}   -> return TLtl
-  LtlFinally {}     -> return TLtl
-  LtlRFinally {}    -> return TLtl
-  LtlUntil {}       -> return TLtl
-  LtlWeak {}        -> return TLtl
-  LtlRelease {}     -> return TLtl
-  SetRange {}       -> return $ TSet TNumber
-  SetExplicit []    -> return TEmptySet
-  SetExplicit (x:_) -> TSet <$> inferFromExpr x
-  SetCup x y        -> inferSetOp x y
-  SetCap x y        -> inferSetOp x y
-  SetMinus x y      -> inferSetOp x y
-  SetRCap _ x       -> inferFromExpr x
-  SetRCup _ x       -> inferFromExpr x
-  Colon _ x         -> inferFromExpr x
-  BaseId i          -> (imLookup i . tTypes) <$> get
-  BaseFml _ i       -> (imLookup i . tTypes) <$> get
+  BaseCon {}          -> return TNumber
+  NumSMin {}          -> return TNumber
+  NumSMax {}          -> return TNumber
+  NumSSize {}         -> return TNumber
+  NumSizeOf {}        -> return TNumber
+  NumPlus {}          -> return TNumber
+  NumMinus {}         -> return TNumber
+  NumMul {}           -> return TNumber
+  NumDiv {}           -> return TNumber
+  NumMod {}           -> return TNumber
+  NumRPlus {}         -> return TNumber
+  NumRMul {}          -> return TNumber
+  BaseWild            -> return TPattern
+  BaseOtherwise       -> return TBoolean
+  Pattern {}          -> return TBoolean
+  BaseTrue            -> inferFromBoolExpr e
+  BaseFalse           -> inferFromBoolExpr e
+  BlnEQ {}            -> inferFromBoolExpr e
+  BlnNEQ {}           -> inferFromBoolExpr e
+  BlnGE {}            -> inferFromBoolExpr e
+  BlnGEQ {}           -> inferFromBoolExpr e
+  BlnLE {}            -> inferFromBoolExpr e
+  BlnLEQ {}           -> inferFromBoolExpr e
+  BlnNot {}           -> inferFromBoolExpr e
+  BlnOr {}            -> inferFromBoolExpr e
+  BlnROr {}           -> inferFromBoolExpr e
+  BlnAnd {}           -> inferFromBoolExpr e
+  BlnRAnd {}          -> inferFromBoolExpr e
+  BlnImpl {}          -> inferFromBoolExpr e
+  BlnElem {}          -> inferFromBoolExpr e
+  BlnEquiv {}         -> inferFromBoolExpr e
+  BaseBus {}          -> return TLtl
+  LtlNext {}          -> return TLtl
+  LtlRNext {}         -> return TLtl
+  LtlPrevious {}      -> return TLtl
+  LtlRPrevious {}     -> return TLtl
+  LtlGlobally {}      -> return TLtl
+  LtlRGlobally {}     -> return TLtl
+  LtlFinally {}       -> return TLtl
+  LtlRFinally {}      -> return TLtl
+  LtlHistorically {}  -> return TLtl
+  LtlRHistorically {} -> return TLtl
+  LtlOnce {}          -> return TLtl
+  LtlROnce {}         -> return TLtl
+  LtlUntil {}         -> return TLtl
+  LtlWeak {}          -> return TLtl
+  LtlRelease {}       -> return TLtl
+  LtlSince {}         -> return TLtl
+  LtlTriggered {}     -> return TLtl
+  SetRange {}         -> return $ TSet TNumber
+  SetExplicit []      -> return TEmptySet
+  SetExplicit (x:_)   -> TSet <$> inferFromExpr x
+  SetCup x y          -> inferSetOp x y
+  SetCap x y          -> inferSetOp x y
+  SetMinus x y        -> inferSetOp x y
+  SetRCap _ x         -> inferFromExpr x
+  SetRCup _ x         -> inferFromExpr x
+  Colon _ x           -> inferFromExpr x
+  BaseId i            -> (imLookup i . tTypes) <$> get
+  BaseFml _ i         -> (imLookup i . tTypes) <$> get
 
   where
     inferSetOp x y =

@@ -30,19 +30,24 @@ opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue      = "⊤"
-  , fFalse     = "⊥"
-  , opNot      = UnaryOp  "¬" 1
-  , opAnd      = BinaryOp "∧" 2 AssocLeft
-  , opOr       = BinaryOp "∨" 3 AssocLeft
-  , opImplies  = BinaryOp "→" 4 AssocRight
-  , opEquiv    = BinaryOp "↔" 4 AssocRight
-  , opNext     = UnaryOp  "◯" 1
-  , opFinally  = UnaryOp  "◇" 1
-  , opGlobally = UnaryOp  "□" 1
-  , opUntil    = BinaryOp "U" 6 AssocRight
-  , opRelease  = BinaryOp "R" 7 AssocLeft
-  , opWeak     = BinaryOp "W" 5 AssocRight
+  { tTrue          = "⊤"
+  , fFalse         = "⊥"
+  , opNot          = UnaryOp  "¬" 1
+  , opAnd          = BinaryOp "∧" 2 AssocLeft
+  , opOr           = BinaryOp "∨" 3 AssocLeft
+  , opImplies      = BinaryOp "→" 4 AssocRight
+  , opEquiv        = BinaryOp "↔" 4 AssocRight
+  , opNext         = UnaryOp  "◯" 1
+  , opPrevious     = UnaryOp  "◉" 1
+  , opFinally      = UnaryOp  "◇" 1
+  , opGlobally     = UnaryOp  "▢" 1
+  , opHistorically = UnaryOp  "▣" 1
+  , opOnce         = UnaryOp  "◈" 1
+  , opUntil        = BinaryOp "U" 6 AssocRight
+  , opRelease      = BinaryOp "R" 7 AssocLeft
+  , opWeak         = BinaryOp "W" 5 AssocRight
+  , opSince        = BinaryOp "S" 8 AssocRight
+  , opTriggered    = BinaryOp "T" 9 AssocLeft
   }
 
 -----------------------------------------------------------------------------
@@ -57,6 +62,6 @@ writeFormat c s = do
   fml0 <- merge es ss rs as is gs
   fml1 <- simplify (adjust c opConfig) fml0
 
-  return $ printFormula opConfig (outputMode c) fml1
+  printFormula opConfig (outputMode c) fml1
 
 -----------------------------------------------------------------------------

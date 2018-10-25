@@ -8,6 +8,14 @@
 --
 -----------------------------------------------------------------------------
 
+{-# Language
+
+    LambdaCase
+
+  #-}
+
+-----------------------------------------------------------------------------
+
 module Writer.Utils
     ( printFormula
     , checkLower
@@ -50,6 +58,7 @@ import Data.Specification
 import Writer.Error
     ( Error
     , errToLower
+    , errUnsupportedOp
     )
 
 import Writer.Data
@@ -72,13 +81,77 @@ import Data.Array.IArray
 -- passed via @OperatorNames@.
 
 printFormula
-  :: OperatorConfig -> WriteMode -> Formula -> String
+  :: OperatorConfig -> WriteMode -> Formula -> Either Error String
 
-printFormula opc mode formula = reverse $ case mode of
-  Pretty -> pr [] formula
-  Fully  -> parens pr [] formula
+printFormula opc mode formula = do
+  checkSupported formula
+  return $ reverse $ case mode of
+    Pretty -> pr [] formula
+    Fully  -> parens pr [] formula
 
   where
+    checkSupported
+      :: Formula -> Either Error ()
+
+    checkSupported = \case
+      TTrue                          -> return ()
+      FFalse                         -> return ()
+      Atomic {}                      -> return ()
+      Not x
+        | unsupported opnot          -> errUnsupportedOp "Boolean operator: \"not\""
+        | otherwise                  -> checkSupported x
+      And []
+        | unsupported opand          -> errUnsupportedOp "Boolean operator: \"and\""
+        | otherwise                  -> return ()
+      And (x:xr)
+        | unsupported opand          -> errUnsupportedOp "Boolean operator: \"and\""
+        | otherwise                  -> checkSupported x >> checkSupported (And xr)
+      Or []
+        | unsupported opor           -> errUnsupportedOp "Boolean operator: \"or\""
+        | otherwise                  -> return ()
+      Or (x:xr)
+        | unsupported opor           -> errUnsupportedOp "Boolean operator: \"or\""
+        | otherwise                  -> checkSupported x >> checkSupported (Or xr)
+      Implies x y
+        | unsupported opimplies      -> errUnsupportedOp "Boolean operator: \"implication\""
+        | otherwise                  -> checkSupported x >> checkSupported y
+      Equiv x y
+        | unsupported opequiv        -> errUnsupportedOp "Boolean operator: \"equivalence\""
+        | otherwise                  -> checkSupported x >> checkSupported y
+      Next x
+        | unsupported opnext         -> errUnsupportedOp "temporal operator: \"next\""
+        | otherwise                  -> checkSupported x
+      Previous x
+        | unsupported opprevious     -> errUnsupportedOp "past LTL operator: \"previous\""
+        | otherwise                  -> checkSupported x
+      Globally x
+        | unsupported opglobally     -> errUnsupportedOp "temporal operator: \"globally\""
+        | otherwise                  -> checkSupported x
+      Finally x
+        | unsupported opfinally      -> errUnsupportedOp "temporal operator: \"finally\""
+        | otherwise                  -> checkSupported x
+      Historically x
+        | unsupported ophistorically -> errUnsupportedOp "past LTL operator: \"historically\""
+        | otherwise                  -> checkSupported x
+      Once x
+        | unsupported oponce         -> errUnsupportedOp "past LTL operator: \"once\""
+        | otherwise                  -> checkSupported x
+      Until x y
+        | unsupported opuntil        -> errUnsupportedOp "temporal operator: \"until\""
+        | otherwise                  -> checkSupported x >> checkSupported y
+      Release x y
+        | unsupported oprelease      -> errUnsupportedOp "temporal operator: \"release\""
+        | otherwise                  -> checkSupported x >> checkSupported y
+      Weak x y
+        | unsupported opweak         -> errUnsupportedOp "temporal operator: \"weak until\""
+        | otherwise                  -> checkSupported x >> checkSupported y
+      Since x y
+        | unsupported opsince        -> errUnsupportedOp "past LTL operator: \"since\""
+        | otherwise                  -> checkSupported x >> checkSupported y
+      Triggered x y
+        | unsupported optriggered    -> errUnsupportedOp "past LTL operator: \"triggered\""
+        | otherwise                  -> checkSupported x >> checkSupported y
+
     parens c a x = ')' : c ('(':a) x
 
     pr' a y r x = case mode of
@@ -113,44 +186,58 @@ printFormula opc mode formula = reverse $ case mode of
       Implies x y             -> pr' (binOp opimplies $ pr' a f False x) f True y
       Equiv x y               -> pr' (binOp opequiv $ pr' a f False x) f True y
       Next x                  -> pr' (unOp opnext a) f True x
+      Previous x              -> pr' (unOp opprevious a) f True x
       Globally x              -> pr' (unOp opglobally a) f True x
       Finally x               -> pr' (unOp opfinally a) f True x
+      Historically x          -> pr' (unOp ophistorically a) f True x
+      Once x                  -> pr' (unOp oponce a) f True x
       Until x y               -> pr' (binOp opuntil $ pr' a f False x) f True y
       Release x y             -> pr' (binOp oprelease $ pr' a f False x) f True y
       Weak x y                -> pr' (binOp opweak $ pr' a f False x) f True y
+      Since x y               -> pr' (binOp opsince $ pr' a f False x) f True y
+      Triggered x y           -> pr' (binOp optriggered $ pr' a f False x) f True y
 
     precedence' f = case f of
-      TTrue       -> 0
-      FFalse      -> 0
-      Atomic {}   -> 0
-      Not {}      -> dp + uopPrecedence opnot
-      And {}      -> dp + bopPrecedence opand
-      Or {}       -> dp + bopPrecedence opor
-      Implies {}  -> dp + bopPrecedence opimplies
-      Equiv {}    -> dp + bopPrecedence opequiv
-      Next {}     -> dp + uopPrecedence opnext
-      Globally {} -> dp + uopPrecedence opglobally
-      Finally {}  -> dp + uopPrecedence opfinally
-      Until {}    -> dp + bopPrecedence opuntil
-      Release {}  -> dp + bopPrecedence oprelease
-      Weak {}     -> dp + bopPrecedence opweak
+      TTrue           -> 0
+      FFalse          -> 0
+      Atomic {}       -> 0
+      Not {}          -> dp + uopPrecedence opnot
+      And {}          -> dp + bopPrecedence opand
+      Or {}           -> dp + bopPrecedence opor
+      Implies {}      -> dp + bopPrecedence opimplies
+      Equiv {}        -> dp + bopPrecedence opequiv
+      Next {}         -> dp + uopPrecedence opnext
+      Previous {}     -> dp + uopPrecedence opprevious
+      Globally {}     -> dp + uopPrecedence opglobally
+      Finally {}      -> dp + uopPrecedence opfinally
+      Historically {} -> dp + uopPrecedence ophistorically
+      Once {}         -> dp + uopPrecedence oponce
+      Until {}        -> dp + bopPrecedence opuntil
+      Release {}      -> dp + bopPrecedence oprelease
+      Weak {}         -> dp + bopPrecedence opweak
+      Since {}        -> dp + bopPrecedence opsince
+      Triggered {}    -> dp + bopPrecedence optriggered
 
     assoc' f = case f of
-      TTrue       -> AssocLeft
-      FFalse      -> AssocLeft
-      Atomic {}   -> AssocLeft
-      Not {}      -> AssocLeft
-      And {}      -> bopAssoc opand
-      Or {}       -> bopAssoc opor
-      Implies {}  -> bopAssoc opimplies
-      Equiv {}    -> bopAssoc opequiv
-      Next {}     -> AssocLeft
-      Globally {} -> AssocLeft
-      Finally {}  -> AssocLeft
-      Until {}    -> bopAssoc opuntil
-      Release {}  -> bopAssoc oprelease
-      Weak {}     -> bopAssoc opweak
-
+      TTrue           -> AssocLeft
+      FFalse          -> AssocLeft
+      Atomic {}       -> AssocLeft
+      Not {}          -> AssocLeft
+      And {}          -> bopAssoc opand
+      Or {}           -> bopAssoc opor
+      Implies {}      -> bopAssoc opimplies
+      Equiv {}        -> bopAssoc opequiv
+      Next {}         -> AssocLeft
+      Previous {}     -> AssocLeft
+      Globally {}     -> AssocLeft
+      Finally {}      -> AssocLeft
+      Historically {} -> AssocLeft
+      Once {}         -> AssocLeft
+      Until {}        -> bopAssoc opuntil
+      Release {}      -> bopAssoc oprelease
+      Weak {}         -> bopAssoc opweak
+      Since {}        -> bopAssoc opsince
+      Triggered {}    -> bopAssoc optriggered
 
     binOp op a = ' ' : revappend (' ' : a) (bopName op)
 
@@ -194,11 +281,16 @@ printFormula opc mode formula = reverse $ case mode of
     opimplies = opImplies opc
     opequiv = opEquiv opc
     opnext = opNext opc
+    opprevious = opPrevious opc
     opfinally = opFinally opc
     opglobally = opGlobally opc
+    ophistorically = opHistorically opc
+    oponce = opOnce opc
     opuntil = opUntil opc
     oprelease = opRelease opc
     opweak = opWeak opc
+    opsince = opSince opc
+    optriggered = opTriggered opc
 
     revappend a xs = case xs of
       []     -> a

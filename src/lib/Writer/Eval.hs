@@ -551,56 +551,64 @@ evalExpr
   :: Evaluator (Expr Int)
 
 evalExpr e = case expr e of
-  BaseWild        -> evalLtl e
-  BaseCon {}      -> evalNum e
-  NumSMin {}      -> evalNum e
-  NumSMax {}      -> evalNum e
-  NumSSize {}     -> evalNum e
-  NumSizeOf {}    -> evalNum e
-  NumPlus {}      -> evalNum e
-  NumMinus {}     -> evalNum e
-  NumMul {}       -> evalNum e
-  NumDiv {}       -> evalNum e
-  NumMod {}       -> evalNum e
-  NumRPlus {}     -> evalNum e
-  NumRMul {}      -> evalNum e
-  BaseTrue        -> evalLtl e
-  BaseFalse       -> evalLtl e
-  BaseBus {}      -> evalLtl e
-  BlnEQ {}        -> evalLtl e
-  BlnNEQ {}       -> evalLtl e
-  BlnGE {}        -> evalLtl e
-  BlnGEQ {}       -> evalLtl e
-  BlnLE {}        -> evalLtl e
-  BlnLEQ {}       -> evalLtl e
-  BlnNot {}       -> evalLtl e
-  BlnOr {}        -> evalLtl e
-  BlnROr {}       -> evalLtl e
-  BlnAnd {}       -> evalLtl e
-  BlnRAnd {}      -> evalLtl e
-  BlnImpl {}      -> evalLtl e
-  BlnElem {}      -> evalLtl e
-  BlnEquiv {}     -> evalLtl e
-  LtlNext {}      -> evalLtl e
-  LtlRNext {}     -> evalLtl e
-  LtlGlobally {}  -> evalLtl e
-  LtlRGlobally {} -> evalLtl e
-  LtlFinally {}   -> evalLtl e
-  LtlRFinally {}  -> evalLtl e
-  LtlUntil {}     -> evalLtl e
-  LtlWeak {}      -> evalLtl e
-  LtlRelease {}   -> evalLtl e
-  SetExplicit {}  -> evalSet e
-  SetRange {}     -> evalSet e
-  SetCup {}       -> evalSet e
-  SetRCup {}      -> evalSet e
-  SetCap {}       -> evalSet e
-  SetRCap {}      -> evalSet e
-  SetMinus {}     -> evalSet e
-  BaseId x        -> idValue x
-  BaseFml xs x    -> fmlValue xs (srcPos e) x
-  Colon {}        -> evalColon e
-  _               -> assert False undefined
+  BaseWild            -> evalLtl e
+  BaseCon {}          -> evalNum e
+  NumSMin {}          -> evalNum e
+  NumSMax {}          -> evalNum e
+  NumSSize {}         -> evalNum e
+  NumSizeOf {}        -> evalNum e
+  NumPlus {}          -> evalNum e
+  NumMinus {}         -> evalNum e
+  NumMul {}           -> evalNum e
+  NumDiv {}           -> evalNum e
+  NumMod {}           -> evalNum e
+  NumRPlus {}         -> evalNum e
+  NumRMul {}          -> evalNum e
+  BaseTrue            -> evalLtl e
+  BaseFalse           -> evalLtl e
+  BaseBus {}          -> evalLtl e
+  BlnEQ {}            -> evalLtl e
+  BlnNEQ {}           -> evalLtl e
+  BlnGE {}            -> evalLtl e
+  BlnGEQ {}           -> evalLtl e
+  BlnLE {}            -> evalLtl e
+  BlnLEQ {}           -> evalLtl e
+  BlnNot {}           -> evalLtl e
+  BlnOr {}            -> evalLtl e
+  BlnROr {}           -> evalLtl e
+  BlnAnd {}           -> evalLtl e
+  BlnRAnd {}          -> evalLtl e
+  BlnImpl {}          -> evalLtl e
+  BlnElem {}          -> evalLtl e
+  BlnEquiv {}         -> evalLtl e
+  LtlNext {}          -> evalLtl e
+  LtlRNext {}         -> evalLtl e
+  LtlPrevious {}      -> evalLtl e
+  LtlRPrevious {}     -> evalLtl e
+  LtlGlobally {}      -> evalLtl e
+  LtlRGlobally {}     -> evalLtl e
+  LtlFinally {}       -> evalLtl e
+  LtlRFinally {}      -> evalLtl e
+  LtlHistorically {}  -> evalLtl e
+  LtlRHistorically {} -> evalLtl e
+  LtlOnce {}          -> evalLtl e
+  LtlROnce {}         -> evalLtl e
+  LtlUntil {}         -> evalLtl e
+  LtlWeak {}          -> evalLtl e
+  LtlRelease {}       -> evalLtl e
+  LtlSince {}         -> evalLtl e
+  LtlTriggered{}      -> evalLtl e
+  SetExplicit {}      -> evalSet e
+  SetRange {}         -> evalSet e
+  SetCup {}           -> evalSet e
+  SetRCup {}          -> evalSet e
+  SetCap {}           -> evalSet e
+  SetRCap {}          -> evalSet e
+  SetMinus {}         -> evalSet e
+  BaseId x            -> idValue x
+  BaseFml xs x        -> fmlValue xs (srcPos e) x
+  Colon {}            -> evalColon e
+  _                   -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -608,52 +616,61 @@ evalLtl
   :: Evaluator (Expr Int)
 
 evalLtl e = case expr e of
-  BaseTrue         -> return $ VLtl TTrue
-  BaseFalse        -> return $ VLtl FFalse
-  BlnNot x         -> liftMLtl Not x
-  LtlNext x        -> liftMLtl Next x
-  LtlGlobally x    -> liftMLtl Globally x
-  LtlFinally x     -> liftMLtl Finally x
-  LtlUntil x y     -> liftM2Ltl Until x y
-  LtlRelease x y   -> liftM2Ltl Release x y
-  LtlWeak x y      -> liftM2Ltl Weak x y
-  BlnImpl x y      -> liftM2Ltl Implies x y
-  BlnEquiv x y     -> liftM2Ltl Equiv x y
-  BlnEQ x y        -> do
+  BaseTrue             -> return $ VLtl TTrue
+  BaseFalse            -> return $ VLtl FFalse
+  BlnNot x             -> liftMLtl Not x
+  LtlNext x            -> liftMLtl Next x
+  LtlPrevious x        -> liftMLtl Previous x
+  LtlGlobally x        -> liftMLtl Globally x
+  LtlFinally x         -> liftMLtl Finally x
+  LtlHistorically x    -> liftMLtl Historically x
+  LtlOnce x            -> liftMLtl Once x
+  LtlUntil x y         -> liftM2Ltl Until x y
+  LtlRelease x y       -> liftM2Ltl Release x y
+  LtlWeak x y          -> liftM2Ltl Weak x y
+  LtlSince x y         -> liftM2Ltl Since x y
+  LtlTriggered x y     -> liftM2Ltl Triggered x y
+  BlnImpl x y          -> liftM2Ltl Implies x y
+  BlnEquiv x y         -> liftM2Ltl Equiv x y
+  BlnEQ x y            -> do
     b <- evalEquality (==) "==" x y $ srcPos e
     case b of
       Left v -> return v
       Right True -> return $ VLtl TTrue
       Right False -> return $ VLtl FFalse
-  BlnNEQ x y       -> do
+  BlnNEQ x y           -> do
     b <- evalEquality (/=) "!=" x y $ srcPos e
     case b of
       Left v -> return v
       Right True -> return $ VLtl TTrue
       Right False -> return $ VLtl FFalse
-  BlnGE x y        -> liftM2Num (>) x y
-  BlnGEQ x y       -> liftM2Num (>=) x y
-  BlnLE x y        -> liftM2Num (<) x y
-  BlnLEQ x y       -> liftM2Num (<=) x y
-  BaseId _         -> do
+  BlnGE x y            -> liftM2Num (>) x y
+  BlnGEQ x y           -> liftM2Num (>=) x y
+  BlnLE x y            -> liftM2Num (<) x y
+  BlnLEQ x y           -> liftM2Num (<=) x y
+  BaseId _             -> do
     x <- evalExpr e
     case x of
       VLtl y             -> return $ VLtl y
       VSignal STInput y  -> return $ VLtl $ Atomic $ Input y
       VSignal STOutput y -> return $ VLtl $ Atomic $ Output y
       _                  -> assert False undefined
-  BaseFml _ _      -> do
+  BaseFml _ _          -> do
     x <- evalExpr e
     case x of
       VLtl y             -> return $ VLtl y
       VSignal STInput y  -> return $ VLtl $ Atomic $ Input y
       VSignal STOutput y -> return $ VLtl $ Atomic $ Output y
       _                  -> assert False undefined
-  LtlRNext x y     -> do
+  LtlRNext x y         -> do
     VNumber n <- evalNum x
     VLtl v <- evalLtl y
     return $ VLtl $ iter Next n v
-  LtlRGlobally x y -> do
+  LtlRPrevious x y     -> do
+    VNumber n <- evalNum x
+    VLtl v <- evalLtl y
+    return $ VLtl $ iter Previous n v
+  LtlRGlobally x y     -> do
     (i,j) <- evalRange x
     if i > j then
       return $ VLtl TTrue
@@ -661,7 +678,7 @@ evalLtl e = case expr e of
       VLtl v <- evalLtl y
       return $ VLtl $ iter Next i $
         iter (\a -> And [v, Next a]) (j - i) v
-  LtlRFinally x y  -> do
+  LtlRFinally x y      -> do
     (i,j) <- evalRange x
     if i > j then
       return $ VLtl TTrue
@@ -669,29 +686,44 @@ evalLtl e = case expr e of
       VLtl v <- evalLtl y
       return $ VLtl $ iter Next i $
         iter (\a -> Or [v, Next a]) (j - i) v
-
-  BlnElem x y      -> do
+  LtlRHistorically x y -> do
+    (i,j) <- evalRange x
+    if i > j then
+      return $ VLtl TTrue
+    else do
+      VLtl v <- evalLtl y
+      return $ VLtl $ iter Previous i $
+        iter (\a -> And [v, Previous a]) (j - i) v
+  LtlROnce x y         -> do
+    (i,j) <- evalRange x
+    if i > j then
+      return $ VLtl TTrue
+    else do
+      VLtl v <- evalLtl y
+      return $ VLtl $ iter Previous i $
+        iter (\a -> Or [v, Previous a]) (j - i) v
+  BlnElem x y          -> do
     a <- evalExpr x
     VSet b <- evalExpr y
     return $ VLtl $ if S.member a b then
       TTrue
     else
       FFalse
-  BlnOr x y        -> do
+  BlnOr x y            -> do
     VLtl a <- evalLtl x
     VLtl b <- evalLtl y
     return $ VLtl $ Or [a,b]
-  BlnAnd x y       -> do
+  BlnAnd x y           -> do
     VLtl a <- evalLtl x
     VLtl b <- evalLtl y
     return $ VLtl $ And [a,b]
-  BlnRAnd xs x     ->
+  BlnRAnd xs x         ->
     let f = VLtl . And . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
-  BlnROr xs x      ->
+  BlnROr xs x          ->
     let f = VLtl . Or . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
-  BaseBus x y      -> do
+  BaseBus x y          -> do
     VBus io l s <- idValue y
     VNumber b <- evalNum x
 
@@ -703,7 +735,7 @@ evalLtl e = case expr e of
       STInput   -> Input $ s ++ delimiter st ++ show b
       STOutput  -> Output $ s ++  delimiter st ++ show b
       STGeneric -> assert False undefined
-  _                -> assert False undefined
+  _                    -> assert False undefined
 
   where
     liftMLtl f m = do
@@ -842,30 +874,35 @@ checkPattern
   :: Formula -> Expr Int -> StateT ST (Either Error) Bool
 
 checkPattern f e = case (f,expr e) of
-  (_, BaseWild)                     -> return True
-  (TTrue, BaseTrue)             -> return True
-  (FFalse, BaseFalse)           -> return True
-  (Not x, BlnNot y)             -> checkPattern x y
-  (Next x, LtlNext y)           -> checkPattern x y
-  (Globally x, LtlGlobally y)   -> checkPattern x y
-  (Finally x, LtlFinally y)     -> checkPattern x y
-  (Implies x y, BlnImpl z v)    -> binary x y z v
-  (Equiv x y, BlnEquiv z v)     -> binary x y z v
-  (Until x y, LtlUntil z v)     -> binary x y z v
-  (Release x y, LtlRelease z v) -> binary x y z v
-  (And xs, BlnAnd z v)          -> case xs of
+  (_, BaseWild)                       -> return True
+  (TTrue, BaseTrue)                   -> return True
+  (FFalse, BaseFalse)                 -> return True
+  (Not x, BlnNot y)                   -> checkPattern x y
+  (Next x, LtlNext y)                 -> checkPattern x y
+  (Previous x, LtlPrevious y)         -> checkPattern x y
+  (Globally x, LtlGlobally y)         -> checkPattern x y
+  (Finally x, LtlFinally y)           -> checkPattern x y
+  (Historically x, LtlHistorically y) -> checkPattern x y
+  (Once x, LtlOnce y)                 -> checkPattern x y
+  (Implies x y, BlnImpl z v)          -> binary x y z v
+  (Equiv x y, BlnEquiv z v)           -> binary x y z v
+  (Until x y, LtlUntil z v)           -> binary x y z v
+  (Release x y, LtlRelease z v)       -> binary x y z v
+  (Since x y, LtlSince z v)           -> binary x y z v
+  (Triggered x y, LtlTriggered z v)   -> binary x y z v
+  (And xs, BlnAnd z v)                -> case xs of
     [x,y] -> binary x y z v
     _     -> assert False undefined
-  (Or xs, BlnOr z v)            -> case xs of
+  (Or xs, BlnOr z v)                  -> case xs of
     [x,y] -> binary x y z v
     _     -> assert False undefined
-  (_, BaseId i)                     -> do
+  (_, BaseId i)                       -> do
     st <- get
     put st {
       tValues = IM.insert i (VLtl f) $ tValues st
       }
     return True
-  _                                 -> return False
+  _                                   -> return False
 
   where
     binary x y z a = do
@@ -1140,11 +1177,16 @@ asciiLTL fml = case fml of
   Implies x y             -> prOr' x ++ " " ++ pimplies ++ " " ++ prOr' y
   Equiv x y               -> prOr' x ++ " " ++ pequiv ++ " " ++ prOr' y
   Next x                  -> pnext ++ prUO' x
+  Previous x              -> pprevious ++ prUO' x
   Globally x              -> pglobally ++ prUO' x
   Finally x               -> pfinally ++ prUO' x
+  Historically x          -> phistorically ++ prUO' x
+  Once x                  -> ponce ++ prUO' x
   Until x y               -> prOr' x ++ " " ++ puntil ++ " " ++ prOr' y
   Release x y             -> prOr' x ++ " " ++ prelease ++ " " ++ prOr' y
   Weak x y                -> prOr' x ++ " " ++ pweak ++ " " ++ prOr' y
+  Since x y               -> prOr' x ++ " " ++ psince ++ " " ++ prOr' y
+  Triggered x y           -> prOr' x ++ " " ++ ptriggered ++ " " ++ prOr' y
 
   where
     parens x = "(" ++ x ++ ")"
@@ -1185,11 +1227,16 @@ asciiLTL fml = case fml of
     pimplies = "->"
     pequiv = "<->"
     pnext = "X"
+    pprevious = "Y"
     pglobally = "F"
     pfinally = "G"
+    phistorically = "H"
+    ponce = "O"
     puntil = "U"
     prelease = "R"
     pweak = "W"
+    psince = "S"
+    ptriggered = "T"
 
 -----------------------------------------------------------------------------
 

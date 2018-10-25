@@ -133,11 +133,16 @@ data OperatorConfig =
   , opImplies :: BinaryOperator
   , opEquiv :: BinaryOperator
   , opNext :: UnaryOperator
+  , opPrevious :: UnaryOperator
   , opFinally :: UnaryOperator
   , opGlobally :: UnaryOperator
+  , opHistorically :: UnaryOperator
+  , opOnce :: UnaryOperator
   , opUntil :: BinaryOperator
   , opRelease :: BinaryOperator
   , opWeak :: BinaryOperator
+  , opSince :: BinaryOperator
+  , opTriggered :: BinaryOperator
   } deriving (Eq)
 
 -----------------------------------------------------------------------------

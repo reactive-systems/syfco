@@ -8,6 +8,14 @@
 --
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE
+
+    LambdaCase
+
+  #-}
+
+-----------------------------------------------------------------------------
+
 module Data.LTL
     ( Atomic(..)
     , Formula(..)
@@ -25,6 +33,9 @@ module Data.LTL
     , fOr
     , fGlobally
     , fFinally
+    , fHistorically
+    , fOnce
+    , pastFormula
     ) where
 
 -----------------------------------------------------------------------------
@@ -75,60 +86,79 @@ data Formula =
   | And [Formula]
   | Or [Formula]
   | Next Formula
+  | Previous Formula
   | Globally Formula
   | Finally Formula
+  | Historically Formula
+  | Once Formula
   | Until Formula  Formula
   | Release Formula Formula
   | Weak Formula Formula
+  | Since Formula Formula
+  | Triggered Formula Formula
   deriving (Eq, Show)
 
 -----------------------------------------------------------------------------
 
 instance Ord Formula where
   compare x y = case (x,y) of
-    (Atomic a, Atomic b)       -> compare a b
-    (Not a, Not b)             -> compare a b
-    (Next a, Next b)           -> compare a b
-    (Globally a, Globally b)   -> compare a b
-    (Finally a, Finally b)     -> compare a b
-    (Implies a b, Implies c d) -> case compare a c of
+    (Atomic a, Atomic b)             -> compare a b
+    (Not a, Not b)                   -> compare a b
+    (Next a, Next b)                 -> compare a b
+    (Previous a, Previous b)         -> compare a b
+    (Globally a, Globally b)         -> compare a b
+    (Finally a, Finally b)           -> compare a b
+    (Historically a, Historically b) -> compare a b
+    (Once a, Once b)                 -> compare a b
+    (Implies a b, Implies c d)       -> case compare a c of
       EQ -> compare b d
       v  -> v
-    (Equiv a b, Equiv c d)     -> case compare a c of
+    (Equiv a b, Equiv c d)           -> case compare a c of
       EQ -> compare b d
       v  -> v
-    (Until a b, Until c d)     -> case compare a c of
+    (Until a b, Until c d)           -> case compare a c of
       EQ -> compare b d
       v  -> v
-    (Release a b, Release c d) -> case compare a c of
+    (Release a b, Release c d)       -> case compare a c of
       EQ -> compare b d
       v  -> v
-    (And xs, And ys)           -> case foldl lexord EQ $ zip xs ys of
+    (Since a b, Since c d)           -> case compare a c of
+      EQ -> compare b d
+      v  -> v
+    (Triggered a b, Triggered c d)   -> case compare a c of
+      EQ -> compare b d
+      v  -> v
+    (And xs, And ys)                 -> case foldl lexord EQ $ zip xs ys of
       EQ -> compare (length xs) (length ys)
       v  -> v
-    (Or xs, Or ys)             -> case foldl lexord EQ $ zip xs ys of
+    (Or xs, Or ys)                   -> case foldl lexord EQ $ zip xs ys of
       EQ -> compare (length xs) (length ys)
       v  -> v
-    _                          -> compare (num x) (num y)
+    _                                -> compare (num x) (num y)
 
     where
       num :: Formula -> Int
 
       num f = case f of
-        FFalse      -> 0
-        TTrue       -> 1
-        Atomic {}   -> 2
-        Not {}      -> 3
-        Implies {}  -> 4
-        Equiv {}    -> 5
-        And {}      -> 6
-        Or {}       -> 7
-        Next {}     -> 8
-        Globally {} -> 9
-        Finally {}  -> 10
-        Until {}    -> 11
-        Release {}  -> 12
-        Weak {}     -> 13
+        FFalse          -> 0
+        TTrue           -> 1
+        Atomic {}       -> 2
+        Not {}          -> 3
+        Implies {}      -> 4
+        Equiv {}        -> 5
+        And {}          -> 6
+        Or {}           -> 7
+        Next {}         -> 8
+        Previous {}     -> 8
+        Globally {}     -> 9
+        Finally {}      -> 10
+        Historically {} -> 10
+        Once {}         -> 10
+        Until {}        -> 11
+        Release {}      -> 12
+        Weak {}         -> 13
+        Since {}        -> 13
+        Triggered {}    -> 13
 
       lexord a (b,c) = case a of
         EQ -> compare b c
@@ -144,18 +174,23 @@ applySub
   :: (Formula -> Formula) -> Formula -> Formula
 
 applySub f fml = case fml of
-  Not x       -> Not $ f x
-  Next x      -> Next $ f x
-  Globally x  -> Globally $ f x
-  Finally x   -> Finally $ f x
-  And xs      -> And $ map f xs
-  Or xs       -> Or $ map f xs
-  Equiv x y   -> Equiv (f x) (f y)
-  Implies x y -> Implies (f x) (f y)
-  Until x y   -> Until (f x) (f y)
-  Release x y -> Release (f x) (f y)
-  Weak x y    -> Weak (f x) (f y)
-  _           -> fml
+  Not x          -> Not $ f x
+  Next x         -> Next $ f x
+  Previous x     -> Previous $ f x
+  Globally x     -> Globally $ f x
+  Finally x      -> Finally $ f x
+  Historically x -> Historically $ f x
+  Once x         -> Once $ f x
+  And xs         -> And $ map f xs
+  Or xs          -> Or $ map f xs
+  Equiv x y      -> Equiv (f x) (f y)
+  Implies x y    -> Implies (f x) (f y)
+  Until x y      -> Until (f x) (f y)
+  Release x y    -> Release (f x) (f y)
+  Weak x y       -> Weak (f x) (f y)
+  Since x y      -> Since (f x) (f y)
+  Triggered x y  -> Triggered (f x) (f y)
+  _              -> fml
 
 -----------------------------------------------------------------------------
 
@@ -217,20 +252,25 @@ subFormulas
   :: Formula -> [Formula]
 
 subFormulas fml = case fml of
-  TTrue       -> []
-  FFalse      -> []
-  Atomic _    -> []
-  Not x       -> [x]
-  Next x      -> [x]
-  Globally x  -> [x]
-  Finally x   -> [x]
-  Implies x y -> [x,y]
-  Equiv x y   -> [x,y]
-  Until x y   -> [x,y]
-  Release x y -> [x,y]
-  Weak x y    -> [x,y]
-  And xs      -> xs
-  Or xs       -> xs
+  TTrue          -> []
+  FFalse         -> []
+  Atomic _       -> []
+  Not x          -> [x]
+  Next x         -> [x]
+  Previous x     -> [x]
+  Globally x     -> [x]
+  Finally x      -> [x]
+  Historically x -> [x]
+  Once x         -> [x]
+  Implies x y    -> [x,y]
+  Equiv x y      -> [x,y]
+  Until x y      -> [x,y]
+  Release x y    -> [x,y]
+  Weak x y       -> [x,y]
+  Since x y      -> [x,y]
+  Triggered x y  -> [x,y]
+  And xs         -> xs
+  Or xs          -> xs
 
 -----------------------------------------------------------------------------
 
@@ -317,8 +357,11 @@ fNot fml = case fml of
   Atomic x        -> Not $ Atomic x
   Not x           -> x
   Next x          -> Next $ fNot x
+  Previous x      -> Previous $ fNot x
   Globally x      -> Finally $ fNot x
   Finally x       -> Globally $ fNot x
+  Historically x  -> Once $ fNot x
+  Once x          -> Historically $ fNot x
   Implies x y     -> And [x, fNot y]
   Equiv (Not x) y -> Equiv x y
   Equiv x (Not y) -> Equiv x y
@@ -326,6 +369,8 @@ fNot fml = case fml of
   Until x y       -> Release (fNot x) (fNot y)
   Release x y     -> Until (fNot x) (fNot y)
   Weak x y        -> Until (fNot y) (And [fNot x, fNot y])
+  Since x y       -> Triggered (fNot x) (fNot y)
+  Triggered x y   -> Since (fNot x) (fNot y)
   And xs          -> Or $ map fNot xs
   Or xs           -> And $ map fNot xs
 
@@ -337,10 +382,10 @@ fGlobally
   :: Formula -> Formula
 
 fGlobally fml = case fml of
-  Globally FFalse -> FFalse
-  Globally TTrue  -> TTrue
-  Globally _      -> fml
-  _               -> Globally fml
+  TTrue       -> TTrue
+  FFalse      -> FFalse
+  Globally {} -> fml
+  _           -> Globally fml
 
 -----------------------------------------------------------------------------
 
@@ -350,10 +395,36 @@ fFinally
   :: Formula -> Formula
 
 fFinally fml = case fml of
-  Finally FFalse -> FFalse
-  Finally TTrue  -> TTrue
-  Finally _      -> fml
-  _              -> Finally fml
+  TTrue      -> TTrue
+  FFalse     -> FFalse
+  Finally {} -> fml
+  _          -> Finally fml
+
+-----------------------------------------------------------------------------
+
+-- | Smart 'Historically' constructur.
+
+fHistorically
+  :: Formula -> Formula
+
+fHistorically fml = case fml of
+  TTrue          -> TTrue
+  FFalse         -> FFalse
+  Historically _ -> fml
+  _              -> Historically fml
+
+-----------------------------------------------------------------------------
+
+-- | Smart 'Once' constructur.
+
+fOnce
+  :: Formula -> Formula
+
+fOnce fml = case fml of
+  TTrue   -> TTrue
+  FFalse  -> FFalse
+  Once {} -> fml
+  _       -> Once fml
 
 -----------------------------------------------------------------------------
 
@@ -368,13 +439,18 @@ simplePrint fml = case fml of
   Atomic x        -> show x
   Not x           -> '!' : simplePrint x
   Next x          -> 'X' : ' ' : simplePrint x
+  Previous x      -> 'Y' : ' ' : simplePrint x
   Globally x      -> 'G' : ' ' : simplePrint x
   Finally x       -> 'F' : ' ' : simplePrint x
+  Historically x  -> 'H' : ' ' : simplePrint x
+  Once x          -> 'O' : ' ' : simplePrint x
   Implies x y     -> "(" ++ simplePrint x ++ " -> " ++ simplePrint y ++ ")"
   Equiv x y       -> "(" ++ simplePrint x ++ " <-> " ++ simplePrint y ++ ")"
   Until x y       -> "(" ++ simplePrint x ++ " U " ++ simplePrint y ++ ")"
   Release x y     -> "(" ++ simplePrint x ++ " R " ++ simplePrint y ++ ")"
   Weak x y        -> "(" ++ simplePrint x ++ " W " ++ simplePrint y ++ ")"
+  Since x y       -> "(" ++ simplePrint x ++ " S " ++ simplePrint y ++ ")"
+  Triggered x y   -> "(" ++ simplePrint x ++ " T " ++ simplePrint y ++ ")"
   And []          -> simplePrint TTrue
   And [x]         -> simplePrint x
   And (x:xr)      -> "(" ++ simplePrint x ++
@@ -382,5 +458,35 @@ simplePrint fml = case fml of
   Or []           -> simplePrint FFalse
   Or (x:xr)       -> "(" ++ simplePrint x ++
                      concatMap ((" || " ++) . simplePrint) xr ++ ")"
+
+-----------------------------------------------------------------------------
+
+-- | Checks whether the formula contains past operators.
+
+pastFormula
+  :: Formula -> Bool
+
+pastFormula = \case
+  TTrue           -> False
+  FFalse          -> False
+  Atomic _        -> False
+  Not x           -> pastFormula x
+  Next x          -> pastFormula x
+  Previous {}     -> True
+  Globally x      -> pastFormula x
+  Finally x       -> pastFormula x
+  Historically {} -> True
+  Once {}         -> True
+  Implies x y     -> pastFormula x || pastFormula y
+  Equiv x y       -> pastFormula x || pastFormula y
+  Until x y       -> pastFormula x || pastFormula y
+  Release x y     -> pastFormula x || pastFormula y
+  Weak x y        -> pastFormula x || pastFormula y
+  Since {}        -> True
+  Triggered {}    -> True
+  And []          -> False
+  And (x:xr)      -> pastFormula x || pastFormula (And xr)
+  Or []           -> False
+  Or (x:xr)       -> pastFormula x || pastFormula (Or xr)
 
 -----------------------------------------------------------------------------

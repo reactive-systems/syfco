@@ -36,19 +36,24 @@ opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue      = "true"
-  , fFalse     = "false"
-  , opNot      = UnaryOp  "!"           4
-  , opAnd      = BinaryOp "&"           6 AssocLeft
-  , opOr       = BinaryOp "|"           7 AssocLeft
-  , opImplies  = BinaryOpUnsupported
-  , opEquiv    = BinaryOpUnsupported
-  , opNext     = UnaryOp  "X"           1
-  , opFinally  = UnaryOp  "F"           2
-  , opGlobally = UnaryOp  "G"           3
-  , opUntil    = BinaryOp "U"           5 AssocLeft
-  , opRelease  = BinaryOpUnsupported
-  , opWeak     = BinaryOpUnsupported
+  { tTrue          = "true"
+  , fFalse         = "false"
+  , opNot          = UnaryOp  "!"           4
+  , opAnd          = BinaryOp "&"           6 AssocLeft
+  , opOr           = BinaryOp "|"           7 AssocLeft
+  , opImplies      = BinaryOpUnsupported
+  , opEquiv        = BinaryOpUnsupported
+  , opNext         = UnaryOp  "X"           1
+  , opPrevious     = UnaryOpUnsupported
+  , opFinally      = UnaryOp  "F"           2
+  , opGlobally     = UnaryOp  "G"           3
+  , opHistorically = UnaryOpUnsupported
+  , opOnce         = UnaryOpUnsupported
+  , opUntil        = BinaryOp "U"           5 AssocLeft
+  , opRelease      = BinaryOpUnsupported
+  , opWeak         = BinaryOpUnsupported
+  , opSince        = BinaryOpUnsupported
+  , opTriggered    = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
@@ -98,7 +103,7 @@ writeFormat c s = do
   fml0 <- merge es ss rs as is gs
   fml1 <- simplify (adjust c opConfig) $ noBooleanDerived fml0
 
-  return $ printFormula opConfig (outputMode c) fml1
+  printFormula opConfig (outputMode c) fml1
 
   where
     noBooleanDerived fml = case fml of
