@@ -112,17 +112,17 @@ writeFormat c s = do
     ++ concatMap printSignal so
     ++ "\n" ++ "  }"
     ++ (if not $ any checkTrue es' then ""
-        else "\n" ++ "  INITIALLY {" ++ concat es'' ++ "\n" ++ "  }")
+        else "\n" ++ "  INITIALLY {" ++ pr es'' ++ "\n" ++ "  }")
     ++ (if not $ any checkTrue ss' then ""
-        else "\n" ++ "  PRESET {" ++ concat ss'' ++ "\n" ++ "  }")
+        else "\n" ++ "  PRESET {" ++ pr ss'' ++ "\n" ++ "  }")
     ++ (if not $ any checkTrue rs' then ""
-        else "\n" ++ "  REQUIRE {" ++ concat rs'' ++ "\n" ++ "  }")
+        else "\n" ++ "  REQUIRE {" ++ pr rs'' ++ "\n" ++ "  }")
     ++ (if not $ any checkTrue as' then ""
-        else "\n" ++ "  ASSUME {" ++ concat as'' ++"\n" ++ "  }")
+        else "\n" ++ "  ASSUME {" ++ pr as'' ++"\n" ++ "  }")
     ++ (if not $ any checkTrue is' then ""
-        else "\n" ++ "  ASSERT {" ++ concat is'' ++ "\n" ++ "  }")
+        else "\n" ++ "  ASSERT {" ++ pr is'' ++ "\n" ++ "  }")
     ++ (if not $ any checkTrue gs' then ""
-        else "\n" ++ "  GUARANTEE {" ++ concat gs'' ++ "\n" ++ "  }")
+        else "\n" ++ "  GUARANTEE {" ++ pr gs'' ++ "\n" ++ "  }")
     ++ "\n" ++ "}"
     ++ "\n"
 
@@ -133,5 +133,7 @@ writeFormat c s = do
 
     printSignal sig =
       "\n    " ++ sig ++ ";"
+
+    pr = concatMap ((++ ";") . ("\n    " ++))
 
 -----------------------------------------------------------------------------

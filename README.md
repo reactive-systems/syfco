@@ -1,4 +1,4 @@
-# Synthesis Format Conversion Tool<br/>(Version 1.1.0.13)
+# Synthesis Format Conversion Tool<br/>(Version 1.1.0.14)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in [TLSF](https://arxiv.org/abs/1604.02284).
