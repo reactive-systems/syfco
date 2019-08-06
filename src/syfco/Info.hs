@@ -496,6 +496,8 @@ usage m =
          ["Acacia input format with spec units"])
       , (convert LTLXBA, False,
          ["LTL2BA / LTL3BA input format"])
+      , (convert LTL, False,
+         ["pure LTL formula"])
       , (convert PROMELA, False,
          ["Promela LTL"])
       , (convert UNBEAST, False,

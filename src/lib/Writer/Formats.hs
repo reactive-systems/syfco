@@ -50,6 +50,8 @@ data WriteFormat =
     -- ^ <https://www.react.uni-saarland.de/tools/unbeast>
   | LTLXBA
     -- ^ LTL2BA / LTL3BA input format
+  | LTL
+    -- ^ pure LTL formula
   | LILY
     -- ^ Lily input format
   | ACACIA
@@ -82,6 +84,7 @@ instance Show WriteFormat where
     PROMELA     -> "Promela LTL"
     UNBEAST     -> "Unbeast"
     LTLXBA      -> "LtlXba"
+    LTL         -> "pure LTL"
     LILY        -> "Lily"
     ACACIA      -> "Acacia"
     ACACIASPECS -> "AcaciaSpecs"
@@ -103,6 +106,7 @@ instance Convertible WriteFormat String where
     PROMELA     -> "promela"
     UNBEAST     -> "unbeast"
     LTLXBA      -> "ltlxba"
+    LTL         -> "ltl"
     LILY        -> "lily"
     ACACIA      -> "acacia"
     ACACIASPECS -> "acacia-specs"
@@ -124,6 +128,7 @@ instance Convertible String WriteFormat where
     "promela"      -> return PROMELA
     "unbeast"      -> return UNBEAST
     "ltlxba"       -> return LTLXBA
+    "ltl"          -> return LTL
     "lily"         -> return LILY
     "acacia"       -> return ACACIA
     "acacia-specs" -> return ACACIASPECS
