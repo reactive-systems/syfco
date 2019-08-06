@@ -63,6 +63,7 @@ import Writer.Error
 
 import Writer.Data
     ( WriteMode(..)
+    , QuoteMode(..)
     , OperatorConfig(..)
     , UnaryOperator(..)
     , BinaryOperator(..)
@@ -81,11 +82,11 @@ import Data.Array.IArray
 -- passed via @OperatorNames@.
 
 printFormula
-  :: OperatorConfig -> WriteMode -> Formula -> Either Error String
+  :: OperatorConfig -> WriteMode -> QuoteMode -> Formula -> Either Error String
 
-printFormula opc mode formula = do
+printFormula opc writeMode quoteMode formula = do
   checkSupported formula
-  return $ reverse $ case mode of
+  return $ reverse $ case writeMode of
     Pretty -> pr [] formula
     Fully  -> parens pr [] formula
 
@@ -152,9 +153,13 @@ printFormula opc mode formula = do
         | unsupported optriggered    -> errUnsupportedOp "past LTL operator: \"triggered\""
         | otherwise                  -> checkSupported x >> checkSupported y
 
+    quote x = case quoteMode of
+        NoQuotes -> x
+        DoubleQuotes -> "\"" ++ x ++ "\""
+
     parens c a x = ')' : c ('(':a) x
 
-    pr' a y r x = case mode of
+    pr' a y r x = case writeMode of
       Fully  -> parens pr a x
       Pretty -> case compare (precedence' y) (precedence' x) of
         LT -> parens pr a x
@@ -168,8 +173,8 @@ printFormula opc mode formula = do
     pr a f = case f of
       TTrue                   -> revappend a ttrue
       FFalse                  -> revappend a ffalse
-      Atomic (Input x)        -> revappend a x
-      Atomic (Output x)       -> revappend a x
+      Atomic (Input x)        -> revappend a (quote x)
+      Atomic (Output x)       -> revappend a (quote x)
       Not x                   -> pr' (unOp opnot a) f False x
       And []                  -> pr a TTrue
       And [x]                 -> pr a x

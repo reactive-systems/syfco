@@ -83,6 +83,7 @@ import Control.Monad
 
 import Writer.Data
   ( WriteMode(..)
+  , QuoteMode(..)
   )
 
 import Text.Parsec.Prim
@@ -130,6 +131,12 @@ data Configuration =
     --
     --   /(can be changed via a configuration file, use:/ &#160;
     --   @ mode = ... @ /)/
+
+  , quoteMode :: QuoteMode
+    -- ^ The quote mode used by the writer.
+    --
+    --   /(can be changed via a configuration file, use:/ &#160;
+    --   @ quote = ... @ /)/
 
   , partFile :: Maybe String
     -- ^ Optional path to a parition file, which is created if
@@ -353,6 +360,7 @@ data Configuration =
 -- outputFile     = Nothing
 -- outputFormat   = FULL
 -- outputMode     = Pretty
+-- quoteMode      = None
 -- partFile       = Nothing
 -- busDelimiter   = "_"
 -- primeSymbol    = "'"
@@ -401,6 +409,7 @@ defaultCfg = Configuration
   , outputFile     = Nothing
   , outputFormat   = FULL
   , outputMode     = Pretty
+  , quoteMode      = NoQuotes
   , partFile       = Nothing
   , busDelimiter   = defaultDelimiter
   , primeSymbol    = defaultPrimeSymbol
@@ -651,6 +660,12 @@ instance Convertible Configuration String where
       "values."
     , set "mode" $ convert $ outputMode
     , emptyline
+    , comment $ "Specifies the quote mode of the output. " ++
+      "Use "
+    , comment $ "\"" ++ name ++ " --help\" to check for possible " ++
+      "values."
+    , set "quote" $ convert $ quoteMode
+    , emptyline
     , comment $ "Specifies the bus delimiter symbol / string. The " ++
       "value has to be "
     , comment "encapsulated into quotation marks."
@@ -819,6 +834,8 @@ configParser = (~~) >> many entryParser
              >>= (\v -> return (\c -> c { outputFormat = v })))
       <|> (mParser "mode"
              >>= (\v -> return (\c -> c { outputMode = v })))
+      <|> (mParser "quote"
+             >>= (\v -> return (\c -> c { quoteMode = v })))
       <|> (sParser "bus_delimiter"
              >>= (\v -> return (\c -> c { busDelimiter = v })))
       <|> (sParser "prime_symbol"
@@ -889,7 +906,7 @@ configParser = (~~) >> many entryParser
       , caseSensitive = True
       , reservedOpNames = ["="]
       , reservedNames =
-        [ "format", "mode", "bus_delimiter", "prime_symbol", "at_symbol",
+        [ "format", "mode", "quote", "bus_delimiter", "prime_symbol", "at_symbol",
           "overwrite_semantics", "overwrite_target", "weak_simplify",
           "strong_simplify", "negation_normal_form",
           "push_globally_inwards", "push_finally_inwards",

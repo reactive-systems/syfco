@@ -78,8 +78,8 @@ writeFormat config specification = do
 
   (inputs, outputs) <- signals config' specification
 
-  assumptions'' <- mapM (printFormula opConfig Fully) (requirments' ++ assumptions')
-  guarantees'' <- mapM (printFormula opConfig  Fully) (assertions' ++ guarantees')
+  assumptions'' <- mapM (printFormula opConfig Fully NoQuotes) (requirments' ++ assumptions')
+  guarantees'' <- mapM (printFormula opConfig  Fully NoQuotes) (assertions' ++ guarantees')
 
   return $
     "{" ++

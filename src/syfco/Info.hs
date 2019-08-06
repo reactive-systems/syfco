@@ -44,6 +44,7 @@ import Syfco
   , Target(..)
   , WriteFormat(..)
   , WriteMode(..)
+  , QuoteMode(..)
   , Specification
   , defaultCfg
   , title
@@ -377,6 +378,8 @@ usage m =
          [ "output format - possible values are:" ])
       , ("m", "mode", Just modes,
          [ "output mode - possible values are:" ])
+      , ("q", "quote", Just quotes,
+         [ "quote mode - possible values are:" ])
       , ("pf", "part-file", Nothing,
          [ "create a partitioning (" ++ code m ".part" ++ ") file" ])
       , ("bd", "bus-delimiter", Nothing,
@@ -521,6 +524,12 @@ usage m =
          ["pretty printing (as less parentheses as possible)"])
       , (convert Fully, False,
          ["output fully parenthesized formulas"]) ]
+
+    quotes =
+      [ (convert NoQuotes, True,
+         ["identifiers are not quoted"])
+      , (convert DoubleQuotes, False,
+         ["identifiers are quoted using \""]) ]
 
 -----------------------------------------------------------------------------
 

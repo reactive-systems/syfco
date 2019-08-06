@@ -73,9 +73,9 @@ writeFormat c s = do
   is2 <- mapM (simplify (adjust c opConfig) . fGlobally . adjustAtomic) is1
   gs2 <- mapM (simplify (adjust c opConfig) . adjustAtomic) (gs1 ++ ss1)
 
-  as3 <- mapM (printFormula opConfig (outputMode c)) as2
-  is3 <- mapM (printFormula opConfig (outputMode c)) is2
-  gs3 <- mapM (printFormula opConfig (outputMode c)) gs2
+  as3 <- mapM (printFormula opConfig (outputMode c) (quoteMode c)) as2
+  is3 <- mapM (printFormula opConfig (outputMode c) (quoteMode c)) is2
+  gs3 <- mapM (printFormula opConfig (outputMode c) (quoteMode c)) gs2
 
   let
     as4 = map (\x -> "assume " ++ x ++ ";") as3
