@@ -21,6 +21,9 @@ import Simplify
 import Data.Error
 import Data.List
 import Data.Specification
+import Data.LTL
+    ( Formula(..)
+    )
 
 import Writer.Eval
 import Writer.Data
@@ -66,10 +69,12 @@ writeFormat config spec = do
 
   fmlsI <- mapM (\i -> merge es ss rs as [i] []) is
   simpI <- mapM (simplify (adjust config opConfig)) fmlsI
-  strsI <- mapM (printFormula opConfig (outputMode config) (quoteMode config)) simpI
+  let flatI = concatMap flatten simpI
+  strsI <- mapM (printFormula opConfig (outputMode config) (quoteMode config)) flatI
   fmlsG <- mapM (\g -> merge es ss rs as [] [g]) gs
   simpG <- mapM (simplify (adjust config opConfig)) fmlsG
-  strsG <- mapM (printFormula opConfig (outputMode config) (quoteMode config)) simpG
+  let flatG = concatMap flatten simpG
+  strsG <- mapM (printFormula opConfig (outputMode config) (quoteMode config)) flatG
 
   (input_signals, output_signals) <- signals config spec
   let
@@ -79,6 +84,10 @@ writeFormat config spec = do
   return $ main fml all_signals
 
   where
+    flatten f = case f of
+        And l -> l
+        _ -> [f]
+
     main formulas xs =
         "MODULE main\n"
         ++ "\tVAR\n"
