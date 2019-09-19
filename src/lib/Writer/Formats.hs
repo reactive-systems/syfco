@@ -66,6 +66,8 @@ data WriteFormat =
     -- ^ <https://en.wikipedia.org/wiki/Property_Specification_Language>
   | SMV
     -- ^ SMV file format
+  | SMVDECOMP
+    -- ^ SMV file format with decomposed formula
   | BOSY
     -- ^ <https://github.com/reactive-systems/bosy>
   | RABINIZER
@@ -94,6 +96,7 @@ instance Show WriteFormat where
     FULL        -> "Full"
     PSL         -> "Psl"
     SMV         -> "SMV"
+    SMVDECOMP   -> "decomposed SMV"
     BOSY        -> "BoSy"
     RABINIZER   -> "Rabinizer"
 
@@ -116,6 +119,7 @@ instance Convertible WriteFormat String where
     FULL        -> "full"
     PSL         -> "psl"
     SMV         -> "smv"
+    SMVDECOMP   -> "smv-decomp"
     BOSY        -> "bosy"
     RABINIZER   -> "rabinizer"
 
@@ -138,6 +142,7 @@ instance Convertible String WriteFormat where
     "full"         -> return FULL
     "psl"          -> return PSL
     "smv"          -> return SMV
+    "smv-decomp"   -> return SMVDECOMP
     "bosy"         -> return BOSY
     "rabinizer"    -> return RABINIZER
     str            -> Left ConvertError

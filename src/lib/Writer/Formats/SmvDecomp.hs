@@ -5,13 +5,13 @@
 -- Maintainer  :  Leander Tentrup (tentrup@react.uni-saarland.de)
 --                Felix Klein (klein@react.uni-saarland.de)
 --
--- Transforms a specification to SMV format.
+-- Transforms a specification to SMV format with decomposed formula.
 -- See http://nusmv.fbk.eu/NuSMV/userman/v21/nusmv_3.html#SEC31 for more
 -- information about the SMV LTL specification.
 --
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Smv where
+module Writer.Formats.SmvDecomp where
 
 -----------------------------------------------------------------------------
 
@@ -19,6 +19,7 @@ import Config
 import Simplify
 
 import Data.Error
+import Data.List
 import Data.Specification
 
 import Writer.Eval
@@ -62,26 +63,31 @@ writeFormat
 
 writeFormat config spec = do
   (es,ss,rs,as,is,gs) <- eval config spec
-  formula <- merge es ss rs as is gs
-  simplified_formula <- simplify (adjust config opConfig) formula
 
+  fmlsI <- mapM (\i -> merge es ss rs as [i] []) is
+  simpI <- mapM (simplify (adjust config opConfig)) fmlsI
+  strsI <- mapM (printFormula opConfig (outputMode config) (quoteMode config)) simpI
+  fmlsG <- mapM (\g -> merge es ss rs as [] [g]) gs
+  simpG <- mapM (simplify (adjust config opConfig)) fmlsG
+  strsG <- mapM (printFormula opConfig (outputMode config) (quoteMode config)) simpG
 
   (input_signals, output_signals) <- signals config spec
   let
+    fml = (strsI ++ strsG)
     all_signals = (input_signals ++ output_signals)
 
-  fml <- printFormula opConfig (outputMode config) (quoteMode config) simplified_formula
   return $ main fml all_signals
 
   where
-    main formula xs =
+    main formulas xs =
         "MODULE main\n"
         ++ "\tVAR\n"
         ++ (printSignals xs)
-        ++ "\tLTLSPEC " ++ formula
+        ++ intercalate "\n" (map (\f -> "\tLTLSPEC " ++ f) formulas)
 
     printSignals xs = case xs of
       []               -> ""
       (x:xr) -> "\t\t" ++ x ++ " : boolean;\n" ++ (printSignals xr)
 
 -----------------------------------------------------------------------------
+
