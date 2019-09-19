@@ -400,6 +400,7 @@ adjust
 
 adjust c oc =
   c {
+    noEquivalence = noEquivalence c || unsupported (opEquiv oc),
     noRelease = noRelease c || unsupported (opRelease oc),
     noWeak = noWeak c || unsupported (opWeak oc),
     noGlobally = noGlobally c || unsupported (opGlobally oc),

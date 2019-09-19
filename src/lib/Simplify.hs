@@ -349,7 +349,9 @@ simplify c f =
       Weak x y
         | nw || nd                          -> simplify' $ Or [Until x y, Globally x]
         | otherwise                        -> Weak (simplify' x) $ simplify' y
-      Equiv x y                            -> Equiv (simplify' x) (simplify' y)
+      Equiv x y
+        | ne                               -> simplify' $ And [Implies x y, Implies y x]
+        | otherwise                        -> Equiv (simplify' x) (simplify' y)
       Implies x y                          -> Implies (simplify' x) (simplify' y)
       Until x y                            -> Until (simplify' x) (simplify' y)
       Since x y                            -> Since (simplify' x) (simplify' y)
@@ -389,6 +391,7 @@ simplify c f =
     sw = simplifyWeak c
     ss = simplifyStrong c
     nr = noRelease c
+    ne = noEquivalence c
     nw = noWeak c
     ng = noGlobally c
     nf = noFinally c

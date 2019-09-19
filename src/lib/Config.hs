@@ -249,6 +249,14 @@ data Configuration =
     --
     --   /(can be changed via a configuration file, use:/ &#160;
     --   @ pull_next_outwards = ... @ /)/
+    --
+  , noEquivalence :: Bool
+    -- ^ A boolean flag specifying whether equivalence operators
+    -- should be replaced by alternative operators inside the
+    -- created formula.
+    --
+    --   /(can be changed via a configuration file, use:/ &#160;
+    --   @ no_equivalence = ... @ /)/
 
   , noWeak :: Bool
     -- ^ A boolean flag specifying whether weak until operators
@@ -378,6 +386,7 @@ data Configuration =
 -- pullGlobally   = False
 -- pullFinally    = False
 -- pullNext       = False
+-- noEquivalence  = False
 -- noWeak         = False
 -- noRelease      = False
 -- noFinally      = False
@@ -427,6 +436,7 @@ defaultCfg = Configuration
   , pullGlobally   = False
   , pullFinally    = False
   , pullNext       = False
+  , noEquivalence  = False
   , noWeak         = False
   , noRelease      = False
   , noFinally      = False

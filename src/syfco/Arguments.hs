@@ -216,6 +216,7 @@ parseArguments args = do
       "-pgo"                     -> simple $ c { pullGlobally = True }
       "-pfo"                     -> simple $ c { pullFinally = True }
       "-pxo"                     -> simple $ c { pullNext = True }
+      "-ne"                      -> simple $ c { noEquivalence = True }
       "-nw"                      -> simple $ c { noWeak = True }
       "-nr"                      -> simple $ c { noRelease = True }
       "-nf"                      -> simple $ c { noFinally = True }
@@ -247,6 +248,7 @@ parseArguments args = do
       "--pull-globally-outwards" -> parseArgument c "-pgo" next
       "--pull-finally-outwards"  -> parseArgument c "-pfo" next
       "--pull-next-outwards"     -> parseArgument c "-pxo" next
+      "--no-equivalence"          -> parseArgument c "-ne" next
       "--no-weak-until"          -> parseArgument c "-nw" next
       "--no-realease"            -> parseArgument c "-nr" next
       "--no-finally"             -> parseArgument c "-nf" next

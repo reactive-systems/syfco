@@ -434,6 +434,9 @@ usage m =
          [ "pull next operators outwards",
            "  " ++ code m "(X a) && (X b) => X (a && b)",
            "  " ++ code m "(X a) || (X b) => X (a || b)" ])
+      , ("ne", "no-equivalence", Nothing,
+         [ "replace equivalence/bi-implication operators",
+           "  " ++ code m "a <-> b => (a -> b) && (b -> a)" ])
       , ("nw", "no-weak-until", Nothing,
          [ "replace weak until operators",
            "  " ++ code m "a W b => (a U b) || (G a)" ])
