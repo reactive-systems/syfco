@@ -62,6 +62,7 @@ library
     Writer.Formats.Utf8
     Writer.Formats.Psl
     Writer.Formats.Smv
+    Writer.Formats.SmvDecomp
     Writer.Formats.SlugsIn
     Writer.Formats.Ltlxba
     Writer.Formats.Ltl
