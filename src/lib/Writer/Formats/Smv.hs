@@ -70,7 +70,7 @@ writeFormat config spec = do
   let
     all_signals = (input_signals ++ output_signals)
 
-  fml <- printFormula opConfig (outputMode config) simplified_formula
+  fml <- printFormula opConfig (outputMode config) (quoteMode config) simplified_formula
   return $ main fml all_signals
 
   where

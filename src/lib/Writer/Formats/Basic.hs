@@ -76,12 +76,12 @@ writeFormat c s = do
   is' <- mapM (simplify (adjust c opConfig)) is
   gs' <- mapM (simplify (adjust c opConfig)) gs
 
-  es'' <- mapM (printFormula opConfig Fully) $ filter checkTrue es'
-  ss'' <- mapM (printFormula opConfig Fully) $ filter checkTrue ss'
-  rs'' <- mapM (printFormula opConfig Fully) $ filter checkTrue rs'
-  as'' <- mapM (printFormula opConfig Fully) $ filter checkTrue as'
-  is'' <- mapM (printFormula opConfig Fully) $ filter checkTrue is'
-  gs'' <- mapM (printFormula opConfig Fully) $ filter checkTrue gs'
+  es'' <- mapM (printFormula opConfig Fully NoQuotes) $ filter checkTrue es'
+  ss'' <- mapM (printFormula opConfig Fully NoQuotes) $ filter checkTrue ss'
+  rs'' <- mapM (printFormula opConfig Fully NoQuotes) $ filter checkTrue rs'
+  as'' <- mapM (printFormula opConfig Fully NoQuotes) $ filter checkTrue as'
+  is'' <- mapM (printFormula opConfig Fully NoQuotes) $ filter checkTrue is'
+  gs'' <- mapM (printFormula opConfig Fully NoQuotes) $ filter checkTrue gs'
 
   (si,so) <- signals c s'
 

@@ -21,6 +21,7 @@ module Syfco
     Configuration(..)
   , WriteFormat(..)
   , WriteMode(..)
+  , QuoteMode(..)
   , Semantics(..)
   , Target(..)
   , Atomic(..)
@@ -77,6 +78,7 @@ import Config
 
 import Writer.Data
   ( WriteMode(..)
+  , QuoteMode(..)
   )
 
 import Writer
