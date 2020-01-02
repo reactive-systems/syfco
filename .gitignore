@@ -17,5 +17,6 @@ cabal.sandbox.config
 *.hp
 syfco
 syfco_profile
+stack.yaml.lock
 .commit
 .stack-work

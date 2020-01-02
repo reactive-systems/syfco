@@ -331,23 +331,24 @@ typeCheckDefinition i = do
     check
       :: Expression -> Int -> TC ()
 
-    check e n = do
+    check e n =
       -- get the type of the expression
-      TSet t <- inferBinding e
-      -- update the type in the type table
-      updType t i
-      -- typecheck the expression
-      typeCheck e $ TSet t
+      inferBinding e >>= \case
+        TSet t -> do
+          -- update the type in the type table
+          updType t i
+          -- typecheck the expression
+          typeCheck e $ TSet t
 
-      if n > 0
-      then check e (n-1)
-      else do
-        TSet t' <- inferBinding e
-
-        when (t /= t') $ do
-          n <- ((! i) . names . spec) <$> get
-          p <- ((! i) . positions . spec) <$> get
-          errInfinite n p
+          if n > 0
+          then check e (n-1)
+          else inferBinding e >>= \case
+            TSet t' -> when (t /= t') $ do
+              n <- ((! i) . names . spec) <$> get
+              p <- ((! i) . positions . spec) <$> get
+              errInfinite n p
+            _       -> assert False undefined
+        _      -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -527,8 +528,9 @@ typeChIdF e t = case expr e of
   BaseBus x b  -> typeCheckBus t x b $ srcPos e
   Colon x y    -> typeCheck x TBoolean >> typeCheck y t
   _            -> do
-    TSet t' <- inferFromExpr e
-    errExpect t t' $ srcPos e
+    inferFromExpr e >>= \case
+      TSet t' -> errExpect t t' $ srcPos e
+      _       -> assert False undefined
 
 -----------------------------------------------------------------------------
 
