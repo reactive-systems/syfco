@@ -179,6 +179,12 @@ simplify c f =
       Next (Finally x)
         | (hn && not hf) || (lf && not ln && not ss) -> simplify' $ Finally $ Next x
         | otherwise                        -> Next $ simplify' $ Finally x
+      Next (And xs)
+        | hn                               -> simplify' $ And $ map Next xs
+        | otherwise                        -> Next $ simplify' $ And xs
+      Next (Or xs)
+        | hn                               -> simplify' $ Or $ map Next xs
+        | otherwise                        -> Next $ simplify' $ And xs
       Globally (Next x)
         | ss || ln || hg                     -> simplify' $ Next $ Globally x
         | ng || nd                          -> simplify' $ Release FFalse $ Next x
@@ -250,7 +256,7 @@ simplify c f =
         | otherwise                        ->
           let
             cs | sw || ss   = filter (TTrue /=) $ warpAnd $ map simplify' xs
-               | otherwise = xs
+               | otherwise = map simplify' xs
           in
             if (sw || ss) && (FFalse `elem` cs) then FFalse
             else case cs of
@@ -297,7 +303,7 @@ simplify c f =
         | otherwise                        ->
           let
             cs | sw || ss   = filter (FFalse /=) $ warpOr $ map simplify' xs
-               | otherwise = xs
+               | otherwise = map simplify' xs
           in
             if (sw || ss) && (TTrue `elem` cs) then TTrue
             else case cs of
@@ -325,8 +331,8 @@ simplify c f =
                    ([x],[y]) -> Or $ reverse $ (Finally y) : (Next x) : reverse zs
                    ([x],_)   -> Or $ reverse $ (Finally $ Or es) : (Next x) : reverse zs
                    (_,[])    -> Or $ reverse $ (Next $ Or ns) : reverse zs
-                   (_,[y])   -> Or $ reverse $ (Finally y) : (Next $ And ns) : reverse zs
-                   (_,_)     -> Or $ reverse $ (Finally $ Or es) : (Next $ And ns) : reverse zs
+                   (_,[y])   -> Or $ reverse $ (Finally y) : (Next $ Or ns) : reverse zs
+                   (_,_)     -> Or $ reverse $ (Finally $ Or es) : (Next $ Or ns) : reverse zs
 
       -- pass through
 
