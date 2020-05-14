@@ -63,10 +63,10 @@ writeFormat c s = do
   (es,ss,rs,as,is,gs) <- eval c s
   fmlsI <- mapM (\i -> merge es ss rs as [i] []) is
   simpI <- mapM (simplify (adjust c opConfig)) fmlsI
-  strsI <- mapM (printFormula opConfig (outputMode c)) simpI
+  strsI <- mapM (printFormula opConfig (outputMode c) (quoteMode c)) simpI
   fmlsG <- mapM (\g -> merge es ss rs as [] [g]) gs
   simpG <- mapM (simplify (adjust c opConfig)) fmlsG
-  strsG <- mapM (printFormula opConfig (outputMode c)) simpG
+  strsG <- mapM (printFormula opConfig (outputMode c) (quoteMode c)) simpG
   return $ intercalate "\n" (strsI ++ strsG)
 
 -----------------------------------------------------------------------------
