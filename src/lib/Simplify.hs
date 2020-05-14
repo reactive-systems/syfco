@@ -100,28 +100,28 @@ simplify c f =
         | sw || ss || nf || nd                -> simplify' $ Once x
         | otherwise                        -> Once $ simplify' $ Once x
       Equiv TTrue x
-        | sw || ss                          -> simplify' x
+        | sw || ss || nnf                   -> simplify' x
         | otherwise                        -> Equiv TTrue $ simplify' x
       Equiv x TTrue
-        | sw || ss                          -> simplify' x
+        | sw || ss || nnf                   -> simplify' x
         | otherwise                        -> Equiv (simplify' x) TTrue
       Equiv x FFalse
-        | sw || ss                          -> simplify' $ Not x
+        | sw || ss || nnf                   -> simplify' $ Not x
         | otherwise                        -> Equiv (simplify' x) FFalse
       Equiv FFalse x
-        | sw || ss                          -> simplify' $ Not x
+        | sw || ss || nnf                   -> simplify' $ Not x
         | otherwise                        -> Equiv FFalse $ simplify' x
       Implies FFalse x
-        | sw || ss                          -> TTrue
+        | sw || ss || nnf                   -> TTrue
         | otherwise                        -> Implies FFalse $ simplify' x
       Implies TTrue x
-        | sw || ss                          -> simplify' x
+        | sw || ss || nnf                   -> simplify' x
         | otherwise                        -> Implies TTrue $ simplify' x
       Implies x FFalse
-        | sw || ss                          -> simplify' $ Not x
+        | sw || ss || nnf                   -> simplify' $ Not x
         | otherwise                        -> Implies (simplify' x) FFalse
       Implies x TTrue
-        | sw || ss                          -> TTrue
+        | sw || ss || nnf                   -> TTrue
         | otherwise                        -> Implies (simplify' x) TTrue
       Not (Not x)
         | sw || ss || nnf                    -> simplify' x
@@ -155,7 +155,7 @@ simplify c f =
         | ss || nnf                         -> simplify' $ Equiv x y
         | otherwise                        -> Not $ Equiv (simplify' $ Not x) $ simplify' x
       Not (Equiv x y)
-        | ss || nnf                         -> Equiv (simplify' x) $ simplify' $ Not y
+        | ss || nnf                         -> simplify' $ Equiv x $ Not y
         | otherwise                        -> Not $ Equiv (simplify' x) $ simplify' y
       Not (Until x y)
         | (ss || nnf) && not nr                -> simplify' $ Release (Not x) $ Not y
@@ -179,6 +179,12 @@ simplify c f =
       Next (Finally x)
         | (hn && not hf) || (lf && not ln && not ss) -> simplify' $ Finally $ Next x
         | otherwise                        -> Next $ simplify' $ Finally x
+      Next (And xs)
+        | hn                               -> simplify' $ And $ map Next xs
+        | otherwise                        -> Next $ simplify' $ And xs
+      Next (Or xs)
+        | hn                               -> simplify' $ Or $ map Next xs
+        | otherwise                        -> Next $ simplify' $ And xs
       Globally (Next x)
         | ss || ln || hg                     -> simplify' $ Next $ Globally x
         | ng || nd                          -> simplify' $ Release FFalse $ Next x
@@ -250,7 +256,7 @@ simplify c f =
         | otherwise                        ->
           let
             cs | sw || ss   = filter (TTrue /=) $ warpAnd $ map simplify' xs
-               | otherwise = xs
+               | otherwise = map simplify' xs
           in
             if (sw || ss) && (FFalse `elem` cs) then FFalse
             else case cs of
@@ -297,7 +303,7 @@ simplify c f =
         | otherwise                        ->
           let
             cs | sw || ss   = filter (FFalse /=) $ warpOr $ map simplify' xs
-               | otherwise = xs
+               | otherwise = map simplify' xs
           in
             if (sw || ss) && (TTrue `elem` cs) then TTrue
             else case cs of
@@ -325,8 +331,8 @@ simplify c f =
                    ([x],[y]) -> Or $ reverse $ (Finally y) : (Next x) : reverse zs
                    ([x],_)   -> Or $ reverse $ (Finally $ Or es) : (Next x) : reverse zs
                    (_,[])    -> Or $ reverse $ (Next $ Or ns) : reverse zs
-                   (_,[y])   -> Or $ reverse $ (Finally y) : (Next $ And ns) : reverse zs
-                   (_,_)     -> Or $ reverse $ (Finally $ Or es) : (Next $ And ns) : reverse zs
+                   (_,[y])   -> Or $ reverse $ (Finally y) : (Next $ Or ns) : reverse zs
+                   (_,_)     -> Or $ reverse $ (Finally $ Or es) : (Next $ Or ns) : reverse zs
 
       -- pass through
 
@@ -349,8 +355,12 @@ simplify c f =
       Weak x y
         | nw || nd                          -> simplify' $ Or [Until x y, Globally x]
         | otherwise                        -> Weak (simplify' x) $ simplify' y
-      Equiv x y                            -> Equiv (simplify' x) (simplify' y)
-      Implies x y                          -> Implies (simplify' x) (simplify' y)
+      Equiv x y
+        | nnf                              -> simplify' $ Or [ And [ x, y ], And [ Not x, Not y ] ]
+        | otherwise                        -> Equiv (simplify' x) (simplify' y)
+      Implies x y
+        | nnf                              -> simplify' $ Or [ Not x, y ]
+        | otherwise                        -> Implies (simplify' x) (simplify' y)
       Until x y                            -> Until (simplify' x) (simplify' y)
       Since x y                            -> Since (simplify' x) (simplify' y)
       Triggered x y                        -> Triggered (simplify' x) (simplify' y)

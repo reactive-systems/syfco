@@ -52,6 +52,8 @@ data WriteFormat =
     -- ^ LTL2BA / LTL3BA input format
   | LTLXBADECOMP
     -- ^ LTL2BA / LTL3BA input format decomposed into a conjunction
+  | LTL
+    -- ^ pure LTL formula
   | LILY
     -- ^ Lily input format
   | ACACIA
@@ -85,6 +87,7 @@ instance Show WriteFormat where
     UNBEAST     -> "Unbeast"
     LTLXBA      -> "LtlXba"
     LTLXBADECOMP-> "LtlXbaDecomp"
+    LTL         -> "pure LTL"
     LILY        -> "Lily"
     ACACIA      -> "Acacia"
     ACACIASPECS -> "AcaciaSpecs"
@@ -107,6 +110,7 @@ instance Convertible WriteFormat String where
     UNBEAST     -> "unbeast"
     LTLXBA      -> "ltlxba"
     LTLXBADECOMP-> "ltlxba-decomp"
+    LTL         -> "ltl"
     LILY        -> "lily"
     ACACIA      -> "acacia"
     ACACIASPECS -> "acacia-specs"
@@ -129,6 +133,7 @@ instance Convertible String WriteFormat where
     "unbeast"      -> return UNBEAST
     "ltlxba"       -> return LTLXBA
     "ltlxba-decomp"-> return LTLXBADECOMP
+    "ltl"          -> return LTL
     "lily"         -> return LILY
     "acacia"       -> return ACACIA
     "acacia-specs" -> return ACACIASPECS

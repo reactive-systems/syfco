@@ -64,6 +64,7 @@ import qualified Writer.Formats.AcaciaSpecs as AcaciaSpecs
 import qualified Writer.Formats.Lily as Lily
 import qualified Writer.Formats.Ltlxba as Ltlxba
 import qualified Writer.Formats.LtlxbaDecomp as LtlxbaDecomp
+import qualified Writer.Formats.Ltl as Ltl
 import qualified Writer.Formats.Unbeast as Unbeast
 import qualified Writer.Formats.Slugs as Slugs
 import qualified Writer.Formats.SlugsIn as SlugsIn
@@ -93,6 +94,7 @@ apply c@Configuration{..} s = do
     WRING       -> Wring.writeFormat c s
     LTLXBA      -> Ltlxba.writeFormat c s
     LTLXBADECOMP-> LtlxbaDecomp.writeFormat c s
+    LTL         -> Ltl.writeFormat c s
     LILY        -> Lily.writeFormat c s
     ACACIA      -> Acacia.writeFormat c s
     ACACIASPECS -> AcaciaSpecs.writeFormat c s

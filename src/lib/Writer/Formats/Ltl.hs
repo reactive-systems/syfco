@@ -1,14 +1,14 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Writer.Formats.Utf8
+-- Module      :  Writer.Formats.Ltl
 -- License     :  MIT (see the LICENSE file)
 -- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
 --
--- Transforms a specification to a UTF8 string.
+-- Transforms a specification to a pure LTL formula.
 --
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Utf8 where
+module Writer.Formats.Ltl where
 
 -----------------------------------------------------------------------------
 
@@ -24,35 +24,35 @@ import Writer.Utils
 
 -----------------------------------------------------------------------------
 
--- | UTF8 operator configuration.
+-- | pure LTL operator configuration.
 
 opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue          = "⊤"
-  , fFalse         = "⊥"
-  , opNot          = UnaryOp  "¬" 1
-  , opAnd          = BinaryOp "∧" 2 AssocLeft
-  , opOr           = BinaryOp "∨" 3 AssocLeft
-  , opImplies      = BinaryOp "→" 4 AssocRight
-  , opEquiv        = BinaryOp "↔" 4 AssocRight
-  , opNext         = UnaryOp  "◯" 1
-  , opPrevious     = UnaryOp  "◉" 1
-  , opFinally      = UnaryOp  "◇" 1
-  , opGlobally     = UnaryOp  "▢" 1
-  , opHistorically = UnaryOp  "▣" 1
-  , opOnce         = UnaryOp  "◈" 1
-  , opUntil        = BinaryOp "U" 6 AssocRight
-  , opRelease      = BinaryOp "R" 7 AssocLeft
-  , opWeak         = BinaryOp "W" 5 AssocRight
-  , opSince        = BinaryOp "S" 8 AssocRight
-  , opTriggered    = BinaryOp "T" 9 AssocLeft
+  { tTrue          = "true"
+  , fFalse         = "false"
+  , opNot          = UnaryOp  "!"   1
+  , opAnd          = BinaryOp "&&"  2 AssocLeft
+  , opOr           = BinaryOp "||"  3 AssocLeft
+  , opImplies      = BinaryOp "->"  4 AssocRight
+  , opEquiv        = BinaryOp "<->" 4 AssocRight
+  , opNext         = UnaryOp  "X"   1
+  , opPrevious     = UnaryOp  "Y"   1
+  , opFinally      = UnaryOp  "F"   1
+  , opGlobally     = UnaryOp  "G"   1
+  , opHistorically = UnaryOp  "H"   1
+  , opOnce         = UnaryOp  "O"   1
+  , opUntil        = BinaryOp "U"   6 AssocRight
+  , opRelease      = BinaryOp "R"   7 AssocLeft
+  , opWeak         = BinaryOp "W"   5 AssocRight
+  , opSince        = BinaryOp "S"   8 AssocRight
+  , opTriggered    = BinaryOp "T"   9 AssocLeft
   }
 
 -----------------------------------------------------------------------------
 
--- | UTF8 writer.
+-- | LTL writer.
 
 writeFormat
   :: Configuration -> Specification -> Either Error String

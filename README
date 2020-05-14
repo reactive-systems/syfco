@@ -1,5 +1,5 @@
 # Synthesis Format Conversion Tool
-# (Version 1.1.0.14)
+# (Version 1.2.0.4)
 
 A tool for reading, manipulating and transforming synthesis
 specifications in TLSF [0].
@@ -105,6 +105,7 @@ syfco [OPTIONS]... <file>
     * acacia                     : Acacia / Acacia+ input format
     * acacia-specs               : Acacia input format with spec units
     * ltlxba                     : LTL2BA / LTL3BA input format
+    * ltl                        : pure LTL formula
     * promela                    : Promela LTL
     * unbeast                    : Unbeast input format
     * slugs                      : structured Slugs format [GR(1) only]
@@ -119,6 +120,11 @@ syfco [OPTIONS]... <file>
     * pretty [default]           : pretty printing (as less parentheses as
                                    possible)
     * fully                      : output fully parenthesized formulas
+
+  -q, --quote                    : quote mode - possible values are:
+
+    * none [default]             : identifiers are not quoted
+    * double                     : identifiers are quoted using "
 
   -pf, --part-file               : create a partitioning (.part) file
   -bd, --bus-delimiter           : delimiter used to print indexed bus signals

@@ -26,6 +26,7 @@ module Arguments
 import Syfco
   ( Configuration(..)
   , WriteMode(..)
+  , QuoteMode(..)
   , defaultCfg
   , verify
   , update
@@ -149,9 +150,17 @@ parseArguments args = do
         Just "fully"  -> return $ Single $ c { outputMode = Fully }
         Just x        -> argsError ("Unknown mode: " ++ x)
         Nothing       -> argsError "\"-m\": No mode given"
+      "-q"                       -> case next of
+        Just "none" -> return $ Single $ c { quoteMode = NoQuotes }
+        Just "double"  -> return $ Single $ c { quoteMode = DoubleQuotes }
+        Just x        -> argsError ("Unknown quote mode: " ++ x)
+        Nothing       -> argsError "\"-q\": No quote mode given"
       "--mode"                   -> case next of
         Nothing -> argsError "\"--mode\": no mode given"
         _       -> parseArgument c "-m" next
+      "--quote"                   -> case next of
+        Nothing -> argsError "\"--quote\": no quote mode given"
+        _       -> parseArgument c "-q" next
       "-pf"                      -> case next of
         Just x  -> return $ Single $ c { partFile = Just x }
         Nothing -> argsError "\"-pf\": No partition file"

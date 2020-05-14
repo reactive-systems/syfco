@@ -483,14 +483,14 @@ staticBinding
 staticBinding x = do
   st <- get
 
-  VSet bs <- evalSet $ idBindings $ tLookup st ! x
-
-  case S.toList bs of
-    []  -> return ()
-    v:_ ->
-      put $ st {
-        tValues = IM.insert x v $ tValues st
-        }
+  evalSet (idBindings $ tLookup st ! x) >>= \case
+    VSet bs -> case S.toList bs of
+      []  -> return ()
+      v:_ ->
+        put $ st {
+          tValues = IM.insert x v $ tValues st
+          }
+    _       -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -503,11 +503,12 @@ componentSignal s = do
     SDSingle (i,_) -> case idType $ tLookup st ! i of
       TSignal io  -> return (i,VSignal io $ idName (tLookup st ! i), Nothing)
       _           -> assert False undefined
-    SDBus (i,_) e  -> do
-      VNumber n <- evalNum e
-      case idType $ tLookup st ! i of
-        TBus io  -> return (i,VBus io n $ idName (tLookup st ! i), Nothing)
-        _        -> assert False undefined
+    SDBus (i,_) e  ->
+      evalNum e >>= \case
+        VNumber n -> case idType $ tLookup st ! i of
+          TBus io  -> return (i,VBus io n $ idName (tLookup st ! i), Nothing)
+          _        -> assert False undefined
+        _         -> assert False undefined
     SDEnum (i,_) _ ->
       case idType $ tLookup st ! i of
         TTypedBus io _ t -> case find ((== t) . eName) $ enums st of
@@ -632,15 +633,13 @@ evalLtl e = case expr e of
   LtlTriggered x y     -> liftM2Ltl Triggered x y
   BlnImpl x y          -> liftM2Ltl Implies x y
   BlnEquiv x y         -> liftM2Ltl Equiv x y
-  BlnEQ x y            -> do
-    b <- evalEquality (==) "==" x y $ srcPos e
-    case b of
+  BlnEQ x y            ->
+    evalEquality (==) "==" x y (srcPos e) >>= \case
       Left v -> return v
       Right True -> return $ VLtl TTrue
       Right False -> return $ VLtl FFalse
-  BlnNEQ x y           -> do
-    b <- evalEquality (/=) "!=" x y $ srcPos e
-    case b of
+  BlnNEQ x y           ->
+    evalEquality (/=) "!=" x y (srcPos e) >>= \case
       Left v -> return v
       Right True -> return $ VLtl TTrue
       Right False -> return $ VLtl FFalse
@@ -648,112 +647,120 @@ evalLtl e = case expr e of
   BlnGEQ x y           -> liftM2Num (>=) x y
   BlnLE x y            -> liftM2Num (<) x y
   BlnLEQ x y           -> liftM2Num (<=) x y
-  BaseId _             -> do
-    x <- evalExpr e
-    case x of
+  BaseId _             ->
+    evalExpr e >>= \case
       VLtl y             -> return $ VLtl y
       VSignal STInput y  -> return $ VLtl $ Atomic $ Input y
       VSignal STOutput y -> return $ VLtl $ Atomic $ Output y
       _                  -> assert False undefined
-  BaseFml _ _          -> do
-    x <- evalExpr e
-    case x of
+  BaseFml _ _          ->
+    evalExpr e >>= \case
       VLtl y             -> return $ VLtl y
       VSignal STInput y  -> return $ VLtl $ Atomic $ Input y
       VSignal STOutput y -> return $ VLtl $ Atomic $ Output y
       _                  -> assert False undefined
-  LtlRNext x y         -> do
-    VNumber n <- evalNum x
-    VLtl v <- evalLtl y
-    return $ VLtl $ iter Next n v
-  LtlRPrevious x y     -> do
-    VNumber n <- evalNum x
-    VLtl v <- evalLtl y
-    return $ VLtl $ iter Previous n v
+  LtlRNext x y         ->
+    evalNum x >>= \case
+      VNumber n -> evalLtl y >>= \case
+        VLtl v -> return $ VLtl $ iter Next n v
+        _      -> assert False undefined
+      _         -> assert False undefined
+  LtlRPrevious x y     ->
+    evalNum x >>= \case
+      VNumber n -> evalLtl y >>= \case
+        VLtl v -> return $ VLtl $ iter Previous n v
+        _      -> assert False undefined
+      _         -> assert False undefined
   LtlRGlobally x y     -> do
     (i,j) <- evalRange x
-    if i > j then
-      return $ VLtl TTrue
-    else do
-      VLtl v <- evalLtl y
-      return $ VLtl $ iter Next i $
-        iter (\a -> And [v, Next a]) (j - i) v
+    if i > j
+    then return $ VLtl TTrue
+    else evalLtl y >>= \case
+      VLtl v -> return $ VLtl $ iter Next i $
+                 iter (\a -> And [v, Next a]) (j - i) v
+      _      -> assert False undefined
   LtlRFinally x y      -> do
     (i,j) <- evalRange x
-    if i > j then
-      return $ VLtl TTrue
-    else do
-      VLtl v <- evalLtl y
-      return $ VLtl $ iter Next i $
-        iter (\a -> Or [v, Next a]) (j - i) v
+    if i > j
+    then return $ VLtl TTrue
+    else evalLtl y >>= \case
+      VLtl v -> return $ VLtl $ iter Next i $
+                 iter (\a -> Or [v, Next a]) (j - i) v
+      _      -> assert False undefined
   LtlRHistorically x y -> do
     (i,j) <- evalRange x
-    if i > j then
-      return $ VLtl TTrue
-    else do
-      VLtl v <- evalLtl y
-      return $ VLtl $ iter Previous i $
-        iter (\a -> And [v, Previous a]) (j - i) v
+    if i > j
+    then return $ VLtl TTrue
+    else evalLtl y >>= \case
+      VLtl v -> return $ VLtl $ iter Previous i $
+                 iter (\a -> And [v, Previous a]) (j - i) v
+      _      -> assert False undefined
   LtlROnce x y         -> do
     (i,j) <- evalRange x
-    if i > j then
-      return $ VLtl TTrue
-    else do
-      VLtl v <- evalLtl y
-      return $ VLtl $ iter Previous i $
-        iter (\a -> Or [v, Previous a]) (j - i) v
+    if i > j
+    then return $ VLtl TTrue
+    else evalLtl y >>= \case
+      VLtl v -> return $ VLtl $ iter Previous i $
+                 iter (\a -> Or [v, Previous a]) (j - i) v
+      _      -> assert False undefined
   BlnElem x y          -> do
     a <- evalExpr x
-    VSet b <- evalExpr y
-    return $ VLtl $ if S.member a b then
-      TTrue
-    else
-      FFalse
-  BlnOr x y            -> do
-    VLtl a <- evalLtl x
-    VLtl b <- evalLtl y
-    return $ VLtl $ Or [a,b]
-  BlnAnd x y           -> do
-    VLtl a <- evalLtl x
-    VLtl b <- evalLtl y
-    return $ VLtl $ And [a,b]
+    evalExpr y >>= \case
+      VSet b -> return $ VLtl $ if S.member a b then TTrue else FFalse
+      _      -> assert False undefined
+  BlnOr x y            ->
+    evalLtl x >>= \case
+      VLtl a -> evalLtl y >>= \case
+        VLtl b -> return $ VLtl $ Or [a,b]
+        _      -> assert False undefined
+      _      -> assert False undefined
+  BlnAnd x y           ->
+    evalLtl x >>= \case
+      VLtl a -> evalLtl y >>= \case
+        VLtl b -> return $ VLtl $ And [a,b]
+        _      -> assert False undefined
+      _      -> assert False undefined
   BlnRAnd xs x         ->
     let f = VLtl . And . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
   BlnROr xs x          ->
     let f = VLtl . Or . map (\(VLtl v) -> v)
     in evalConditional evalLtl f xs x
-  BaseBus x y          -> do
-    VBus io l s <- idValue y
-    VNumber b <- evalNum x
+  BaseBus x y          ->
+    idValue y >>= \case
+      VBus io l s -> evalNum x >>= \case
+        VNumber b -> do
+          when (b < 0 || b >= l) $
+            errBounds s l b $ srcPos e
 
-    when (b < 0 || b >= l) $
-      errBounds s l b $ srcPos e
-
-    st <- get
-    return $ VLtl $ Atomic $ case io of
-      STInput   -> Input $ s ++ delimiter st ++ show b
-      STOutput  -> Output $ s ++  delimiter st ++ show b
-      STGeneric -> assert False undefined
+          st <- get
+          return $ VLtl $ Atomic $ case io of
+            STInput   -> Input $ s ++ delimiter st ++ show b
+            STOutput  -> Output $ s ++  delimiter st ++ show b
+            STGeneric -> assert False undefined
+        _         -> assert False undefined
+      _           -> assert False undefined
   _                    -> assert False undefined
 
   where
-    liftMLtl f m = do
-      VLtl x <- evalLtl m
-      return $ VLtl $ f x
+    liftMLtl f m =
+      evalLtl m >>= \case
+        VLtl x -> return $ VLtl $ f x
+        _      -> assert False undefined
 
-    liftM2Ltl f m n = do
-      VLtl x <- evalLtl m
-      VLtl y <- evalLtl n
-      return $ VLtl $ f x y
+    liftM2Ltl f m n =
+      evalLtl m >>= \case
+        VLtl x -> evalLtl n >>= \case
+          VLtl y -> return $ VLtl $ f x y
+          _      -> assert False undefined
+        _      -> assert False undefined
 
-    liftM2Num f m n = do
-      VNumber x <- evalNum m
-      VNumber y <- evalNum n
-      return $ VLtl $ if f x y then
-        TTrue
-      else
-        FFalse
+    liftM2Num f m n =
+      evalNum m >>= \case
+        VNumber x -> evalNum n >>= \case
+          VNumber y -> return $ VLtl $ if f x y then TTrue else FFalse
+          _         -> assert False undefined
+        _         -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -764,7 +771,7 @@ idValue i = do
   st <- get
   case IM.lookup i $ tValues st of
     Just x  -> return x
-    Nothing -> error (show i) -- assert False undefined
+    Nothing -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -778,45 +785,53 @@ evalNum e = case expr e of
   NumMul x y    -> liftM2Num (*) x y
   NumDiv x y    -> liftM2Num div x y
   NumMod x y    -> liftM2Num mod x y
-  NumSMin x     -> do
-    VSet y <- evalExpr x
-    let xs = map (\(VNumber v) -> v) $ S.elems y
-    if null xs then
-      errMinSet $ srcPos e
-    else
-      return $ VNumber $ foldl min (head xs) xs
+  NumSMin x     ->
+    evalExpr x >>= \case
+      VSet y ->
+        let xs = map (\(VNumber v) -> v) $ S.elems y in
+        if null xs
+        then errMinSet $ srcPos e
+        else return $ VNumber $ foldl min (head xs) xs
+      _      -> assert False undefined
   NumSMax x     -> do
-    VSet y <- evalExpr x
-    let xs = map (\(VNumber v) -> v) $ S.elems y
-    if null xs then
-      errMaxSet $ srcPos e
-    else
-      return $ VNumber $ foldl max (head xs) xs
-  NumSSize x    -> do
-    VSet y <- evalExpr x
-    return $ VNumber $ S.size y
-  NumSizeOf x   -> do
-    VBus _ i _ <- evalExpr x
-    return $ VNumber i
+    evalExpr x >>= \case
+      VSet y ->
+        let xs = map (\(VNumber v) -> v) $ S.elems y in
+        if null xs
+        then errMaxSet $ srcPos e
+        else return $ VNumber $ foldl max (head xs) xs
+      _      -> assert False undefined
+  NumSSize x    ->
+    evalExpr x >>= \case
+      VSet y -> return $ VNumber $ S.size y
+      _      -> assert False undefined
+  NumSizeOf x   ->
+    evalExpr x >>= \case
+      VBus _ i _ -> return $ VNumber i
+      _          -> assert False undefined
   NumRPlus xs x ->
     let f = VNumber . sum . map (\(VNumber v) -> v)
     in evalConditional evalNum f xs x
   NumRMul xs x  ->
     let f = VNumber . product . map (\(VNumber v) -> v)
     in evalConditional evalNum f xs x
-  BaseId _      -> do
-    VNumber x <- evalExpr e
-    return $ VNumber x
-  BaseFml _ _   -> do
-    VNumber x <- evalExpr e
-    return $ VNumber x
+  BaseId _      ->
+    evalExpr e >>= \case
+      VNumber x -> return $ VNumber x
+      _         -> assert False undefined
+  BaseFml _ _   ->
+    evalExpr e >>= \case
+      VNumber x -> return $ VNumber x
+      _         -> assert False undefined
   _             -> assert False undefined
 
   where
-    liftM2Num f m n = do
-      VNumber x <- evalNum m
-      VNumber y <- evalNum n
-      return $ VNumber $ f x y
+    liftM2Num f m n =
+      evalNum m >>= \case
+        VNumber x -> evalNum n >>= \case
+          VNumber y -> return $ VNumber $ f x y
+          _         -> assert False undefined
+        _         -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -853,20 +868,24 @@ evalBool e = case expr e of
   BlnLEQ x y    -> liftM2Num (<=) x y
   BlnElem x y   -> do
     a <- evalExpr x
-    VSet b <- evalExpr y
-    return $ S.member a b
+    evalExpr y >>= \case
+      VSet b -> return $ S.member a b
+      _      -> assert False undefined
   BlnRAnd xs x  -> evalConditional evalBool and xs x
   BlnROr xs x   -> evalConditional evalBool or xs x
-  Pattern x y   -> do
-    VLtl a <- evalLtl x
-    checkPattern a y
+  Pattern x y   ->
+    evalLtl x >>= \case
+      VLtl a -> checkPattern a y
+      _      -> assert False undefined
   _             -> assert False undefined
 
   where
-    liftM2Num f m n = do
-      VNumber x <- evalNum m
-      VNumber y <- evalNum n
-      return $ f x y
+    liftM2Num f m n =
+      evalNum m >>= \case
+        VNumber x -> evalNum n >>= \case
+          VNumber y -> return $ f x y
+          _         -> assert False undefined
+        _         -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -921,9 +940,14 @@ evalSet e = case expr e of
   SetExplicit xs -> do
     ys <- mapM evalExpr xs
     return $ VSet $ S.fromList ys
-  SetRange x y z -> do
-    [VNumber a,VNumber b,VNumber c] <- mapM evalNum [x,y,z]
-    return $ VSet $ S.fromList $ map VNumber [a,b..c]
+  SetRange x y z ->
+    evalNum x >>= \case
+      VNumber a -> evalNum y >>= \case
+        VNumber b -> evalNum z >>= \case
+          VNumber c -> return $ VSet $ S.fromList $ map VNumber [a,b..c]
+          _         -> assert False undefined
+        _         -> assert False undefined
+      _         -> assert False undefined
   SetCup x y     -> liftM2Set S.union x y
   SetCap x y     -> liftM2Set S.intersection x y
   SetMinus x y   -> liftM2Set S.difference x y
@@ -939,19 +963,23 @@ evalSet e = case expr e of
         f = VSet . g . map (\(VSet v) -> v)
       in
         evalConditional evalSet f xs x
-  BaseId _       -> do
-    VSet x <- evalExpr e
-    return $ VSet x
+  BaseId _       ->
+    evalExpr e >>= \case
+      VSet x -> return $ VSet x
+      _      -> assert False undefined
   BaseFml _ _    -> do
-    VSet x <- evalExpr e
-    return $ VSet x
+    evalExpr e >>= \case
+      VSet x -> return $ VSet x
+      _      -> assert False undefined
   _ -> assert False undefined
 
   where
-    liftM2Set f x y = do
-      VSet a <- evalSet x
-      VSet b <- evalSet y
-      return $ VSet $ f a b
+    liftM2Set f x y =
+      evalSet x >>= \case
+        VSet a -> evalSet y >>= \case
+          VSet b -> return $ VSet $ f a b
+          _      -> assert False undefined
+        _      -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -987,9 +1015,12 @@ evalConditional fun f xs x =
           _ -> assert False undefined
         _ -> assert False undefined
       s = idBindings $ tLookup st ! i
-    VSet vs <- evalSet s
-    rs <- mapM (bindExec i (tail xs) x) $ S.toList vs
-    return $ f rs
+
+    evalSet s >>= \case
+      VSet vs ->
+        mapM (bindExec i (tail xs) x) (S.toList vs)
+        >>= (return . f)
+      _       -> assert False undefined
 
   where
     bindExec i xr e v = do
@@ -1007,11 +1038,13 @@ evalRange
   :: Expr Int -> StateT ST (Either Error) (Int,Int)
 
 evalRange e = case expr e of
-  Colon x y -> do
-    VNumber a <- evalNum x
-    VNumber b <- evalNum y
-    return (a,b)
-  _ -> assert False undefined
+  Colon x y ->
+    evalNum x >>= \case
+      VNumber a -> evalNum y >>= \case
+        VNumber b -> return (a,b)
+        _         -> assert False undefined
+      _         -> assert False undefined
+  _         -> assert False undefined
 
 -----------------------------------------------------------------------------
 
@@ -1122,13 +1155,16 @@ fmlValue args p i = do
   put st {
     tValues = foldl (\m (v,j) -> IM.insert j v m) (tValues st) xs
     }
-  VSet a <- evalSet $ idBindings $ tLookup st ! i
-  put st
-  let ys = filter (/= VEmpty) $ S.toList a
-  if null ys then
-    errNoMatch (idName $ tLookup st ! i) (map (prVal . fst) xs) p
-  else
-    return $ head ys
+
+  evalSet (idBindings $ tLookup st ! i) >>= \case
+    VSet a -> do
+      put st
+      let ys = filter (/= VEmpty) $ S.toList a
+      if null ys then
+        errNoMatch (idName $ tLookup st ! i) (map (prVal . fst) xs) p
+      else
+        return $ head ys
+    _      -> assert False undefined
 
 -----------------------------------------------------------------------------
 

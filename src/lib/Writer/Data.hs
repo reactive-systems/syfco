@@ -21,6 +21,7 @@
 
 module Writer.Data
   ( WriteMode(..)
+  , QuoteMode(..)
   , OperatorConfig(..)
   , UnaryOperator(..)
   , BinaryOperator(..)
@@ -49,6 +50,17 @@ data WriteMode =
 
 -----------------------------------------------------------------------------
 
+-- | There are two quoting modes currently supported:
+
+data QuoteMode =
+    NoQuotes
+    -- ^ do not quote identifiers
+  | DoubleQuotes
+    -- ^ quote identifiers using "
+  deriving (Eq, Ord)
+
+-----------------------------------------------------------------------------
+
 instance Convertible WriteMode String where
   safeConvert = return . \case
     Pretty -> "pretty"
@@ -65,6 +77,26 @@ instance Convertible String WriteMode where
       , convSourceType = "String"
       , convDestType = "WriteMode"
       , convErrorMessage = "Unknown mode"
+      }
+
+-----------------------------------------------------------------------------
+
+instance Convertible QuoteMode String where
+  safeConvert = return . \case
+    NoQuotes -> "none"
+    DoubleQuotes  -> "double"
+
+-----------------------------------------------------------------------------
+
+instance Convertible String QuoteMode where
+  safeConvert = \case
+    "none" -> return NoQuotes
+    "double"  -> return DoubleQuotes
+    str      -> Left ConvertError
+      { convSourceValue = str
+      , convSourceType = "String"
+      , convDestType = "QuoteMode"
+      , convErrorMessage = "Unknown quote mode"
       }
 
 -----------------------------------------------------------------------------

@@ -63,7 +63,7 @@ writeFormat c s = do
   fml0 <- merge es ss rs as is gs
   fml1 <- simplify (adjust c opConfig) $ adjustAtomic fml0
 
-  printFormula opConfig (outputMode c) fml1
+  printFormula opConfig (outputMode c) (quoteMode c) fml1
 
   where
     adjustAtomic fml = case fml of
