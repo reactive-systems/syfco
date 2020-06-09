@@ -184,7 +184,7 @@ simplify c f =
         | otherwise                        -> Next $ simplify' $ And xs
       Next (Or xs)
         | hn                               -> simplify' $ Or $ map Next xs
-        | otherwise                        -> Next $ simplify' $ And xs
+        | otherwise                        -> Next $ simplify' $ Or xs
       Globally (Next x)
         | ss || ln || hg                     -> simplify' $ Next $ Globally x
         | ng || nd                          -> simplify' $ Release FFalse $ Next x
