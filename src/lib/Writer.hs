@@ -72,6 +72,7 @@ import qualified Writer.Formats.Basic as Basic
 import qualified Writer.Formats.Full as Full
 import qualified Writer.Formats.Psl as Psl
 import qualified Writer.Formats.Smv as Smv
+import qualified Writer.Formats.SmvDecomp as SmvDecomp
 import qualified Writer.Formats.Bosy as Bosy
 import qualified Writer.Formats.Rabinizer as Rabinizer
 
@@ -104,6 +105,7 @@ apply c@Configuration{..} s = do
     SLUGSIN     -> SlugsIn.writeFormat c s
     PSL         -> Psl.writeFormat c s
     SMV         -> Smv.writeFormat c s
+    SMVDECOMP   -> SmvDecomp.writeFormat c s
     BOSY        -> Bosy.writeFormat c s
     RABINIZER   -> Rabinizer.writeFormat c s
 

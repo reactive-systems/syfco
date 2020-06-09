@@ -513,6 +513,8 @@ usage m =
          ["PSL Syntax"])
       , (convert SMV, False,
          ["SMV file format"])
+      , (convert SMVDECOMP, False,
+         ["SMV file format with decomposed formula"])
       , (convert BOSY, False,
          ["Bosy input format"])
       , (convert RABINIZER, False,
