@@ -1,5 +1,5 @@
 name:                syfco
-version:             1.2.0.4
+version:             1.2.1.1
 synopsis:            Synthesis Format Conversion Tool / Library
 description:         Library and tool for reading, manipulating and transforming synthesis specifications.
 license:             OtherLicense

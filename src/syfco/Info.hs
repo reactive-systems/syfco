@@ -499,6 +499,8 @@ usage m =
          ["Acacia input format with spec units"])
       , (convert LTLXBA, False,
          ["LTL2BA / LTL3BA input format"])
+      , (convert LTLXBADECOMP, False,
+         ["LTL2BA / LTL3BA input format (decomposed)"])
       , (convert LTL, False,
          ["pure LTL formula"])
       , (convert PROMELA, False,
@@ -514,7 +516,7 @@ usage m =
       , (convert SMV, False,
          ["SMV file format"])
       , (convert SMVDECOMP, False,
-         ["SMV file format with decomposed formula"])
+         ["SMV file format (decomposed)"])
       , (convert BOSY, False,
          ["Bosy input format"])
       , (convert RABINIZER, False,
