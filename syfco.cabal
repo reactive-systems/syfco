@@ -64,6 +64,7 @@ library
     Writer.Formats.Smv
     Writer.Formats.SlugsIn
     Writer.Formats.Ltlxba
+    Writer.Formats.LtlxbaDecomp
     Writer.Formats.Ltl
     Writer.Formats.Full
     Writer.Formats.Unbeast
