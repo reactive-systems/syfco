@@ -39,6 +39,14 @@ import Data.Expression
   , Expr
   )
 
+import Data.Char
+  ( toLower
+  )
+
+import Control.Arrow
+  ( (>>>)
+  )
+
 -----------------------------------------------------------------------------
 
 -- | Target types.
@@ -60,7 +68,7 @@ instance Convertible Target String where
 -----------------------------------------------------------------------------
 
 instance Convertible String Target where
-  safeConvert = \case
+  safeConvert = map toLower >>> \case
     "mealy" -> return TargetMealy
     "moore" -> return TargetMoore
     str     -> Left ConvertError
@@ -97,7 +105,7 @@ instance Convertible Semantics String where
 -----------------------------------------------------------------------------
 
 instance Convertible String Semantics where
-  safeConvert = \case
+  safeConvert = map toLower >>> \case
     "mealy"        -> return SemanticsMealy
     "moore"        -> return SemanticsMoore
     "mealy,strict" -> return SemanticsStrictMealy
