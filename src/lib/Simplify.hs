@@ -356,7 +356,7 @@ simplify c f =
         | nw || nd                          -> simplify' $ Or [Until x y, Globally x]
         | otherwise                        -> Weak (simplify' x) $ simplify' y
       Equiv x y
-        | nnf                              -> simplify' $ Or [ And [ x, y ], And [ Not x, Not y ] ]
+        | nnf                              -> simplify' $ And [ Or [ Not x, y ], Or [ x, Not y ] ]
         | otherwise                        -> Equiv (simplify' x) (simplify' y)
       Implies x y
         | nnf                              -> simplify' $ Or [ Not x, y ]
