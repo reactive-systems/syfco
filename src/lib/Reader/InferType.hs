@@ -528,7 +528,8 @@ typeChIdF e t = case expr e of
   BaseBus x b  -> typeCheckBus t x b $ srcPos e
   Colon x y    -> typeCheck x TBoolean >> typeCheck y t
   _            -> do
-    inferFromExpr e >>= \case
+    ~x <- inferFromExpr e 
+    case x of 
       TSet t' -> errExpect t t' $ srcPos e
       _       -> assert False undefined
 
