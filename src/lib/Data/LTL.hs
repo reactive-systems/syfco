@@ -86,6 +86,7 @@ data Formula =
   | And [Formula]
   | Or [Formula]
   | Next Formula
+  | StrongNext Formula
   | Previous Formula
   | Globally Formula
   | Finally Formula
@@ -105,6 +106,7 @@ instance Ord Formula where
     (Atomic a, Atomic b)             -> compare a b
     (Not a, Not b)                   -> compare a b
     (Next a, Next b)                 -> compare a b
+    (StrongNext a, StrongNext b)     -> compare a b
     (Previous a, Previous b)         -> compare a b
     (Globally a, Globally b)         -> compare a b
     (Finally a, Finally b)           -> compare a b
@@ -149,6 +151,7 @@ instance Ord Formula where
         And {}          -> 6
         Or {}           -> 7
         Next {}         -> 8
+        StrongNext {}   -> 8
         Previous {}     -> 8
         Globally {}     -> 9
         Finally {}      -> 10
@@ -176,6 +179,7 @@ applySub
 applySub f fml = case fml of
   Not x          -> Not $ f x
   Next x         -> Next $ f x
+  StrongNext x   -> StrongNext $ f x
   Previous x     -> Previous $ f x
   Globally x     -> Globally $ f x
   Finally x      -> Finally $ f x
@@ -257,6 +261,7 @@ subFormulas fml = case fml of
   Atomic _       -> []
   Not x          -> [x]
   Next x         -> [x]
+  StrongNext x   -> [x]
   Previous x     -> [x]
   Globally x     -> [x]
   Finally x      -> [x]
@@ -297,18 +302,19 @@ isBooleanNextFormula
   :: Formula -> Bool
 
 isBooleanNextFormula fml = case fml of
-  TTrue     -> True
-  FFalse    -> True
-  Atomic {} -> True
-  Not x     -> isBooleanNextFormula x
-  And xs    -> all isBooleanNextFormula xs
-  Or xs     -> all isBooleanNextFormula xs
-  Next x    -> isBooleanFormula x
-  _         -> False
+  TTrue        -> True
+  FFalse       -> True
+  Atomic {}    -> True
+  Not x        -> isBooleanNextFormula x
+  And xs       -> all isBooleanNextFormula xs
+  Or xs        -> all isBooleanNextFormula xs
+  Next x       -> isBooleanFormula x
+  StrongNext x -> isBooleanFormula x
+  _            -> False
 
 -----------------------------------------------------------------------------
 
--- | Smart 'And' constructur.
+-- | Smart 'And' constructor.
 
 fAnd
   :: [Formula] -> Formula
@@ -327,7 +333,7 @@ fAnd xs =
 
 -----------------------------------------------------------------------------
 
--- | Smart 'Or' constructur.
+-- | Smart 'Or' constructor.
 
 fOr
   :: [Formula] -> Formula
@@ -346,7 +352,7 @@ fOr xs =
 
 -----------------------------------------------------------------------------
 
--- | Smart 'Not' constructur.
+-- | Smart 'Not' constructor.
 
 fNot
   :: Formula -> Formula
@@ -356,7 +362,8 @@ fNot fml = case fml of
   FFalse          -> TTrue
   Atomic x        -> Not $ Atomic x
   Not x           -> x
-  Next x          -> Next $ fNot x
+  Next x          -> StrongNext $ fNot x
+  StrongNext x    -> Next $ fNot x
   Previous x      -> Previous $ fNot x
   Globally x      -> Finally $ fNot x
   Finally x       -> Globally $ fNot x
@@ -376,7 +383,7 @@ fNot fml = case fml of
 
 -----------------------------------------------------------------------------
 
--- | Smart 'Globally' constructur.
+-- | Smart 'Globally' constructor.
 
 fGlobally
   :: Formula -> Formula
@@ -389,7 +396,7 @@ fGlobally fml = case fml of
 
 -----------------------------------------------------------------------------
 
--- | Smart 'Globally' constructur.
+-- | Smart 'Globally' constructor.
 
 fFinally
   :: Formula -> Formula
@@ -402,7 +409,7 @@ fFinally fml = case fml of
 
 -----------------------------------------------------------------------------
 
--- | Smart 'Historically' constructur.
+-- | Smart 'Historically' constructor.
 
 fHistorically
   :: Formula -> Formula
@@ -415,7 +422,7 @@ fHistorically fml = case fml of
 
 -----------------------------------------------------------------------------
 
--- | Smart 'Once' constructur.
+-- | Smart 'Once' constructor.
 
 fOnce
   :: Formula -> Formula
@@ -439,6 +446,7 @@ simplePrint fml = case fml of
   Atomic x        -> show x
   Not x           -> '!' : simplePrint x
   Next x          -> 'X' : ' ' : simplePrint x
+  StrongNext x    -> "X[!] " ++ simplePrint x
   Previous x      -> 'Y' : ' ' : simplePrint x
   Globally x      -> 'G' : ' ' : simplePrint x
   Finally x       -> 'F' : ' ' : simplePrint x
@@ -472,6 +480,7 @@ pastFormula = \case
   Atomic _        -> False
   Not x           -> pastFormula x
   Next x          -> pastFormula x
+  StrongNext x    -> pastFormula x
   Previous {}     -> True
   Globally x      -> pastFormula x
   Finally x       -> pastFormula x

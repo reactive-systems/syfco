@@ -42,7 +42,7 @@ data Expr a =
 
 -- | An expression is either a basic term or the composition of multiple
 -- sub-expressions using an operator. To obtain a stepwise refinement of the
--- parsed data, an expression does not need to be type consistent ia the
+-- parsed data, an expression does not need to be type consistent in the
 -- first place, e.g., techniqually we could add to boolean expressions.
 -- Such behaviour is ruled out later during the type analysis.
 
@@ -91,6 +91,8 @@ data Expr' a =
   | BlnImpl (Expr a) (Expr a)
   | BlnEquiv (Expr a) (Expr a)
   | LtlNext (Expr a)
+  | LtlStrongNext (Expr a)
+  | LtlRStrongNext (Expr a) (Expr a)
   | LtlRNext (Expr a) (Expr a)
   | LtlPrevious (Expr a)
   | LtlRPrevious (Expr a) (Expr a)
@@ -158,6 +160,7 @@ subExpressions e = case expr e of
   NumSizeOf x          -> [x]
   BlnNot x             -> [x]
   LtlNext x            -> [x]
+  LtlStrongNext x      -> [x]
   LtlPrevious x        -> [x]
   LtlGlobally x        -> [x]
   LtlFinally x         -> [x]
@@ -183,6 +186,7 @@ subExpressions e = case expr e of
   BlnImpl x y          -> [x,y]
   BlnEquiv x y         -> [x,y]
   LtlRNext x y         -> [x,y]
+  LtlRStrongNext x y   -> [x,y]
   LtlRPrevious x y     -> [x,y]
   LtlRGlobally x y     -> [x,y]
   LtlRFinally x y      -> [x,y]
@@ -228,6 +232,7 @@ applySub f e =
       NumSizeOf x          -> NumSizeOf $ f x
       BlnNot x             -> BlnNot $ f x
       LtlNext x            -> LtlNext $ f x
+      LtlStrongNext x      -> LtlStrongNext $ f x
       LtlPrevious x        -> LtlPrevious $ f x
       LtlGlobally x        -> LtlGlobally $ f x
       LtlFinally x         -> LtlFinally  $ f x
@@ -254,6 +259,7 @@ applySub f e =
       BlnImpl x y          -> BlnImpl (f x) (f y)
       BlnEquiv x y         -> BlnEquiv (f x) (f y)
       LtlRNext x y         -> LtlRNext (f x) (f y)
+      LtlRStrongNext       -> LtlRStrongNext (f x) (f y)
       LtlRPrevious x y     -> LtlRPrevious (f x) (f y)
       LtlRGlobally x y     -> LtlRGlobally (f x) (f y)
       LtlRFinally x y      -> LtlRFinally (f x) (f y)
@@ -305,6 +311,7 @@ prExpr e = case expr e of
   NumSizeOf x          -> "(SIZEOF " ++ prExpr x ++ ")"
   BlnNot x             -> "(NOT " ++ prExpr x ++ ")"
   LtlNext x            -> "(X " ++ prExpr x ++ ")"
+  LtlStrongNext x      -> "(X[!] " ++ prExpr x ++ ")"
   LtlPrevious x        -> "(Y " ++ prExpr x ++ ")"
   LtlGlobally x        -> "(G " ++ prExpr x ++ ")"
   LtlFinally x         -> "(F " ++ prExpr x ++ ")"
@@ -330,6 +337,7 @@ prExpr e = case expr e of
   BlnImpl x y          -> "(IMPL " ++ prExpr x ++ " " ++ prExpr y ++ ")"
   BlnEquiv x y         -> "(EQIV " ++ prExpr x ++ " " ++ prExpr y ++ ")"
   LtlRNext x y         -> "(X[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
+  LtlRStrongNext x y   -> "(X[!" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
   LtlRPrevious x y     -> "(Y[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
   LtlRGlobally x y     -> "(G[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
   LtlRFinally x y      -> "(F[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
@@ -379,6 +387,7 @@ prPrettyExpr e = case expr e of
   NumSizeOf x          -> "(SIZEOF " ++ prExpr x ++ ")"
   BlnNot x             -> "(NOT " ++ prExpr x ++ ")"
   LtlNext x            -> "(X " ++ prExpr x ++ ")"
+  LtlStrongNext x      -> "(X[!] " ++ prExpr x ++ ")"
   LtlPrevious x        -> "(Y " ++ prExpr x ++ ")"
   LtlGlobally x        -> "(G " ++ prExpr x ++ ")"
   LtlFinally x         -> "(F " ++ prExpr x ++ ")"
@@ -408,6 +417,7 @@ prPrettyExpr e = case expr e of
   BlnImpl x y          -> "(IMPL " ++ prExpr x ++ " " ++ prExpr y ++ ")"
   BlnEquiv x y         -> "(EQIV " ++ prExpr x ++ " " ++ prExpr y ++ ")"
   LtlRNext x y         -> "(X[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
+  LtlRStrongNext x y   -> "(X[!" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
   LtlRPrevious x y     -> "(Y[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
   LtlRGlobally x y     -> "(G[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
   LtlRFinally x y      -> "(F[" ++ prExpr x ++ "] " ++ prExpr y ++ ")"
