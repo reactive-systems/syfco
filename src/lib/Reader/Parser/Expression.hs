@@ -167,7 +167,7 @@ exprParser = (~~) >> buildExpressionParser table term
            "+","-","*","/","%","PLUS","MINUS","MUL","DIV","MOD",
            "SIZE","MIN","MAX","(-)","(\\)","(+)","(*)","SETMINUS",
            "CAP","CUP",":","~","W","U","R","X","Y","G","F","H","O",
-           "S","T","X[","Y[","G[","F[","H[","O[","AND[","OR[",
+           "S","T","X[!","X[","Y[","G[","F[","H[","O[","AND[","OR[",
            "SUM","PROD","IN","SIZEOF"]
       , reservedNames =
           ["NOT","AND","OR","IMPLIES","EQUIV","true","false","F",
@@ -208,11 +208,14 @@ exprParser = (~~) >> buildExpressionParser table term
           unOp' '!' BlnNot
       <|> unOp3 'N' 'O' 'T' BlnNot
       <|> unOp1 'X' LtlNext
+      <|> unOp4 'X' '[' '!' ']' LtlStrongNext
       <|> unOp1 'Y' LtlPrevious
       <|> unOp1 'G' LtlGlobally
       <|> unOp1 'F' LtlFinally
       <|> unOp1 'H' LtlHistorically
       <|> unOp1 'O' LtlOnce
+      <|> parSNextL exprParser LtlRStrongNext
+      <|> parSNextR exprParser LtlRStrongNext
       <|> parOp "X" exprParser LtlRNext
       <|> parOp "Y" exprParser LtlRPrevious
       <|> parOp "G" exprParser LtlRGlobally
@@ -323,9 +326,25 @@ exprParser = (~~) >> buildExpressionParser table term
       lookahead
       return c
 
+    unOp4 c1 c2 c3 c4 c = try $ do
+      ch2 c1 c2
+      ch2 c3 c4
+      lookahead
+      return c
+
     parOp x p c = do
       reservedOp tokenparser (x ++ "[")
       e <- p; ch ']'; (~~)
+      return (c e)
+
+    parSNextL p c = do
+      reservedOp tokenparser "X[!"
+      e <- p; ch ']'l (~~)
+      return (c e)
+
+    parSNextR p c = do
+      reservedOp tokenparser "X["
+      e <- p; ch2 '!' ']'; (~~)
       return (c e)
 
     between' c1 c2 p = do
