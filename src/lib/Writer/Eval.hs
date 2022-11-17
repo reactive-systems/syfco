@@ -291,45 +291,53 @@ eval c s = do
              (SemanticsStrictMealy, SemanticsStrictMealy),
              (SemanticsStrictMoore, SemanticsStrictMoore),
              (SemanticsStrictMealy, SemanticsMealy),
-             (SemanticsStrictMoore, SemanticsMoore)] -> e
+             (SemanticsStrictMoore, SemanticsMoore),
+             (SemanticsFiniteMoore, SemanticsFiniteMoore),
+             (SemanticsFiniteMealy, SemanticsFiniteMealy),
+             (SemanticsFiniteMoore, SemanticsMoore),
+             (SemanticsFiniteMealy, SemanticsMealy)] -> e
         | (semantics sp, m) `elem`
             [(SemanticsMealy, SemanticsMoore),
              (SemanticsStrictMealy, SemanticsMoore),
-             (SemanticsStrictMealy, SemanticsStrictMoore)] ->
+             (SemanticsStrictMealy, SemanticsStrictMoore),
+             (SemanticsFiniteMealy, SemanticsMoore),
+             (SemanticsFiniteMealy, SemanticsFiniteMealy)] ->
               if ig then unGuardInputs sp e else guardOutputs sp e
         | (semantics sp, m) `elem`
             [(SemanticsMoore, SemanticsMealy),
              (SemanticsStrictMoore, SemanticsMealy),
-             (SemanticsStrictMoore, SemanticsStrictMealy)] ->
+             (SemanticsStrictMoore, SemanticsStrictMealy),
+             (SemanticsFiniteMoore, SemanticsMealy),
+             (SemanticsFiniteMoore, SemanticsFiniteMealy)] ->
               if og then unGuardOutputs sp e else guardInputs sp e
         | otherwise ->
              error "Conversion from non-strict -> strict semantics not possible"
 
     outputsGuarded e = case e of
-      Next (Atomic (Output _)) -> True
-      Atomic (Output _) -> False
-      _ -> all outputsGuarded $ subFormulas e
+      StrongNext (Atomic (Output _)) -> True
+      Atomic (Output _)              -> False
+      _                              -> all outputsGuarded $ subFormulas e
 
     inputsGuarded e = case e of
-      Next (Atomic (Input _)) -> True
-      Atomic (Input _) -> False
-      _ -> all inputsGuarded $ subFormulas e
+      StrongNext (Atomic (Input _)) -> True
+      Atomic (Input _)              -> False
+      _                             -> all inputsGuarded $ subFormulas e
 
     guardOutputs sp e = case e of
-      Atomic (Output x) -> Next $ Atomic $ Output x
-      _        -> applySub (guardOutputs sp) e
+      Atomic (Output x) -> StrongNext $ Atomic $ Output x
+      _                 -> applySub (guardOutputs sp) e
 
     guardInputs sp e = case  e of
-      Atomic (Input x) -> Next $ Atomic $ Input x
-      _        -> applySub (guardInputs sp) e
+      Atomic (Input x) -> StrongNext $ Atomic $ Input x
+      _                -> applySub (guardInputs sp) e
 
     unGuardOutputs sp e  = case e of
-      Next (Atomic (Output x)) -> Atomic $ Output x
-      _                        -> applySub (unGuardOutputs sp) e
+      StrongNext (Atomic (Output x)) -> Atomic $ Output x
+      _                              -> applySub (unGuardOutputs sp) e
 
     unGuardInputs sp e  = case e of
-      Next (Atomic (Input x)) -> Atomic $ Input x
-      _                       -> applySub (unGuardInputs sp) e
+      StrongNext (Atomic (Input x)) -> Atomic $ Input x
+      _                             -> applySub (unGuardInputs sp) e
 
     splitConjuncts (es,ss,rs,xs,ys,zs) =
       ( concatMap splitC es,
@@ -583,7 +591,9 @@ evalExpr e = case expr e of
   BlnElem {}          -> evalLtl e
   BlnEquiv {}         -> evalLtl e
   LtlNext {}          -> evalLtl e
+  LtlStrongNext {}    -> evalLtl e
   LtlRNext {}         -> evalLtl e
+  LtlRStrongNext {}   -> evalLtl e
   LtlPrevious {}      -> evalLtl e
   LtlRPrevious {}     -> evalLtl e
   LtlGlobally {}      -> evalLtl e
@@ -621,6 +631,7 @@ evalLtl e = case expr e of
   BaseFalse            -> return $ VLtl FFalse
   BlnNot x             -> liftMLtl Not x
   LtlNext x            -> liftMLtl Next x
+  LtlStrongNext x      -> liftMLtl StrongNext x
   LtlPrevious x        -> liftMLtl Previous x
   LtlGlobally x        -> liftMLtl Globally x
   LtlFinally x         -> liftMLtl Finally x
@@ -665,6 +676,12 @@ evalLtl e = case expr e of
         VLtl v -> return $ VLtl $ iter Next n v
         _      -> assert False undefined
       _         -> assert False undefined
+  LtlRStrongNext x y    ->
+    evalNum x >>= \case
+      VNumber n -> evalLtl y >>= \case
+        VLtl v -> return $ VLtl $ iter StrongNext n v
+        _      -> assert False undefined
+      _         -> assert False undefined
   LtlRPrevious x y     ->
     evalNum x >>= \case
       VNumber n -> evalLtl y >>= \case
@@ -676,16 +693,16 @@ evalLtl e = case expr e of
     if i > j
     then return $ VLtl TTrue
     else evalLtl y >>= \case
-      VLtl v -> return $ VLtl $ iter Next i $
-                 iter (\a -> And [v, Next a]) (j - i) v
+      VLtl v -> return $ VLtl $ iter StrongNext i $
+                 iter (\a -> And [v, StrongNext a]) (j - i) v
       _      -> assert False undefined
   LtlRFinally x y      -> do
     (i,j) <- evalRange x
     if i > j
     then return $ VLtl TTrue
     else evalLtl y >>= \case
-      VLtl v -> return $ VLtl $ iter Next i $
-                 iter (\a -> Or [v, Next a]) (j - i) v
+      VLtl v -> return $ VLtl $ iter StrongNext i $
+                 iter (\a -> Or [v, StrongNext a]) (j - i) v
       _      -> assert False undefined
   LtlRHistorically x y -> do
     (i,j) <- evalRange x
@@ -898,6 +915,7 @@ checkPattern f e = case (f,expr e) of
   (FFalse, BaseFalse)                 -> return True
   (Not x, BlnNot y)                   -> checkPattern x y
   (Next x, LtlNext y)                 -> checkPattern x y
+  (StrongNext x, LtlStrongNext y)     -> checkPattern x y
   (Previous x, LtlPrevious y)         -> checkPattern x y
   (Globally x, LtlGlobally y)         -> checkPattern x y
   (Finally x, LtlFinally y)           -> checkPattern x y
@@ -1213,6 +1231,7 @@ asciiLTL fml = case fml of
   Implies x y             -> prOr' x ++ " " ++ pimplies ++ " " ++ prOr' y
   Equiv x y               -> prOr' x ++ " " ++ pequiv ++ " " ++ prOr' y
   Next x                  -> pnext ++ prUO' x
+  StrongNext x            -> pstrongnext ++ prUO' x
   Previous x              -> pprevious ++ prUO' x
   Globally x              -> pglobally ++ prUO' x
   Finally x               -> pfinally ++ prUO' x
@@ -1263,6 +1282,7 @@ asciiLTL fml = case fml of
     pimplies = "->"
     pequiv = "<->"
     pnext = "X"
+    pstrongnext = "X[!]"
     pprevious = "Y"
     pglobally = "F"
     pfinally = "G"
