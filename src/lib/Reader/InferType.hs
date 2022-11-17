@@ -456,7 +456,9 @@ typeCheck e = \case
     BlnROr xs x          -> typeChckO xs x TLtl
     BlnRAnd xs x         -> typeChckO xs x TLtl
     LtlNext x            -> typeCheck x TLtl
+    LtlStrongNext x      -> typeCheck x TLtl
     LtlRNext x y         -> typeChckR x y
+    LtlRStrongNext x y   -> typeChckR x y
     LtlPrevious x        -> typeCheck x TLtl
     LtlRPrevious x y     -> typeChckR x y
     LtlGlobally x        -> typeCheck x TLtl
@@ -493,7 +495,9 @@ typeCheck e = \case
     BlnROr xs x          -> typeChckO xs x TPattern
     BlnRAnd xs x         -> typeChckO xs x TPattern
     LtlNext x            -> typeCheck x TPattern
+    LtlStrongNext x      -> typeCheck x TPattern
     LtlRNext x y         -> typeChckU x y
+    LtlRStrongNext x y   -> typeChckU x y
     LtlPrevious x        -> typeCheck x TPattern
     LtlRPrevious x y     -> typeChckU x y
     LtlGlobally x        -> typeCheck x TPattern
@@ -894,7 +898,9 @@ inferFromExpr e = case expr e of
   BlnEquiv {}         -> inferFromBoolExpr e
   BaseBus {}          -> return TLtl
   LtlNext {}          -> return TLtl
+  LtlStrongNext {}    -> return TLtl
   LtlRNext {}         -> return TLtl
+  LtlRStrongNext {}   -> return TLtl
   LtlPrevious {}      -> return TLtl
   LtlRPrevious {}     -> return TLtl
   LtlGlobally {}      -> return TLtl

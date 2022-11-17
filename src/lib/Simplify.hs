@@ -84,9 +84,9 @@ simplify c f =
       Next TTrue
         | sw || ss                          -> TTrue
         | otherwise                        -> Next TTrue
-      Next FFalse
+      StrongNext FFalse
         | sw || ss                          -> FFalse
-        | otherwise                        -> Next FFalse
+        | otherwise                        -> StrongNext FFalse
       Globally (Globally x)
         | sw || ss || hg || lg || ng || nd      -> simplify' $ Globally x
         | otherwise                        -> Globally $ simplify' $ Globally x
@@ -126,8 +126,11 @@ simplify c f =
       Not (Not x)
         | sw || ss || nnf                    -> simplify' x
         | otherwise                        -> Not $ Not $ simplify' x
+      Not (StrongNext x)
+        | ss || ln || nnf                  -> Next $ simplify' $ Not x
+        | otherwise                        -> Not $ simplify' $ StrongNext x
       Not (Next x)
-        | ss || ln || nnf                    -> Next $ simplify' $ Not x
+        | ss || ln || nnf                  -> StrongNext $ simplify' $ Not x
         | otherwise                        -> Not $ simplify' $ Next x
       Not (Previous x)                     -> Not $ simplify' $ Previous x
       Not (Globally x)
@@ -365,6 +368,7 @@ simplify c f =
       Since x y                            -> Since (simplify' x) (simplify' y)
       Triggered x y                        -> Triggered (simplify' x) (simplify' y)
       Next x                               -> Next (simplify' x)
+      StrongNext x                         -> StrongNext (simplify' x)
       Previous x                           -> Previous (simplify' x)
       Not (Atomic x)                       -> Not (Atomic x)
       Atomic x                             -> Atomic x

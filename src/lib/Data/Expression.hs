@@ -259,7 +259,7 @@ applySub f e =
       BlnImpl x y          -> BlnImpl (f x) (f y)
       BlnEquiv x y         -> BlnEquiv (f x) (f y)
       LtlRNext x y         -> LtlRNext (f x) (f y)
-      LtlRStrongNext       -> LtlRStrongNext (f x) (f y)
+      LtlRStrongNext x y   -> LtlRStrongNext (f x) (f y)
       LtlRPrevious x y     -> LtlRPrevious (f x) (f y)
       LtlRGlobally x y     -> LtlRGlobally (f x) (f y)
       LtlRFinally x y      -> LtlRFinally (f x) (f y)
