@@ -44,6 +44,7 @@ opConfig = OperatorConfig
   , opImplies      = BinaryOpUnsupported
   , opEquiv        = BinaryOpUnsupported
   , opNext         = UnaryOp  "X"           1
+  , opStrongNext   = UnaryOp  "X"           1
   , opPrevious     = UnaryOpUnsupported
   , opFinally      = UnaryOp  "F"           2
   , opGlobally     = UnaryOp  "G"           3

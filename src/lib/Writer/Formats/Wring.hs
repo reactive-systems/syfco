@@ -39,6 +39,7 @@ opConfig = OperatorConfig
   , opImplies      = BinaryOp "->"  2 AssocLeft
   , opEquiv        = BinaryOp "<->" 2 AssocLeft
   , opNext         = UnaryOp  "X"   1
+  , opStrongNext   = UnaryOp  "X"   1
   , opPrevious     = UnaryOpUnsupported
   , opFinally      = UnaryOp  "F"   1
   , opGlobally     = UnaryOp  "G"   1

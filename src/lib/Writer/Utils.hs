@@ -293,7 +293,7 @@ printFormula opc writeMode quoteMode formula = do
     opimplies = opImplies opc
     opequiv = opEquiv opc
     opnext = opNext opc
-    opstrongnext opStrongNext opc
+    opstrongnext = opStrongNext opc
     opprevious = opPrevious opc
     opfinally = opFinally opc
     opglobally = opGlobally opc

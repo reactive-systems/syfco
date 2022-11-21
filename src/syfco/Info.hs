@@ -112,6 +112,8 @@ prSemantics s =
     SemanticsMoore -> "Moore"
     SemanticsStrictMealy -> "Strict,Mealy"
     SemanticsStrictMoore -> "Strict,Moore"
+    SemanticsFiniteMealy -> "Finite,Mealy"
+    SemanticsFiniteMoore -> "Finite,Moore"
 
 -----------------------------------------------------------------------------
 

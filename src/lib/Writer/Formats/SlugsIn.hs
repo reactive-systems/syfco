@@ -80,6 +80,7 @@ writeFormat c s =
       FFalse                -> " 0 "
       Atomic x              -> " " ++ show x ++ " "
       Not x                 -> "! " ++ prFormula x
+      StrongNext x          -> prFormula $ Next $ x
       Next x                -> prFormula' x
       And []                -> prFormula TTrue
       And [x]               -> prFormula x
@@ -105,6 +106,7 @@ writeFormat c s =
               FFalse                -> " 0 "
               Atomic x              -> " " ++ show x ++ "' "
               Not x                 -> "! " ++ prFormula' x
+              StrongNext {}         -> assert False undefined
               Next {}               -> assert False undefined
               And []                -> prFormula' TTrue
               And [x]               -> prFormula' x

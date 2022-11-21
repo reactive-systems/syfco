@@ -165,6 +165,7 @@ data OperatorConfig =
   , opImplies :: BinaryOperator
   , opEquiv :: BinaryOperator
   , opNext :: UnaryOperator
+  , opStrongNext :: UnaryOperator
   , opPrevious :: UnaryOperator
   , opFinally :: UnaryOperator
   , opGlobally :: UnaryOperator

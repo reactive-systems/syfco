@@ -59,19 +59,20 @@ opConfig
   :: OperatorConfig
 
 opConfig = OperatorConfig
-  { tTrue      = "<fancy true symbol>"
-  , fFalse     = "<fancy false symbol>"
-  , opNot      = UnaryOp  "<fancy not symbol>"         1
-  , opAnd      = BinaryOp "<fancy and symbol>"         6 AssocLeft
-  , opOr       = BinaryOp "<fancy or symbol>"          7 AssocLeft
-  , opImplies  = BinaryOp "<fancy implication symbol>" 8 AssocRight
-  , opEquiv    = BinaryOp "<fancy equivalence symbol>" 8 AssocLeft
-  , opNext     = UnaryOp  "<fancy next symbol>"        2
-  , opFinally  = UnaryOp  "<fancy finally symbol>"     3
-  , opGlobally = UnaryOp  "<fancy globally symbol>"    4
-  , opUntil    = BinaryOp "<fancy until symbol>"       5 AssocRight
-  , opRelease  = BinaryOp "<fancy release symbol>"     9 AssocLeft
-  , opWeak     = BinaryOpUnsupported
+  { tTrue        = "<fancy true symbol>"
+  , fFalse       = "<fancy false symbol>"
+  , opNot        = UnaryOp  "<fancy not symbol>"         1
+  , opAnd        = BinaryOp "<fancy and symbol>"         6 AssocLeft
+  , opOr         = BinaryOp "<fancy or symbol>"          7 AssocLeft
+  , opImplies    = BinaryOp "<fancy implication symbol>" 8 AssocRight
+  , opEquiv      = BinaryOp "<fancy equivalence symbol>" 8 AssocLeft
+  , opNext       = UnaryOp  "<fancy next symbol>"        2
+  , opStrongNext = UnaryOp  "<fancy next symbol>"        2
+  , opFinally    = UnaryOp  "<fancy finally symbol>"     3
+  , opGlobally   = UnaryOp  "<fancy globally symbol>"    4
+  , opUntil      = BinaryOp "<fancy until symbol>"       5 AssocRight
+  , opRelease    = BinaryOp "<fancy release symbol>"     9 AssocLeft
+  , opWeak       = BinaryOpUnsupported
   }
 
 -----------------------------------------------------------------------------
