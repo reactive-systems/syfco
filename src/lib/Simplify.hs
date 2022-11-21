@@ -175,10 +175,14 @@ simplify c f =
       Not (Triggered x y)
         | ss || nnf                         -> simplify' $ Since (Not x) $ Not y
         | otherwise                        -> Not $ Triggered (simplify' x) $ simplify' y
+      Finally (StrongNext x)
+        | ss || ln || hf                     -> simplify' $ StrongNext $ Finally x
+        | nf || nd                          -> simplify' $ Until TTrue $ StrongNext x
+        | otherwise                        -> Finally $ simplify' $ StrongNext x
       Finally (Next x)
         | ss || ln || hf                     -> simplify' $ Next $ Finally x
         | nf || nd                          -> simplify' $ Until TTrue $ Next x
-        | otherwise                        -> Finally $ simplify' $ Next x
+        | otherwise                        -> Finally $ simplify' $ StrongNext x
       Next (Finally x)
         | (hn && not hf) || (lf && not ln && not ss) -> simplify' $ Finally $ Next x
         | otherwise                        -> Next $ simplify' $ Finally x

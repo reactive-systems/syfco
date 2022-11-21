@@ -126,7 +126,6 @@ writeFormat c s = do
       FFalse      -> "<False></False>\n"
       Atomic x    -> "<Var>" ++ show x ++ "</Var>\n"
       Not x       -> "<Not>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</Not>\n"
-      StrongNext x-> printFormula' n $ Next x
       Next x      -> "<X>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</X>\n"
       Globally x  -> "<G>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</G>\n"
       Finally x   -> "<F>\n" ++ printFormula n x ++ replicate (n - 2) ' ' ++ "</F>\n"

@@ -120,7 +120,7 @@ printFormula opc writeMode quoteMode formula = do
         | unsupported opequiv        -> errUnsupportedOp "Boolean operator: \"equivalence\""
         | otherwise                  -> checkSupported x >> checkSupported y
       StrongNext x
-        | unsupported opnext         -> errUnsupportedOp "temporal operator: \"next\""
+        | unsupported opstrongnext   -> errUnsupportedOp "temporal operator: \"strong next\""
         | otherwise                  -> checkSupported x
       Next x
         | unsupported opnext         -> errUnsupportedOp "temporal operator: \"next\""

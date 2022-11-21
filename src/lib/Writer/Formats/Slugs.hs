@@ -91,7 +91,6 @@ writeFormat c s =
       FFalse                -> "FALSE"
       Atomic x              -> show x
       Not x                 -> "!" ++ prFormula' x
-      StrongNext x          -> prFormula $ Next $ x
       Next (Atomic x)       -> show x ++ "'"
       Next (Not (Atomic x)) -> "!(" ++ show x ++ "')"
       Next (And xs)         -> prFormula $ And $ map Next xs
@@ -115,7 +114,6 @@ writeFormat c s =
           FFalse                -> prFormula f
           Atomic _              -> prFormula f
           Not _                 -> prFormula f
-          StrongNext x          -> prFormula' $ Next $ x
           Next (Atomic _)       -> prFormula f
           Next (Not (Atomic _)) -> prFormula f
           _                     -> "(" ++ prFormula f ++ ")"
