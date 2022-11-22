@@ -53,6 +53,7 @@ library
         Writer.Formats.SmvDecomp
         Writer.Formats.SlugsIn
         Writer.Formats.Ltlxba
+        Writer.Formats.LtlxbaF
         Writer.Formats.LtlxbaDecomp
         Writer.Formats.Ltl
         Writer.Formats.Full
