@@ -501,6 +501,8 @@ usage m =
          ["Acacia input format with spec units"])
       , (convert LTLXBA, False,
          ["LTL2BA / LTL3BA input format"])
+      , (convert LTLXBAFIN, False,
+         ["LTL2BA / LTL3BA input format (finite words)"])
       , (convert LTLXBADECOMP, False,
          ["LTL2BA / LTL3BA input format (decomposed)"])
       , (convert LTL, False,
