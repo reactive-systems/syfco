@@ -167,7 +167,7 @@ exprParser = (~~) >> buildExpressionParser table term
            "+","-","*","/","%","PLUS","MINUS","MUL","DIV","MOD",
            "SIZE","MIN","MAX","(-)","(\\)","(+)","(*)","SETMINUS",
            "CAP","CUP",":","~","W","U","R","X","Y","G","F","H","O",
-           "S","T","X[!","X[","Y[","G[","F[","H[","O[","AND[","OR[",
+           "S","T","X[","Y[","G[","F[","H[","O[","AND[","OR[",
            "SUM","PROD","IN","SIZEOF"]
       , reservedNames =
           ["NOT","AND","OR","IMPLIES","EQUIV","true","false","F",
@@ -214,9 +214,9 @@ exprParser = (~~) >> buildExpressionParser table term
       <|> unOp1 'F' LtlFinally
       <|> unOp1 'H' LtlHistorically
       <|> unOp1 'O' LtlOnce
+      <|> parOp "X" exprParser LtlRNext
       <|> parSNextL exprParser LtlRStrongNext
       <|> parSNextR exprParser LtlRStrongNext
-      <|> parOp "X" exprParser LtlRNext
       <|> parOp "Y" exprParser LtlRPrevious
       <|> parOp "G" exprParser LtlRGlobally
       <|> parOp "F" exprParser LtlRFinally

@@ -105,6 +105,7 @@ syfco [OPTIONS]... <file>
     * acacia                     : Acacia / Acacia+ input format
     * acacia-specs               : Acacia input format with spec units
     * ltlxba                     : LTL2BA / LTL3BA input format
+    * ltlxba-fin                 : LTL2BA / LTL3BA input format (finite words)
     * ltlxba-decomp              : LTL2BA / LTL3BA input format (decomposed)
     * ltl                        : pure LTL formula
     * promela                    : Promela LTL
