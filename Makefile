@@ -18,5 +18,8 @@ clean:
 	${BLDTOOL} clean
 	@rm -fR ${NAME}
 
+testfin:
+	@if [ "$(./syfco test/amba_finite.tlsf --format ltlxba-fin)" = "$(cat test/amba_finite.res)" ]; then echo "Finite semantics work as expected"; else echo "Something went wrong"; fi
+
 .PHONY: clean
 .SILENT:

@@ -42,6 +42,8 @@ opConfig = OperatorConfig
   , opImplies      = BinaryOp "->"  4 AssocRight
   , opEquiv        = BinaryOp "<->" 4 AssocRight
   , opNext         = UnaryOp  "X"   1
+  , opStrongNext   = UnaryOpUnsupported
+  , opWeakNext     = UnaryOpUnsupported
   , opPrevious     = UnaryOp  "Y"   1
   , opFinally      = UnaryOp  "F"   1
   , opGlobally     = UnaryOp  "G"   1
@@ -94,7 +96,9 @@ writeFormat c s = do
          SemanticsMealy       -> "Mealy"
          SemanticsMoore       -> "Moore"
          SemanticsStrictMealy -> "Strict,Mealy"
-         SemanticsStrictMoore -> "Strict,Moore")
+         SemanticsStrictMoore -> "Strict,Moore"
+         SemanticsFiniteMealy -> "Finite,Mealy"
+         SemanticsFiniteMoore -> "Finite,Moore")
     ++ "\n" ++ "  TARGET:      " ++
       (case target s' of
          TargetMealy -> "Mealy"

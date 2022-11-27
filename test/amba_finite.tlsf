@@ -1,0 +1,56 @@
+INFO {
+  TITLE:       "Amba AHB - Decomposed - TINCR"
+  DESCRIPTION: "TINCR component of the decomposed Amba AHB Arbiter"
+  SEMANTICS:   Finite,Mealy
+  TARGET:      Mealy
+}
+
+MAIN {
+  INPUTS {
+    INCR;
+    HREADY;
+    LOCKED;
+    DECIDE;
+    BUSREQ;
+  } 
+
+  OUTPUTS {
+    READY1;
+  }
+
+  ASSUMPTIONS {
+    // initially no decision is taken
+    !DECIDE;
+
+    // slaves and masters cannot block the bus
+    G F HREADY;
+    !F G BUSREQ;
+
+    // decisions are only taken if the component is ready
+    G (! READY1 -> X !DECIDE);
+  }
+
+  INVARIANTS {
+    // if there is a decision and the it is a incremental, locked
+    // transmission, then the bus is locked as long as requested
+    DECIDE ->
+      X[2] (((INCR && LOCKED) -> (!READY1 W (HREADY && !BUSREQ))) &&
+            (!(INCR && LOCKED) -> READY1));
+    
+    // the component stays ready as long as there is no decision
+    READY1 && X[!] !DECIDE -> X READY1;
+
+    // if there is a decision the component blocks the bus for at
+    // least two time steps
+    READY1 && X DECIDE -> G[1:2] ! READY1;
+  }
+
+  GUARANTEES {
+    // initially, the component is ready
+    READY1;
+  }
+}
+//#!SYNTCOMP
+//STATUS : realizable
+//REF_SIZE : 14
+//#.

@@ -50,6 +50,8 @@ data WriteFormat =
     -- ^ <https://www.react.uni-saarland.de/tools/unbeast>
   | LTLXBA
     -- ^ LTL2BA / LTL3BA input format
+  | LTLXBAFIN
+    -- ^ LTL2BA / LTL3BA input format for finite words
   | LTLXBADECOMP
     -- ^ LTL2BA / LTL3BA input format decomposed into a conjunction
   | LTL
@@ -88,6 +90,7 @@ instance Show WriteFormat where
     PROMELA     -> "Promela LTL"
     UNBEAST     -> "Unbeast"
     LTLXBA      -> "LtlXba"
+    LTLXBAFIN   -> "LtlXbaFin"
     LTLXBADECOMP-> "LtlXbaDecomp"
     LTL         -> "pure LTL"
     LILY        -> "Lily"
@@ -112,6 +115,7 @@ instance Convertible WriteFormat String where
     PROMELA     -> "promela"
     UNBEAST     -> "unbeast"
     LTLXBA      -> "ltlxba"
+    LTLXBAFIN   -> "ltlxba-fin"
     LTLXBADECOMP-> "ltlxba-decomp"
     LTL         -> "ltl"
     LILY        -> "lily"
@@ -136,6 +140,7 @@ instance Convertible String WriteFormat where
     "promela"      -> return PROMELA
     "unbeast"      -> return UNBEAST
     "ltlxba"       -> return LTLXBA
+    "ltlxba-fin"   -> return LTLXBAFIN
     "ltlxba-decomp"-> return LTLXBADECOMP
     "ltl"          -> return LTL
     "lily"         -> return LILY
@@ -165,6 +170,6 @@ needsLower
   :: WriteFormat -> Bool
 
 needsLower s =
-  s `elem` [LTLXBA, LTLXBADECOMP, PROMELA, ACACIA, ACACIASPECS, LILY, BOSY]
+  s `elem` [LTLXBA, LTLXBAFIN, LTLXBADECOMP, PROMELA, ACACIA, ACACIASPECS, LILY, BOSY]
 
 -----------------------------------------------------------------------------

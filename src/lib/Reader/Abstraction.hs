@@ -327,6 +327,7 @@ abstractExpr e = case expr e of
   NumSSize x           -> lift' NumSSize x
   NumSizeOf x          -> lift' NumSizeOf x
   LtlNext x            -> lift' LtlNext x
+  LtlStrongNext x      -> lift' LtlStrongNext x
   LtlPrevious x        -> lift' LtlPrevious x
   LtlGlobally x        -> lift' LtlGlobally x
   LtlFinally x         -> lift' LtlFinally x
@@ -352,6 +353,7 @@ abstractExpr e = case expr e of
   BlnImpl x y          -> lift2' BlnImpl x y
   BlnEquiv x y         -> lift2' BlnEquiv x y
   LtlRNext x y         -> lift2' LtlRNext x y
+  LtlRStrongNext x y   -> lift2' LtlRStrongNext x y
   LtlRPrevious x y     -> lift2' LtlRPrevious x y
   LtlRGlobally x y     -> lift2' LtlRGlobally x y
   LtlRFinally x y      -> lift2' LtlRFinally x y
@@ -446,7 +448,9 @@ abstractExpr e = case expr e of
       BlnImpl x y          -> mapM_ getPatternIds [x,y]
       BlnEquiv x y         -> mapM_ getPatternIds [x,y]
       LtlNext x            -> getPatternIds x
+      LtlStrongNext x      -> getPatternIds x
       LtlRNext _ x         -> getPatternIds x
+      LtlRStrongNext _ x   -> getPatternIds x
       LtlPrevious x        -> getPatternIds x
       LtlRPrevious _ x     -> getPatternIds x
       LtlGlobally x        -> getPatternIds x

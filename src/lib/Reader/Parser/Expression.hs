@@ -208,12 +208,15 @@ exprParser = (~~) >> buildExpressionParser table term
           unOp' '!' BlnNot
       <|> unOp3 'N' 'O' 'T' BlnNot
       <|> unOp1 'X' LtlNext
+      <|> unOp4 'X' '[' '!' ']' LtlStrongNext
       <|> unOp1 'Y' LtlPrevious
       <|> unOp1 'G' LtlGlobally
       <|> unOp1 'F' LtlFinally
       <|> unOp1 'H' LtlHistorically
       <|> unOp1 'O' LtlOnce
       <|> parOp "X" exprParser LtlRNext
+      <|> parSNextL exprParser LtlRStrongNext
+      <|> parSNextR exprParser LtlRStrongNext
       <|> parOp "Y" exprParser LtlRPrevious
       <|> parOp "G" exprParser LtlRGlobally
       <|> parOp "F" exprParser LtlRFinally
@@ -326,6 +329,16 @@ exprParser = (~~) >> buildExpressionParser table term
     parOp x p c = do
       reservedOp tokenparser (x ++ "[")
       e <- p; ch ']'; (~~)
+      return (c e)
+
+    parSNextL p c = do
+      reservedOp tokenparser "X[!"
+      e <- p; ch ']'; (~~)
+      return (c e)
+
+    parSNextR p c = do
+      reservedOp tokenparser "X["
+      e <- p; ch2 '!' ']'; (~~)
       return (c e)
 
     between' c1 c2 p = do
