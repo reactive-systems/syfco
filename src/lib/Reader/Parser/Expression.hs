@@ -330,7 +330,7 @@ exprParser = (~~) >> buildExpressionParser table term
       lookahead
       return c
 
-    parOp x p c = do
+    parOp x p c = try $ do
       reservedOp tokenparser (x ++ "[")
       e <- p; ch ']'; (~~)
       return (c e)
@@ -342,9 +342,7 @@ exprParser = (~~) >> buildExpressionParser table term
 
     parSOpR x p c = try $ do
       reservedOp tokenparser (x ++ "[")
-      ch2 '!' ']'
-      lookahead
-      e <- p; (~~)
+      e <- p; ch2 '!' ']'; (~~)
       return (c e)
 
     between' c1 c2 p = do
