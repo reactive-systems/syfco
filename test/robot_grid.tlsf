@@ -1,0 +1,147 @@
+INFO
+{
+  TITLE:       "Robot serving requests on a grid"
+  DESCRIPTION: "
+                Robot on a grid:
+                a target is always located in exactly one cell,
+                and the robot has to reach it.
+                (This spec is quite similar to lift.tlsf,
+                 but here we force the environment to keep the robot's position.)
+               "
+  SEMANTICS:   Mealy
+  TARGET:      Mealy
+}
+
+GLOBAL
+{
+  PARAMETERS
+  {
+    // xN x yN grid (coordinates: 0..xN-1); the values 1 are possible but boring
+    xN = 2;  // ≥1
+    yN = 2;  // ≥1
+  }
+
+  DEFINITIONS
+  {
+    // copied from other specs:
+    mutual_exclusion(bus) = mone(bus,0,(SIZEOF bus) - 1);
+    none(bus,i,j) = &&[i <= t <= j] !bus[t];
+    mone(bus,i,j) =
+    i > j : false
+    i == j : true
+    i < j :
+      (none(bus, i, m(i,j)) && mone(bus, m(i,j) + 1, j)) ||
+      (mone(bus, i, m(i,j)) && none(bus, m(i,j) + 1, j));
+    m(i,j) = (i + j) / 2;
+    value(bus,v) = value'(bus,v,0,SIZEOF bus);
+    value'(bus,v,i,j) =
+      i >= j        : true
+      bit(v,i) == 1 : value'(bus,v,i + 1,j) &&  bus[i]
+      otherwise     : value'(bus,v,i + 1,j) && !bus[i];
+    bit(v,i) =
+      i <= 0     : v % 2
+      otherwise  : bit(v / 2,i - 1);
+    log2_dn(x) =
+      x <= 1    : 0
+      otherwise : 1 + log2_dn(x/2);
+    nbits(x) =
+      x == 0    : 0
+      otherwise : 1 + log2_dn(x-1);
+    eq(a,b) =
+      &&[0 <= i < SIZEOF a]
+        (a[i] <-> b[i]);
+    every_req_is_granted(r,g) = G((r) -> F (g));
+
+    // CAREFUL: not prefixed with `always`!
+    // curr -- current value of the counter
+    // cMax -- max value (excluding) of the counter
+    // minus, plus -- minus and plus operations
+    counter_update_rules(curr, cMax, minus, plus) =
+      (value(curr,cMax-1) && plus -> X(value(curr,cMax-1))) &&
+      (value(curr,0) && minus -> X(value(curr,0))) &&
+      &&[0 <= c < cMax-1]
+        (value(curr,c) && plus -> X(value(curr,c+1))) &&
+      &&[0 < c < cMax]
+        (value(curr,c) && minus -> X(value(curr,c-1))) &&
+      &&[0 <= c < cMax]
+        (value(curr,c) && !minus && !plus -> X(value(curr,c)));
+
+    /* The following will be used to write a GR1-like spec.
+       NOTE: we have to pass busses by argument since currently
+       syfco supports only non-buss inputs/outputs in definitions.
+    */
+
+    i_env(rx,ry,tx,ty) =
+      // initially the robot is placed within the grid bounds
+      ||[0<= x < xN] value(rx,x) &&
+      ||[0<= y < yN] value(ry,y);
+
+    i_sys(rx,ry,tx,ty) = true;
+
+    s_env(rx,ry,tx,ty) =
+      // Environment updates coordinates of the robot using left/right/up/down
+      counter_update_rules(rx, xN, left, right) &&
+      counter_update_rules(ry, yN, down, up) &&
+      // once appears, target does not move until served:
+      &&[0 <= x < xN]
+        &&[0 <= y < yN]
+          G (value(tx,x) && value(ty,y) && !(value(rx,x) && value(ry,y) && serve)
+             ->
+             X(value(tx,x) && value(ty,y))
+          );
+
+    s_sys(rx,ry,tx,ty) =
+      // mutual exclusion of move commands:
+        !(right && left) && !(up && down) &&
+      // don't bang the walls:
+        (value(rx,0) -> !left) && (value(rx,xN-1) -> !right) &&
+        (value(ry,0) -> !down) && (value(ry,yN-1) -> !up) &&
+      // no spurious serve signals
+        (serve -> eq(rx,tx) && eq(ry,ty));
+
+    l_env(rx,ry,tx,ty) = true;
+
+    l_sys(rx,ry,tx,ty) =
+      &&[0 <= x < xN]
+        &&[0 <= y < yN]
+          every_req_is_granted(value(tx,x) && value(ty,y),
+                               value(rx,x) && value(ry,y) && serve);
+  }
+}
+
+MAIN
+{
+  INPUTS
+  {
+    rx [nbits(xN)];  // robot's x coordinate
+    ry [nbits(yN)];  // robot's y coordinate
+
+    tx [nbits(xN)];  // target's x coordinate
+    ty [nbits(yN)];  // target's y corrdinate
+  }
+
+  OUTPUTS
+  {
+    up; down; left; right;  // robot movement commands; the env has to update location
+    serve;
+  }
+
+  GUARANTEES
+  {
+    i_env(rx,ry,tx,ty)
+    ->
+    (
+      i_sys(rx,ry,tx,ty) &&
+      (s_sys(rx,ry,tx,ty)  W  s_sys(rx,ry,tx,ty) && !s_env(rx,ry,tx,ty)) &&
+      ((G s_env(rx,ry,tx,ty)) && l_env(rx,ry,tx,ty) -> l_sys(rx,ry,tx,ty))
+    );
+
+    // Note: we do need to use
+    //   s_sys W (s_sys && !s_env)
+    // instead of
+    //   s_sys W !s_env
+    // because in the latter case the system can cheat by forcing the env
+    // to violate the assumptions by asking to incr/decr a counter at the same time.
+  }
+}
+

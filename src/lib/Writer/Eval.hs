@@ -556,66 +556,68 @@ evalExpr
   :: Semantics -> Evaluator (Expr Int)
 
 evalExpr s e = case expr e of
-  BaseWild            -> evalF e
-  BaseCon {}          -> evalN e
-  NumSMin {}          -> evalN e
-  NumSMax {}          -> evalN e
-  NumSSize {}         -> evalN e
-  NumSizeOf {}        -> evalN e
-  NumPlus {}          -> evalN e
-  NumMinus {}         -> evalN e
-  NumMul {}           -> evalN e
-  NumDiv {}           -> evalN e
-  NumMod {}           -> evalN e
-  NumRPlus {}         -> evalN e
-  NumRMul {}          -> evalN e
-  BaseTrue            -> evalF e
-  BaseFalse           -> evalF e
-  BaseBus {}          -> evalF e
-  BlnEQ {}            -> evalF e
-  BlnNEQ {}           -> evalF e
-  BlnGE {}            -> evalF e
-  BlnGEQ {}           -> evalF e
-  BlnLE {}            -> evalF e
-  BlnLEQ {}           -> evalF e
-  BlnNot {}           -> evalF e
-  BlnOr {}            -> evalF e
-  BlnROr {}           -> evalF e
-  BlnAnd {}           -> evalF e
-  BlnRAnd {}          -> evalF e
-  BlnImpl {}          -> evalF e
-  BlnElem {}          -> evalF e
-  BlnEquiv {}         -> evalF e
-  LtlNext {}          -> evalF e
-  LtlStrongNext {}    -> evalF e
-  LtlRNext {}         -> evalF e
-  LtlRStrongNext {}   -> evalF e
-  LtlPrevious {}      -> evalF e
-  LtlRPrevious {}     -> evalF e
-  LtlGlobally {}      -> evalF e
-  LtlRGlobally {}     -> evalF e
-  LtlFinally {}       -> evalF e
-  LtlRFinally {}      -> evalF e
-  LtlHistorically {}  -> evalF e
-  LtlRHistorically {} -> evalF e
-  LtlOnce {}          -> evalF e
-  LtlROnce {}         -> evalF e
-  LtlUntil {}         -> evalF e
-  LtlWeak {}          -> evalF e
-  LtlRelease {}       -> evalF e
-  LtlSince {}         -> evalF e
-  LtlTriggered{}      -> evalF e
-  SetExplicit {}      -> evalS e
-  SetRange {}         -> evalS e
-  SetCup {}           -> evalS e
-  SetRCup {}          -> evalS e
-  SetCap {}           -> evalS e
-  SetRCap {}          -> evalS e
-  SetMinus {}         -> evalS e
-  BaseId x            -> idValue x
-  BaseFml xs x        -> fmlValue s xs (srcPos e) x
-  Colon {}            -> evalColon s e
-  _                   -> assert False undefined
+  BaseWild              -> evalF e
+  BaseCon {}            -> evalN e
+  NumSMin {}            -> evalN e
+  NumSMax {}            -> evalN e
+  NumSSize {}           -> evalN e
+  NumSizeOf {}          -> evalN e
+  NumPlus {}            -> evalN e
+  NumMinus {}           -> evalN e
+  NumMul {}             -> evalN e
+  NumDiv {}             -> evalN e
+  NumMod {}             -> evalN e
+  NumRPlus {}           -> evalN e
+  NumRMul {}            -> evalN e
+  BaseTrue              -> evalF e
+  BaseFalse             -> evalF e
+  BaseBus {}            -> evalF e
+  BlnEQ {}              -> evalF e
+  BlnNEQ {}             -> evalF e
+  BlnGE {}              -> evalF e
+  BlnGEQ {}             -> evalF e
+  BlnLE {}              -> evalF e
+  BlnLEQ {}             -> evalF e
+  BlnNot {}             -> evalF e
+  BlnOr {}              -> evalF e
+  BlnROr {}             -> evalF e
+  BlnAnd {}             -> evalF e
+  BlnRAnd {}            -> evalF e
+  BlnImpl {}            -> evalF e
+  BlnElem {}            -> evalF e
+  BlnEquiv {}           -> evalF e
+  LtlNext {}            -> evalF e
+  LtlStrongNext {}      -> evalF e
+  LtlRNext {}           -> evalF e
+  LtlRStrongNext {}     -> evalF e
+  LtlPrevious {}        -> evalF e
+  LtlRPrevious {}       -> evalF e
+  LtlGlobally {}        -> evalF e
+  LtlRGlobally {}       -> evalF e
+  LtlRStrongGlobally {} -> evalF e
+  LtlFinally {}         -> evalF e
+  LtlRFinally {}        -> evalF e
+  LtlRStrongFinally {}  -> evalF e
+  LtlHistorically {}    -> evalF e
+  LtlRHistorically {}   -> evalF e
+  LtlOnce {}            -> evalF e
+  LtlROnce {}           -> evalF e
+  LtlUntil {}           -> evalF e
+  LtlWeak {}            -> evalF e
+  LtlRelease {}         -> evalF e
+  LtlSince {}           -> evalF e
+  LtlTriggered{}        -> evalF e
+  SetExplicit {}        -> evalS e
+  SetRange {}           -> evalS e
+  SetCup {}             -> evalS e
+  SetRCup {}            -> evalS e
+  SetCap {}             -> evalS e
+  SetRCap {}            -> evalS e
+  SetMinus {}           -> evalS e
+  BaseId x              -> idValue x
+  BaseFml xs x          -> fmlValue s xs (srcPos e) x
+  Colon {}              -> evalColon s e
+  _                     -> assert False undefined
   where
   evalF = evalLtl s
 
@@ -695,10 +697,26 @@ evalLtl s e = case expr e of
     if i > j
     then return $ VLtl TTrue
     else evalF y >>= \case
+      VLtl v -> return $ VLtl $ iter wNext i $
+                 iter (\a -> And [v, wNext a]) (j - i) v
+      _      -> assert False undefined
+  LtlRStrongGlobally x y     -> do
+    (i,j) <- evalRange s x
+    if i > j
+    then return $ VLtl TTrue
+    else evalF y >>= \case
       VLtl v -> return $ VLtl $ iter sNext i $
                  iter (\a -> And [v, sNext a]) (j - i) v
       _      -> assert False undefined
   LtlRFinally x y      -> do
+    (i,j) <- evalRange s x
+    if i > j
+    then return $ VLtl TTrue
+    else evalF y >>= \case
+      VLtl v -> return $ VLtl $ iter wNext i $
+                 iter (\a -> Or [v, wNext a]) (j - i) v
+      _      -> assert False undefined
+  LtlRStrongFinally x y      -> do
     (i,j) <- evalRange s x
     if i > j
     then return $ VLtl TTrue

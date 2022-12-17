@@ -214,10 +214,14 @@ exprParser = (~~) >> buildExpressionParser table term
       <|> unOp1 'F' LtlFinally
       <|> unOp1 'H' LtlHistorically
       <|> unOp1 'O' LtlOnce
+      <|> parSOpL "X" exprParser LtlRStrongNext
+      <|> parSOpR "X" exprParser LtlRStrongNext
       <|> parOp "X" exprParser LtlRNext
-      <|> parSNextL exprParser LtlRStrongNext
-      <|> parSNextR exprParser LtlRStrongNext
       <|> parOp "Y" exprParser LtlRPrevious
+      <|> parSOpL "F" exprParser LtlRStrongFinally
+      <|> parSOpR "F" exprParser LtlRStrongFinally
+      <|> parSOpL "G" exprParser LtlRStrongGlobally
+      <|> parSOpR "G" exprParser LtlRStrongGlobally
       <|> parOp "G" exprParser LtlRGlobally
       <|> parOp "F" exprParser LtlRFinally
       <|> parOp "H" exprParser LtlRHistorically
@@ -331,14 +335,16 @@ exprParser = (~~) >> buildExpressionParser table term
       e <- p; ch ']'; (~~)
       return (c e)
 
-    parSNextL p c = do
-      reservedOp tokenparser "X[!"
+    parSOpL x p c = do
+      reservedOp tokenparser (x ++ "[!")
       e <- p; ch ']'; (~~)
       return (c e)
 
-    parSNextR p c = do
-      reservedOp tokenparser "X["
-      e <- p; ch2 '!' ']'; (~~)
+    parSOpR x p c = try $ do
+      reservedOp tokenparser (x ++ "[")
+      ch2 '!' ']'
+      lookahead
+      e <- p; (~~)
       return (c e)
 
     between' c1 c2 p = do

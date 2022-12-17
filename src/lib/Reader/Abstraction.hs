@@ -316,61 +316,63 @@ abstractExpr
   :: Abstractor (Expr String) (Expr Int)
 
 abstractExpr e = case expr e of
-  BaseOtherwise        -> return $ Expr BaseOtherwise $ srcPos e
-  BaseWild             -> return $ Expr BaseWild $ srcPos e
-  BaseTrue             -> return $ Expr BaseTrue $ srcPos e
-  BaseFalse            -> return $ Expr BaseFalse $ srcPos e
-  BaseCon x            -> return $ Expr (BaseCon x) $ srcPos e
-  BlnNot x             -> lift' BlnNot x
-  NumSMin x            -> lift' NumSMin x
-  NumSMax x            -> lift' NumSMax x
-  NumSSize x           -> lift' NumSSize x
-  NumSizeOf x          -> lift' NumSizeOf x
-  LtlNext x            -> lift' LtlNext x
-  LtlStrongNext x      -> lift' LtlStrongNext x
-  LtlPrevious x        -> lift' LtlPrevious x
-  LtlGlobally x        -> lift' LtlGlobally x
-  LtlFinally x         -> lift' LtlFinally x
-  LtlHistorically x    -> lift' LtlHistorically x
-  LtlOnce x            -> lift' LtlOnce x
-  NumPlus x y          -> lift2' NumPlus x y
-  NumMinus x y         -> lift2' NumMinus x y
-  NumMul x y           -> lift2' NumMul x y
-  NumDiv x y           -> lift2' NumDiv x y
-  NumMod x y           -> lift2' NumMod x y
-  SetCup x y           -> lift2' SetCup x y
-  SetCap x y           -> lift2' SetCap x y
-  SetMinus x y         -> lift2' SetMinus x y
-  BlnEQ x y            -> lift2' BlnEQ x y
-  BlnNEQ x y           -> lift2' BlnNEQ x y
-  BlnGE x y            -> lift2' BlnGE x y
-  BlnGEQ x y           -> lift2' BlnGEQ x y
-  BlnLE x y            -> lift2' BlnLE x y
-  BlnLEQ x y           -> lift2' BlnLEQ x y
-  BlnElem x y          -> lift2' BlnElem x y
-  BlnOr x y            -> lift2' BlnOr x y
-  BlnAnd x y           -> lift2' BlnAnd x y
-  BlnImpl x y          -> lift2' BlnImpl x y
-  BlnEquiv x y         -> lift2' BlnEquiv x y
-  LtlRNext x y         -> lift2' LtlRNext x y
-  LtlRStrongNext x y   -> lift2' LtlRStrongNext x y
-  LtlRPrevious x y     -> lift2' LtlRPrevious x y
-  LtlRGlobally x y     -> lift2' LtlRGlobally x y
-  LtlRFinally x y      -> lift2' LtlRFinally x y
-  LtlRHistorically x y -> lift2' LtlRHistorically x y
-  LtlROnce x y         -> lift2' LtlROnce x y
-  LtlUntil x y         -> lift2' LtlUntil x y
-  LtlWeak x y          -> lift2' LtlWeak x y
-  LtlRelease x y       -> lift2' LtlRelease x y
-  LtlSince x y         -> lift2' LtlSince x y
-  LtlTriggered x y     -> lift2' LtlTriggered x y
-  NumRPlus xs x        -> cond NumRPlus xs x
-  NumRMul xs x         -> cond NumRMul xs x
-  SetRCup xs x         -> cond SetRCup xs x
-  SetRCap xs x         -> cond SetRCap xs x
-  BlnROr xs x          -> cond BlnROr xs x
-  BlnRAnd xs x         -> cond BlnRAnd xs x
-  BaseId x             -> do
+  BaseOtherwise          -> return $ Expr BaseOtherwise $ srcPos e
+  BaseWild               -> return $ Expr BaseWild $ srcPos e
+  BaseTrue               -> return $ Expr BaseTrue $ srcPos e
+  BaseFalse              -> return $ Expr BaseFalse $ srcPos e
+  BaseCon x              -> return $ Expr (BaseCon x) $ srcPos e
+  BlnNot x               -> lift' BlnNot x
+  NumSMin x              -> lift' NumSMin x
+  NumSMax x              -> lift' NumSMax x
+  NumSSize x             -> lift' NumSSize x
+  NumSizeOf x            -> lift' NumSizeOf x
+  LtlNext x              -> lift' LtlNext x
+  LtlStrongNext x        -> lift' LtlStrongNext x
+  LtlPrevious x          -> lift' LtlPrevious x
+  LtlGlobally x          -> lift' LtlGlobally x
+  LtlFinally x           -> lift' LtlFinally x
+  LtlHistorically x      -> lift' LtlHistorically x
+  LtlOnce x              -> lift' LtlOnce x
+  NumPlus x y            -> lift2' NumPlus x y
+  NumMinus x y           -> lift2' NumMinus x y
+  NumMul x y             -> lift2' NumMul x y
+  NumDiv x y             -> lift2' NumDiv x y
+  NumMod x y             -> lift2' NumMod x y
+  SetCup x y             -> lift2' SetCup x y
+  SetCap x y             -> lift2' SetCap x y
+  SetMinus x y           -> lift2' SetMinus x y
+  BlnEQ x y              -> lift2' BlnEQ x y
+  BlnNEQ x y             -> lift2' BlnNEQ x y
+  BlnGE x y              -> lift2' BlnGE x y
+  BlnGEQ x y             -> lift2' BlnGEQ x y
+  BlnLE x y              -> lift2' BlnLE x y
+  BlnLEQ x y             -> lift2' BlnLEQ x y
+  BlnElem x y            -> lift2' BlnElem x y
+  BlnOr x y              -> lift2' BlnOr x y
+  BlnAnd x y             -> lift2' BlnAnd x y
+  BlnImpl x y            -> lift2' BlnImpl x y
+  BlnEquiv x y           -> lift2' BlnEquiv x y
+  LtlRNext x y           -> lift2' LtlRNext x y
+  LtlRStrongNext x y     -> lift2' LtlRStrongNext x y
+  LtlRPrevious x y       -> lift2' LtlRPrevious x y
+  LtlRGlobally x y       -> lift2' LtlRGlobally x y
+  LtlRStrongFinally x y  -> lift2' LtlRStrongFinally x y
+  LtlRStrongGlobally x y -> lift2' LtlRStrongGlobally x y
+  LtlRFinally x y        -> lift2' LtlRFinally x y
+  LtlRHistorically x y   -> lift2' LtlRHistorically x y
+  LtlROnce x y           -> lift2' LtlROnce x y
+  LtlUntil x y           -> lift2' LtlUntil x y
+  LtlWeak x y            -> lift2' LtlWeak x y
+  LtlRelease x y         -> lift2' LtlRelease x y
+  LtlSince x y           -> lift2' LtlSince x y
+  LtlTriggered x y       -> lift2' LtlTriggered x y
+  NumRPlus xs x          -> cond NumRPlus xs x
+  NumRMul xs x           -> cond NumRMul xs x
+  SetRCup xs x           -> cond SetRCup xs x
+  SetRCap xs x           -> cond SetRCap xs x
+  BlnROr xs x            -> cond BlnROr xs x
+  BlnRAnd xs x           -> cond BlnRAnd xs x
+  BaseId x               -> do
     (x',p) <- check (x,srcPos e)
     return $ Expr (BaseId x') p
   BaseBus x y          -> do
@@ -437,35 +439,37 @@ abstractExpr e = case expr e of
       _        -> Nothing
 
     getPatternIds z = case expr z of
-      BaseWild             -> return ()
-      BaseTrue             -> return ()
-      BaseFalse            -> return ()
-      BaseOtherwise        -> return ()
-      BaseId i             -> void $ add (i,srcPos z)
-      BlnNot x             -> getPatternIds x
-      BlnOr x y            -> mapM_ getPatternIds [x,y]
-      BlnAnd x y           -> mapM_ getPatternIds [x,y]
-      BlnImpl x y          -> mapM_ getPatternIds [x,y]
-      BlnEquiv x y         -> mapM_ getPatternIds [x,y]
-      LtlNext x            -> getPatternIds x
-      LtlStrongNext x      -> getPatternIds x
-      LtlRNext _ x         -> getPatternIds x
-      LtlRStrongNext _ x   -> getPatternIds x
-      LtlPrevious x        -> getPatternIds x
-      LtlRPrevious _ x     -> getPatternIds x
-      LtlGlobally x        -> getPatternIds x
-      LtlRGlobally _ x     -> getPatternIds x
-      LtlFinally x         -> getPatternIds x
-      LtlRFinally _ x      -> getPatternIds x
-      LtlHistorically x    -> getPatternIds x
-      LtlRHistorically _ x -> getPatternIds x
-      LtlOnce x            -> getPatternIds x
-      LtlROnce _ x         -> getPatternIds x
-      LtlUntil x y         -> mapM_ getPatternIds [x,y]
-      LtlWeak x y          -> mapM_ getPatternIds [x,y]
-      LtlRelease x y       -> mapM_ getPatternIds [x,y]
-      LtlSince x y         -> mapM_ getPatternIds [x,y]
-      LtlTriggered x y     -> mapM_ getPatternIds [x,y]
-      _                    -> errPattern $ srcPos z
+      BaseWild               -> return ()
+      BaseTrue               -> return ()
+      BaseFalse              -> return ()
+      BaseOtherwise          -> return ()
+      BaseId i               -> void $ add (i,srcPos z)
+      BlnNot x               -> getPatternIds x
+      BlnOr x y              -> mapM_ getPatternIds [x,y]
+      BlnAnd x y             -> mapM_ getPatternIds [x,y]
+      BlnImpl x y            -> mapM_ getPatternIds [x,y]
+      BlnEquiv x y           -> mapM_ getPatternIds [x,y]
+      LtlNext x              -> getPatternIds x
+      LtlStrongNext x        -> getPatternIds x
+      LtlRNext _ x           -> getPatternIds x
+      LtlRStrongNext _ x     -> getPatternIds x
+      LtlPrevious x          -> getPatternIds x
+      LtlRPrevious _ x       -> getPatternIds x
+      LtlGlobally x          -> getPatternIds x
+      LtlRGlobally _ x       -> getPatternIds x
+      LtlRStrongGlobally _ x -> getPatternIds x
+      LtlFinally x           -> getPatternIds x
+      LtlRFinally _ x        -> getPatternIds x
+      LtlRStrongFinally _ x  -> getPatternIds x
+      LtlHistorically x      -> getPatternIds x
+      LtlRHistorically _ x   -> getPatternIds x
+      LtlOnce x              -> getPatternIds x
+      LtlROnce _ x           -> getPatternIds x
+      LtlUntil x y           -> mapM_ getPatternIds [x,y]
+      LtlWeak x y            -> mapM_ getPatternIds [x,y]
+      LtlRelease x y         -> mapM_ getPatternIds [x,y]
+      LtlSince x y           -> mapM_ getPatternIds [x,y]
+      LtlTriggered x y       -> mapM_ getPatternIds [x,y]
+      _                      -> errPattern $ srcPos z
 
 -----------------------------------------------------------------------------
