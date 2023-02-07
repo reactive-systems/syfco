@@ -91,6 +91,10 @@ data Semantics =
     -- ^ Mealy machine semantics with strict envionment assumptions.
   | SemanticsStrictMoore
     -- ^ Moore machine semantics with strict envionment assumptions.
+  | SemanticsFiniteMealy
+    -- ^ Mealy machine semantics with finite-trace assumptions.
+  | SemanticsFiniteMoore
+    -- ^ Moore machine semantics with finite-trace assumptions.
   deriving (Eq, Ord)
 
 -----------------------------------------------------------------------------
@@ -101,6 +105,8 @@ instance Convertible Semantics String where
     SemanticsMoore       -> "moore"
     SemanticsStrictMealy -> "mealy,strict"
     SemanticsStrictMoore -> "moore,strict"
+    SemanticsFiniteMealy -> "mealy,finite"
+    SemanticsFiniteMoore -> "moore,finite"
 
 -----------------------------------------------------------------------------
 
@@ -110,6 +116,8 @@ instance Convertible String Semantics where
     "moore"        -> return SemanticsMoore
     "mealy,strict" -> return SemanticsStrictMealy
     "moore,strict" -> return SemanticsStrictMoore
+    "mealy,finite" -> return SemanticsFiniteMealy
+    "moore,finite" -> return SemanticsFiniteMoore
     str            -> Left ConvertError
       { convSourceValue = str
       , convSourceType = "String"

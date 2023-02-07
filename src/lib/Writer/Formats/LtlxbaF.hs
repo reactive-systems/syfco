@@ -1,14 +1,14 @@
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Writer.Formats.Promela
+-- Module      :  Writer.Formats.Ltlxbaf
 -- License     :  MIT (see the LICENSE file)
--- Maintainer  :  Felix Klein (klein@react.uni-saarland.de)
+-- Maintainer  :  Guillermo A. Perez (guillermo.perez@uantwerpen.be)
 --
--- Transforms a specification to Spins Promela LTL.
+-- Transforms a spec to a Ltl2ba / Ltl3ba format for finite words.
 --
 -----------------------------------------------------------------------------
 
-module Writer.Formats.Promela where
+module Writer.Formats.LtlxbaF where
 
 -----------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ import Writer.Utils
 
 -----------------------------------------------------------------------------
 
--- | Promela operator configuration.
+-- | Ltl2ba / LTL3ba operator configuration.
 
 opConfig
   :: OperatorConfig
@@ -32,21 +32,21 @@ opConfig
 opConfig = OperatorConfig
   { tTrue          = "true"
   , fFalse         = "false"
-  , opNot          = UnaryOp  "!"   1
-  , opAnd          = BinaryOp "&&"  3 AssocLeft
-  , opOr           = BinaryOp "||"  3 AssocLeft
-  , opImplies      = BinaryOp "->"  3 AssocLeft
-  , opEquiv        = BinaryOp "<->" 3 AssocLeft
-  , opNext         = UnaryOp  "X"   1
-  , opStrongNext   = UnaryOpUnsupported
-  , opWeakNext     = UnaryOpUnsupported
+  , opNot          = UnaryOp  "!"    1
+  , opAnd          = BinaryOp "&&"   4 AssocLeft
+  , opOr           = BinaryOp "||"   4 AssocLeft
+  , opImplies      = BinaryOp "->"   4 AssocLeft
+  , opEquiv        = BinaryOp "<->"  4 AssocLeft
+  , opNext         = UnaryOpUnsupported
+  , opStrongNext   = UnaryOp  "X[!]" 1
+  , opWeakNext     = UnaryOp  "X"    1
   , opPrevious     = UnaryOpUnsupported
-  , opFinally      = UnaryOp  "<>"  1
-  , opGlobally     = UnaryOp  "[]"  1
+  , opFinally      = UnaryOp  "F"    1
+  , opGlobally     = UnaryOp  "G"    1
   , opHistorically = UnaryOpUnsupported
   , opOnce         = UnaryOpUnsupported
-  , opUntil        = BinaryOp "U"   2 AssocLeft
-  , opRelease      = BinaryOp "V"   2 AssocLeft
+  , opUntil        = BinaryOp "U"    2 AssocLeft
+  , opRelease      = BinaryOp "R"    3 AssocLeft
   , opWeak         = BinaryOpUnsupported
   , opSince        = BinaryOpUnsupported
   , opTriggered    = BinaryOpUnsupported
@@ -54,7 +54,7 @@ opConfig = OperatorConfig
 
 -----------------------------------------------------------------------------
 
--- | Promela LTL writer.
+-- | Ltl2ba / LTL3ba writer.
 
 writeFormat
   :: Configuration -> Specification -> Either Error String

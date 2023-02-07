@@ -208,23 +208,31 @@ semanticsParser = do
               }
            <|> return ("none", SrcPos (srcLine p1) (srcColumn p1 + length x))
   case (x,z) of
-    ("mealy","none")   -> return (SemanticsMealy, ExprPos p1 p2)
-    ("moore","none")   -> return (SemanticsMoore, ExprPos p1 p2)
-    ("mealy","strict") -> return (SemanticsStrictMealy, ExprPos p1 p2)
-    ("strict","mealy") -> return (SemanticsStrictMealy, ExprPos p1 p2)
-    ("moore","strict") -> return (SemanticsStrictMoore, ExprPos p1 p2)
-    ("strict","moore") -> return (SemanticsStrictMoore, ExprPos p1 p2)
-    ("mealy","moore")  -> unexpected "Moore"
-    ("moore","moore")  -> unexpected "Mealy"
-    ("moore","mealy")  -> unexpected "Mealy"
-    ("mealy","mealy")  -> unexpected "Mealy"
-    _                  -> unexpected "Strict"
+    ("mealy","none")     -> return (SemanticsMealy, ExprPos p1 p2)
+    ("moore","none")     -> return (SemanticsMoore, ExprPos p1 p2)
+    ("mealy","strict")   -> return (SemanticsStrictMealy, ExprPos p1 p2)
+    ("strict","mealy")   -> return (SemanticsStrictMealy, ExprPos p1 p2)
+    ("moore","strict")   -> return (SemanticsStrictMoore, ExprPos p1 p2)
+    ("strict","moore")   -> return (SemanticsStrictMoore, ExprPos p1 p2)
+    ("mealy","finite")   -> return (SemanticsFiniteMealy, ExprPos p1 p2)
+    ("finite","mealy")   -> return (SemanticsFiniteMealy, ExprPos p1 p2)
+    ("moore","finite")   -> return (SemanticsFiniteMoore, ExprPos p1 p2)
+    ("finite","moore")   -> return (SemanticsFiniteMoore, ExprPos p1 p2)
+    ("finite","strict")  -> unexpected "Strict"
+    ("strict","finite")  -> unexpected "Finite"
+    ("strict","strict")  -> unexpected "Strict"
+    ("mealy","moore")    -> unexpected "Moore"
+    ("moore","moore")    -> unexpected "Mealy"
+    ("moore","mealy")    -> unexpected "Mealy"
+    ("mealy","mealy")    -> unexpected "Mealy"
+    _                    -> unexpected "Strict"
 
   where
     semanticKeyword =
           do { keyword "Mealy"; return "mealy" }
       <|> do { keyword "Moore"; return "moore" }
       <|> do { keyword "Strict"; return "strict" }
+      <|> do { keyword "Finite"; return "finite" }
 
 -----------------------------------------------------------------------------
 
@@ -235,7 +243,7 @@ tokenparser =
   makeTokenParser globalDef
   { reservedNames  =
        ["INFO","TITLE","DESCRIPTION", "SEMANTICS",
-        "TAGS","Strict","Mealy","Moore","TARGET"] }
+        "TAGS","Strict","Mealy","Moore","TARGET", "Finite"] }
 
 -----------------------------------------------------------------------------
 

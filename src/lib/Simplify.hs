@@ -84,9 +84,9 @@ simplify c f =
       Next TTrue
         | sw || ss                          -> TTrue
         | otherwise                        -> Next TTrue
-      Next FFalse
+      StrongNext FFalse
         | sw || ss                          -> FFalse
-        | otherwise                        -> Next FFalse
+        | otherwise                        -> StrongNext FFalse
       Globally (Globally x)
         | sw || ss || hg || lg || ng || nd      -> simplify' $ Globally x
         | otherwise                        -> Globally $ simplify' $ Globally x
@@ -126,8 +126,14 @@ simplify c f =
       Not (Not x)
         | sw || ss || nnf                    -> simplify' x
         | otherwise                        -> Not $ Not $ simplify' x
+      Not (StrongNext x)
+        | ss || ln || nnf                  -> WeakNext $ simplify' $ Not x
+        | otherwise                        -> Not $ simplify' $ StrongNext x
+      Not (WeakNext x)
+        | ss || ln || nnf                  -> StrongNext $ simplify' $ Not x
+        | otherwise                        -> Not $ simplify' $ WeakNext x
       Not (Next x)
-        | ss || ln || nnf                    -> Next $ simplify' $ Not x
+        | ss || ln || nnf                  -> Next $ simplify' $ Not x
         | otherwise                        -> Not $ simplify' $ Next x
       Not (Previous x)                     -> Not $ simplify' $ Previous x
       Not (Globally x)
@@ -172,13 +178,23 @@ simplify c f =
       Not (Triggered x y)
         | ss || nnf                         -> simplify' $ Since (Not x) $ Not y
         | otherwise                        -> Not $ Triggered (simplify' x) $ simplify' y
+      Finally (StrongNext x)
+        | ss || ln || hf                     -> simplify' $ StrongNext $ Finally x
+        | nf || nd                          -> simplify' $ Until TTrue $ StrongNext x
+        | otherwise                        -> Finally $ simplify' $ StrongNext x
+      Finally (WeakNext x)
+        | ss || ln || hf || nf || nd       -> TTrue
+        | otherwise                        -> Finally $ simplify' $ StrongNext x
       Finally (Next x)
         | ss || ln || hf                     -> simplify' $ Next $ Finally x
         | nf || nd                          -> simplify' $ Until TTrue $ Next x
-        | otherwise                        -> Finally $ simplify' $ Next x
+        | otherwise                        -> Finally $ simplify' $ StrongNext x
       Next (Finally x)
         | (hn && not hf) || (lf && not ln && not ss) -> simplify' $ Finally $ Next x
         | otherwise                        -> Next $ simplify' $ Finally x
+      StrongNext (Finally x)
+        | (hn && not hf) || (lf && not ln && not ss) -> simplify' $ Finally $ StrongNext x
+        | otherwise                        -> StrongNext $ simplify' $ Finally x
       Next (And xs)
         | hn                               -> simplify' $ And $ map Next xs
         | otherwise                        -> Next $ simplify' $ And xs
@@ -365,6 +381,8 @@ simplify c f =
       Since x y                            -> Since (simplify' x) (simplify' y)
       Triggered x y                        -> Triggered (simplify' x) (simplify' y)
       Next x                               -> Next (simplify' x)
+      StrongNext x                         -> StrongNext (simplify' x)
+      WeakNext x                           -> WeakNext (simplify' x)
       Previous x                           -> Previous (simplify' x)
       Not (Atomic x)                       -> Not (Atomic x)
       Atomic x                             -> Atomic x

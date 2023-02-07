@@ -119,8 +119,14 @@ printFormula opc writeMode quoteMode formula = do
       Equiv x y
         | unsupported opequiv        -> errUnsupportedOp "Boolean operator: \"equivalence\""
         | otherwise                  -> checkSupported x >> checkSupported y
+      StrongNext x
+        | unsupported opstrongnext   -> errUnsupportedOp "temporal operator: \"strong next\""
+        | otherwise                  -> checkSupported x
       Next x
         | unsupported opnext         -> errUnsupportedOp "temporal operator: \"next\""
+        | otherwise                  -> checkSupported x
+      WeakNext x
+        | unsupported opweaknext     -> errUnsupportedOp "temporal operator: \"weak next\""
         | otherwise                  -> checkSupported x
       Previous x
         | unsupported opprevious     -> errUnsupportedOp "past LTL operator: \"previous\""
@@ -191,6 +197,8 @@ printFormula opc writeMode quoteMode formula = do
       Implies x y             -> pr' (binOp opimplies $ pr' a f False x) f True y
       Equiv x y               -> pr' (binOp opequiv $ pr' a f False x) f True y
       Next x                  -> pr' (unOp opnext a) f True x
+      StrongNext x            -> pr' (unOp opstrongnext a) f True x
+      WeakNext x              -> pr' (unOp opweaknext a) f True x
       Previous x              -> pr' (unOp opprevious a) f True x
       Globally x              -> pr' (unOp opglobally a) f True x
       Finally x               -> pr' (unOp opfinally a) f True x
@@ -212,6 +220,8 @@ printFormula opc writeMode quoteMode formula = do
       Implies {}      -> dp + bopPrecedence opimplies
       Equiv {}        -> dp + bopPrecedence opequiv
       Next {}         -> dp + uopPrecedence opnext
+      StrongNext {}   -> dp + uopPrecedence opstrongnext
+      WeakNext {}     -> dp + uopPrecedence opweaknext
       Previous {}     -> dp + uopPrecedence opprevious
       Globally {}     -> dp + uopPrecedence opglobally
       Finally {}      -> dp + uopPrecedence opfinally
@@ -233,6 +243,8 @@ printFormula opc writeMode quoteMode formula = do
       Implies {}      -> bopAssoc opimplies
       Equiv {}        -> bopAssoc opequiv
       Next {}         -> AssocLeft
+      StrongNext {}   -> AssocLeft
+      WeakNext {}     -> AssocLeft
       Previous {}     -> AssocLeft
       Globally {}     -> AssocLeft
       Finally {}      -> AssocLeft
@@ -267,6 +279,8 @@ printFormula opc writeMode quoteMode formula = do
           , bopPrecedence' . opImplies
           , bopPrecedence' . opEquiv
           , uopPrecedence' . opNext
+          , uopPrecedence' . opStrongNext
+          , uopPrecedence' . opWeakNext
           , uopPrecedence' . opFinally
           , uopPrecedence' . opGlobally
           , bopPrecedence' . opUntil
@@ -286,6 +300,8 @@ printFormula opc writeMode quoteMode formula = do
     opimplies = opImplies opc
     opequiv = opEquiv opc
     opnext = opNext opc
+    opstrongnext = opStrongNext opc
+    opweaknext = opWeakNext opc
     opprevious = opPrevious opc
     opfinally = opFinally opc
     opglobally = opGlobally opc

@@ -44,6 +44,8 @@ opConfig = OperatorConfig
   , opImplies      = BinaryOp "->"  4 AssocRight
   , opEquiv        = BinaryOp "<->" 4 AssocRight
   , opNext         = UnaryOp  "X"   1
+  , opStrongNext   = UnaryOpUnsupported
+  , opWeakNext     = UnaryOpUnsupported
   , opPrevious     = UnaryOpUnsupported
   , opFinally      = UnaryOp  "F"   1
   , opGlobally     = UnaryOp  "G"   1
@@ -100,6 +102,8 @@ writeFormat config specification = do
         SemanticsMoore       -> "\"moore\""
         SemanticsStrictMealy -> "\"mealy\""
         SemanticsStrictMoore -> "\"moore\""
+        SemanticsFiniteMealy -> "\"mealy\""
+        SemanticsFiniteMoore -> "\"moore\""
 
     quote x = "\"" ++ x ++ "\""
 

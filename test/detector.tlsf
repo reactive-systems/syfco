@@ -1,0 +1,28 @@
+INFO {
+  TITLE:       "Parameterized Input Monitor"
+  DESCRIPTION: "Checks whether all input signals are eventually true"
+  SEMANTICS:   Mealy
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 1;
+  }
+}
+
+MAIN {
+
+  INPUTS {
+    r[n]; // request signals
+  } 
+
+  OUTPUTS {
+    g; // grant signal
+  }
+
+  GUARANTEES {
+    &&[0 <= i < n] G F r[i] <-> G F g;
+  }
+  
+}
