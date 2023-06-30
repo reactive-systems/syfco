@@ -468,7 +468,7 @@ usage m =
       , ("g", "print-target", Nothing,
          [ "output the target of the input file" ])
       , ("a", "print-tags", Nothing,
-         [ "output the target of the input file" ])
+         [ "output the tags of the input file" ])
       , ("p", "print-parameters", Nothing,
          [ "output the parameters of the input file" ])
       , ("i", "print-info", Nothing,
