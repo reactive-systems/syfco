@@ -1,0 +1,32 @@
+INFO {
+  TITLE:       "Simple finite semantics example"
+  DESCRIPTION: "Example"
+  SEMANTICS:   Finite,Mealy
+  TARGET:      Mealy
+}
+
+MAIN {
+  INPUTS {
+    DECIDE;
+  } 
+
+  OUTPUTS {
+    READY1;
+    READY2;
+    READY3;
+  }
+
+  INVARIANTS {
+    G[!1:2] !  DECIDE;
+  }
+
+  GUARANTEES {
+    X[2!] READY1;
+    F[3:5!] READY2;
+    G[6:7] ! READY3;
+  }
+}
+//#!SYNTCOMP
+//STATUS : realizable
+//REF_SIZE : 14
+//#.

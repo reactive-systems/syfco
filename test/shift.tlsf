@@ -1,0 +1,29 @@
+INFO {
+  TITLE:       "Shift"
+  DESCRIPTION: "Shifts the input by one position to the output"
+  SEMANTICS:   Mealy
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 10;
+  }
+}
+
+MAIN {
+
+  INPUTS {
+    in[n];
+  } 
+
+  OUTPUTS {
+    out[n]
+  }
+
+  ASSERT {
+    &&[0 <= i < n-1]
+      (in[i] <-> out[i+1]);
+    in[n-1] <-> out[0];
+  }
+}

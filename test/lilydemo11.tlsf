@@ -1,0 +1,28 @@
+INFO {
+  TITLE:       "Lily Demo V11"
+  DESCRIPTION: "One of the Lily demo files"
+  SEMANTICS:   Mealy
+  TARGET:      Mealy
+}
+
+MAIN {
+
+  INPUTS {
+    req;
+    go;
+  }
+
+  OUTPUTS {
+    grant;
+    ack;
+  }
+
+  GUARANTEES {
+    !( G(req -> F ack) && G(go -> F grant) );
+  }
+  
+}
+//#!SYNTCOMP
+//STATUS : unrealizable
+//REF_SIZE : -1
+//#.

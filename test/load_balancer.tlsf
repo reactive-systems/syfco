@@ -1,0 +1,70 @@
+INFO {
+  TITLE:       "Parameterized Load Balancer"
+  DESCRIPTION: "Parameterized Load Balancer (generalized version of the Acacia+ benchmark)"
+  SEMANTICS:   Mealy
+  TARGET:      Mealy
+}
+
+GLOBAL {
+  PARAMETERS {
+    n = 2;
+  }
+
+  DEFINITIONS {
+    // ensures mutual exclusion on an n-ary bus
+    mutual_exclusion(bus) =
+     mone(bus,0,(SIZEOF bus) - 1);
+
+    // ensures that none of the signals
+    // bus[i] - bus[j] is HIGH
+    none(bus,i,j) =
+      &&[i <= t <= j]
+        !bus[t];
+
+    // ensures that at most one of the signals
+    // bus[i] - bus[j] is HIGH
+    mone(bus,i,j) =
+    i > j : false
+    i == j : true
+    i < j :
+      // either no signal of the lower half is HIGH and at 
+      // most one signal of the upper half is HIGH
+      (none(bus, i, m(i,j)) && mone(bus, m(i,j) + 1, j)) ||
+      // or at most one signal of the lower half is HIGH
+      // and no signal in of the upper half is HIGH
+      (mone(bus, i, m(i,j)) && none(bus, m(i,j) + 1, j));
+
+    // returns the position between i and j
+    m(i,j) = (i + j) / 2;
+  }   
+}
+
+MAIN {
+
+  INPUTS {
+    idle;
+    request[n];
+  }
+
+  OUTPUTS {
+    grant[n];
+  }
+
+  ASSUMPTIONS {
+    G F idle;
+    G (idle && X &&[0 <= i < n] !grant[i] -> X idle);
+    G (X !grant[0] || X ((!request[0] && !idle) U (!request[0] && idle)));
+  }
+
+  INVARIANTS {
+    X mutual_exclusion(grant);    
+    &&[0 <= i < n] (X grant[i] -> request[i]);
+    &&[0 < i < n] (request[0] -> grant[i]);
+    !idle -> X &&[0 <= i < n] !grant[i];
+  }
+
+  GUARANTEES {
+    &&[0 <= i < n] ! F G (request[i] && X !grant[i]);
+  }
+
+}
