@@ -136,7 +136,7 @@ exprParser = (~~) >> buildExpressionParser table term
         , Infix  (binOp "OR"       BlnOr)        AssocLeft
         ]
       , [ Infix  (binOp "->"       BlnImpl)      AssocRight
-        , Infix  (binOp "IMPIES"   BlnImpl)      AssocRight
+        , Infix  (binOp "IMPLIES"  BlnImpl)      AssocRight
         , Infix  (binOp "<->"      BlnEquiv)     AssocRight
         , Infix  (binOp "EQUIV"    BlnEquiv)     AssocRight
         ]
