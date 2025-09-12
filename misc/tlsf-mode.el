@@ -29,8 +29,8 @@
 
 (defvar tlsf-builtin
   '("G" "F" "X" "U" "R" "W" "AND" "OR"    
-    "Mealy" "Moore" "Strict" "NOT"  "IN"
-    "EQIUV" "IMPLIES" "true" "false" "MIN" "MAX"
+    "Mealy" "Moore" "Strict" "Finite" "NOT" "IN"
+    "EQUIV" "IMPLIES" "true" "false" "MIN" "MAX"
     "ELEM" "SIZE" "SIZEOF" "MUL" "DIV" "MOD"
     "PLUS" "MINUS" "SETMINUS" "CAP" "CUP" "EQ"
     "NEQ" "LE" "LEQ" "GE" "GEQ" "SUM" "PROD"
