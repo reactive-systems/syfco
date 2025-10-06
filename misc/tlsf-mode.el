@@ -7,12 +7,12 @@
 ;; Version: 1.0
 ;;
 ;; This is a major-mode which provides syntax highlighting and
-;; indentation for Specifications in the (extended) Tempral Logic
-;; Synthesis Format (TLSF). The mode supports prettify-symobls-mode.
+;; indentation for Specifications in the (extended) Temporal Logic
+;; Synthesis Format (TLSF). The mode supports prettify-symbols-mode.
 
 
-;; To use the mode load the file and put the following line in you .emacs:
-;; 
+;; To use the mode, load the file and put the following line in you .emacs:
+;;
 ;; (require 'tlsf-mode)
 ;;
 ;; If you wanna use pretty utf8 symbols (requires >= Emacs 24.4) instead
@@ -28,7 +28,7 @@
 ;; Implementation:
 
 (defvar tlsf-builtin
-  '("G" "F" "X" "U" "R" "W" "AND" "OR"    
+  '("G" "F" "X" "U" "R" "W" "AND" "OR"
     "Mealy" "Moore" "Strict" "Finite" "NOT" "IN"
     "EQUIV" "IMPLIES" "true" "false" "MIN" "MAX"
     "ELEM" "SIZE" "SIZEOF" "MUL" "DIV" "MOD"
@@ -56,7 +56,7 @@
 (defvar tlsf-enum-regexp "^\\s-*enum\\s-*\\(\\w+\\)\\s-*=")
 (defvar tlsf-bus-regexp "\\[\\(\\w+\\)\\]")
 (defvar tlsf-typedbus-regexp "^\\s-*\\(\\<\\w+\\>\\)\\s-*\\<\\w+\\>\\s-*;")
- 
+
 (defvar tlsf-kw-regexp (regexp-opt tlsf-kw 'words))
 (defvar tlsf-builtin-regexp (regexp-opt tlsf-builtin 'words))
 
@@ -64,18 +64,21 @@
  `((,tlsf-kw-regexp . font-lock-keyword-face)
    (,tlsf-builtin-regexp . font-lock-builtin-face)
    (,tlsf-connectives-regexp . font-lock-variable-name-face)
-   (,tlsf-function-regexp (1 font-lock-function-name-face))
    (,tlsf-bus-regexp 1 font-lock-type-face)
-   (,tlsf-typedbus-regexp 1 font-lock-type-face)   
-   (,tlsf-enum-regexp 1 font-lock-type-face) 
+   (,tlsf-typedbus-regexp 1 font-lock-type-face)
+   (,tlsf-enum-regexp 1 font-lock-type-face)
    (,tlsf-function-regexp
-    "\\<\\w*\\>"
-    (progn
-      (re-search-backward "(")
-      (save-excursion
-        (search-forward-regexp "[^)]*)")))
-    nil
-    (0 font-lock-constant-face))))
+    ;; highlight the function/parameter definitions
+    (1 font-lock-function-name-face)
+    ;; If we have parentheses, highlight each argument.
+    ("\\<\\w*\\>"
+     (let ((arg-start (match-beginning 2)))
+       (if arg-start
+           (progn (goto-char arg-start)
+                  (match-end 2))
+         (point)))
+     nil
+     (0 font-lock-constant-face)))))
 
 (defun tlsf-indent-line ()
   "Simple indentation of a line in TLSF code"
@@ -104,7 +107,7 @@
                     (setq not-indented nil)))))))
       (if cur-indent
           (indent-line-to cur-indent)
-        (indent-line-to 0)))))                 
+        (indent-line-to 0)))))
 
 (defun tlsf-pretty-symbols ()
   "Pretty Unicode Symbols"
@@ -113,37 +116,37 @@
    '(("(+)" . ?∪)
      ("CUP" . ?∪)
      ("(*)" . ?∩)
-     ("CAP" . ?∩)     
+     ("CAP" . ?∩)
      ("(/)" . ?∕)
      ("SETMINUS" . ?∕)
    ;  ("(<)" . ?⊆)
    ;  ("(>)" . ?⊇)
      ("&&" . ?∧)
      ("AND" . ?∧)
-     ("FORALL" . ?∧)     
+     ("FORALL" . ?∧)
      ("||" . ?∨)
      ("OR" . ?∨)
      ("EXISTS" . ?∨)
      ("->" . ?→)
-     ("IMPLIES" . ?→)     
+     ("IMPLIES" . ?→)
      ("<-" . ?∈)
      ("IN" . ?∈)
-     ("ELEM" . ?∈)     
+     ("ELEM" . ?∈)
      ("<->" . ?↔)
-     ("EQUIV" . ?↔)     
+     ("EQUIV" . ?↔)
      ("/=" . ?≢)
-     ("!=" . ?≢)     
-     ("NEQ" . ?≢)     
+     ("!=" . ?≢)
+     ("NEQ" . ?≢)
      ("<=" . ?≤)
-     ("LEQ" . ?≤)     
+     ("LEQ" . ?≤)
      (">=" . ?≥)
      ("GEQ" . ?≥)
      ("LE" . ?<)
-     ("GE" . ?>)               
+     ("GE" . ?>)
      ("==" . ?≡)
      ("EQ" . ?≡)
      ("!" . ?¬)
-     ("NOT" . ?¬)          
+     ("NOT" . ?¬)
      ("~" . ?∼)
      ("{}" . ?∅)
      ("G" . ?□)
@@ -159,8 +162,8 @@
   (modify-syntax-entry ?_ "w" tlsf-mode-syntax-table)
   (modify-syntax-entry ?' "w" tlsf-mode-syntax-table)
 
-  (setq font-lock-defaults '(tlsf-keywords))  
-  
+  (setq font-lock-defaults '(tlsf-keywords))
+
   (set (make-local-variable 'indent-line-function) 'tlsf-indent-line))
 
 ;;;###autoload
