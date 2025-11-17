@@ -188,7 +188,7 @@ simplify c f =
       Finally (Next x)
         | ss || ln || hf                     -> simplify' $ Next $ Finally x
         | nf || nd                          -> simplify' $ Until TTrue $ Next x
-        | otherwise                        -> Finally $ simplify' $ StrongNext x
+        | otherwise                        -> Finally $ simplify' $ Next x
       Next (Finally x)
         | (hn && not hf) || (lf && not ln && not ss) -> simplify' $ Finally $ Next x
         | otherwise                        -> Next $ simplify' $ Finally x
