@@ -19,6 +19,7 @@
 module Writer.Utils
     ( printFormula
     , checkLower
+    , checkSpinIdentifiers
     , merge
     , adjust
     ) where
@@ -29,8 +30,15 @@ import Data.Maybe
     ( mapMaybe
     )
 
+import Data.List
+    ( find
+    )
+
 import Data.Char
     ( toLower
+    , isAsciiLower
+    , isAsciiUpper
+    , isDigit
     )
 
 import Config
@@ -45,6 +53,7 @@ import Data.LTL
     ( Atomic(..)
     , Formula(..)
     , fNot
+    , fmlSignals
     )
 
 import Data.SymbolTable
@@ -58,6 +67,7 @@ import Data.Specification
 import Writer.Error
     ( Error
     , errToLower
+    , errSpinIdentifier
     , errUnsupportedOp
     )
 
@@ -406,6 +416,37 @@ checkLower fmt s =
         if b == d
         then errToLower fmt a c $ idPos $ symboltable s ! i
         else checkDouble ((x,c,d) : xr)
+
+-----------------------------------------------------------------------------
+
+-- | Checks that all signal names of the given formulas are identifiers
+-- of the Spin LTL syntax, which is also used by LTL2BA and LTL3BA, i.e.,
+-- that they start with a lower case letter, followed by letters, digits,
+-- or underscores. LTL2BA and LTL3BA silently truncate the formula at
+-- any other character. Quoted names are not checked, since these tools
+-- do not support quotes anyway.
+
+checkSpinIdentifiers
+  :: String -> QuoteMode -> [Formula] -> Either Error ()
+
+checkSpinIdentifiers fmt qm fmls = case qm of
+  DoubleQuotes -> return ()
+  NoQuotes     ->
+    case find (not . valid) $ map name $ concatMap fmlSignals fmls of
+      Nothing -> return ()
+      Just n  -> errSpinIdentifier fmt n
+
+  where
+    name = \case
+      Input x  -> x
+      Output x -> x
+
+    valid = \case
+      c:cr -> isAsciiLower c && all identLetter cr
+      []   -> False
+
+    identLetter c =
+      isAsciiLower c || isAsciiUpper c || isDigit c || c == '_'
 
 -----------------------------------------------------------------------------
 

@@ -200,8 +200,8 @@ exprParser = (~~) >> buildExpressionParser table term
 
     setUnary =
           parOp "(+)" manyExprParser SetRCup
-      <|> parOp "CUP" manyExprParser SetRCap
-      <|> parOp "(-)" manyExprParser SetRCup
+      <|> parOp "CUP" manyExprParser SetRCup
+      <|> parOp "(*)" manyExprParser SetRCap
       <|> parOp "CAP" manyExprParser SetRCap
 
     ltlUnary =

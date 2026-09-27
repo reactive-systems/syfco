@@ -61,6 +61,8 @@ writeFormat
 
 writeFormat c s = do
   (es,ss,rs,as,is,gs) <- eval c s
+  checkSpinIdentifiers "ltlxba" (quoteMode c) $
+    es ++ ss ++ rs ++ as ++ is ++ gs
   fml0 <- merge es ss rs as is gs
   fml1 <- simplify (adjust c opConfig) fml0
 
