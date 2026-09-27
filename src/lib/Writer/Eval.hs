@@ -1026,10 +1026,11 @@ evalSet s e = case expr e of
       errSetCap $ srcPos e
     else
       let
-        g vs = foldl S.intersection (head vs) vs
-        f = VSet . g . map (\(VSet v) -> v)
+        f vs = case [ v | VSet v <- vs ] of
+          []   -> errSetCap $ srcPos e
+          y:yr -> return $ VSet $ foldl S.intersection y yr
       in
-        evalCond evalS f xs x
+        evalCondM evalS f xs x
   BaseId _       ->
     evalExpr s e >>= \case
       VSet x -> return $ VSet x
@@ -1049,7 +1050,9 @@ evalSet s e = case expr e of
         _      -> assert False undefined
 
     evalCond = evalConditional s
-    
+
+    evalCondM = evalConditionalM s
+
     evalS = evalSet s
 
 -----------------------------------------------------------------------------
@@ -1058,7 +1061,20 @@ evalConditional
   :: Semantics -> (Expr Int -> StateT ST (Either Error) a) -> ([a] -> a)
       -> [Expr Int] -> Expr Int -> StateT ST (Either Error) a
 
-evalConditional sem fun f xs x =
+evalConditional sem fun f =
+  evalConditionalM sem fun (return . f)
+
+-----------------------------------------------------------------------------
+
+-- | Like 'evalConditional', but the results are combined by a
+-- function that may fail, e.g., if there is nothing to combine.
+
+evalConditionalM
+  :: Semantics -> (Expr Int -> StateT ST (Either Error) a)
+      -> ([a] -> StateT ST (Either Error) a)
+      -> [Expr Int] -> Expr Int -> StateT ST (Either Error) a
+
+evalConditionalM sem fun f xs x =
   if null xs then
     fun x
   else do
@@ -1090,7 +1106,7 @@ evalConditional sem fun f xs x =
     evalSet sem s >>= \case
       VSet vs ->
         mapM (bindExec i (tail xs) x) (S.toList vs)
-        >>= (return . f)
+        >>= f
       _       -> assert False undefined
 
   where
@@ -1099,7 +1115,7 @@ evalConditional sem fun f xs x =
       put st {
         tValues = IM.insert i v $ tValues st
         }
-      r <- evalConditional sem fun f xr e
+      r <- evalConditionalM sem fun f xr e
       put st
       return r
 
