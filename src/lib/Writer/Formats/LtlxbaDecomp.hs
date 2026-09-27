@@ -63,6 +63,8 @@ writeFormat
 
 writeFormat c s = do
   (es,ss,rs,as,is,gs) <- eval c s
+  checkSpinIdentifiers "ltlxba-decomp" (quoteMode c) $
+    es ++ ss ++ rs ++ as ++ is ++ gs
   fmlsI <- mapM (\i -> merge es ss rs as [i] []) is
   simpI <- mapM (simplify (adjust c opConfig)) fmlsI
   strsI <- mapM (printFormula opConfig (outputMode c) (quoteMode c)) simpI

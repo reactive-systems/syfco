@@ -18,6 +18,7 @@ module Writer.Error
     , errSetCap
     , errNoMatch
     , errToLower
+    , errSpinIdentifier
     , errNoGR1
     , errUnsupportedOp
     , prError
@@ -131,6 +132,30 @@ errToLower fmt n1 n2 pos =
             "However, automatic conversion introduces a clash, since " ++
             "then '" ++ n1 ++ "' equals '" ++ n2 ++ "'."
   in runtimeError pos msg
+
+-----------------------------------------------------------------------------
+
+-- | Throws an error that indicates a signal name, which is not an
+-- identifier of the Spin / LTL2BA / LTL3BA input syntax.
+
+errSpinIdentifier
+  :: String -> String -> Either Error a
+
+errSpinIdentifier fmt n =
+  let
+    msg = "The " ++ fmt ++ " format only accepts signal names that " ++
+          "start with a lower case letter, followed by letters, digits, " ++
+          "or underscores. However, the specification contains the " ++
+          "signal '" ++ n ++ "'." ++
+          hint '@' "@-symbols" "-as" ++
+          hint '\'' "Primes" "-ps"
+
+    hint c xs opt
+      | c `elem` n = "\n" ++ xs ++ " can be replaced by changing the " ++
+                     "default value of the \"" ++ opt ++ "\" option."
+      | otherwise  = ""
+  in
+    conversionError "invalid signal name" msg
 
 -----------------------------------------------------------------------------
 
